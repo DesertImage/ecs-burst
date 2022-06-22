@@ -246,6 +246,11 @@ namespace UniversalStore
             }
 #endif
             OnStartPaymentListener?.Invoke(purchasedInfo);
+
+            if (purchasedInfo.results.mConsumableYN == "Y")
+            {
+                ConsumePurchasedItems(purchasedInfo.results.mItemId, OnConsumePurchasedItemListener);
+            }
         }
 
         #endregion
