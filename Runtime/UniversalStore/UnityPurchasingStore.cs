@@ -163,7 +163,7 @@ namespace UniStore
             if (Validator != null)
             {
                 var receiptPayload = string.Empty;
-#if UNITY_IOS
+#if UNITY_IOS || AMAZON
                     var receipt = JsonConvert.DeserializeObject<Receipt>(purchaseEvent.purchasedProduct.receipt);
                     receiptPayload = receipt?.Payload;
 #endif
