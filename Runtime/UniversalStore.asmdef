@@ -6,9 +6,7 @@
         "UnityEngine.Purchasing.Stores",
         "HuaweiMobileServices.Core"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
