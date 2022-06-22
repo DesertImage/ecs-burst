@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Purchasing;
 using UnityEngine.Purchasing.Extension;
 
-namespace Monetization
+namespace UniversalStore
 {
     public class UnityPurchasingStore : BaseStore, IStoreListener
     {
@@ -111,6 +111,7 @@ namespace Monetization
             });
 #endif
         }
+
         #endregion
 
         public override IStore CreateNewInstance()

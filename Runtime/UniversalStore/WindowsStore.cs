@@ -1,7 +1,8 @@
+#if !HUAWEI && !SAMSUNG
 using System.Collections.Generic;
 using UnityEngine.Purchasing;
 
-namespace Monetization
+namespace UniversalStore
 {
     public class WindowsStore : UnityPurchasingStore
     {
@@ -20,3 +21,4 @@ namespace Monetization
         }
     }
 }
+#endif

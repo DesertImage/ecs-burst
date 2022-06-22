@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Monetization
+namespace UniversalStore
 {
     public interface IValidator
     {

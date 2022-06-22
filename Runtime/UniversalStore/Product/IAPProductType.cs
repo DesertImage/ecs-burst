@@ -1,4 +1,4 @@
-namespace Monetization
+namespace UniversalStore
 {
     public enum IAPProductType
     {

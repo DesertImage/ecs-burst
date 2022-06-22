@@ -6,7 +6,7 @@ using HmsPlugin;
 using HuaweiMobileServices.IAP;
 using HuaweiMobileServices.Utils;
 
-namespace Monetization
+namespace UniversalStore
 {
     public class HuaweiStore : BaseStore
     {
@@ -81,11 +81,6 @@ namespace Monetization
         }
 
         #endregion
-
-        public override void TryValidatePurchase(string receipt, string productId, Action<bool> callback)
-        {
-            callback?.Invoke(true);
-        }
 
         public override IStore CreateNewInstance()
         {

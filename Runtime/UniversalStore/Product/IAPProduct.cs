@@ -1,4 +1,4 @@
-namespace Monetization
+namespace UniversalStore
 {
     public struct IAPProduct
     {

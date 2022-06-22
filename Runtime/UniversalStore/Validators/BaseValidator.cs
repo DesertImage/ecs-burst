@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace Monetization
+namespace UniversalStore
 {
     public class BaseValidator : IValidator
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Monetization
+namespace UniversalStore
 {
     [Serializable]
     public class ValidationResponse

@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace Monetization
+namespace UniversalStore
 {
     public class AndroidValidator : BaseValidator
     {

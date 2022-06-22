@@ -5,7 +5,7 @@ using System.Linq;
 using Samsung;
 using UnityEngine;
 
-namespace Monetization
+namespace UniversalStore
 {
     public class SamsungStore : BaseStore
     {

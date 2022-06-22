@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "UnityEngine.Purchasing",
-        "UnityEngine.Purchasing.Stores"
+        "UnityEngine.Purchasing.Stores",
+        "HuaweiMobileServices.Core"
     ],
     "includePlatforms": [
         "Editor"
