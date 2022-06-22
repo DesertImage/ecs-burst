@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace UniversalStore
+namespace UniStore
 {
     public abstract class BaseStore : IStore
     {

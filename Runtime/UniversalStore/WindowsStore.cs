@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine.Purchasing;
 
-namespace UniversalStore
+namespace UniStore
 {
     public class WindowsStore : UnityPurchasingStore
     {

@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace UniversalStore
+namespace UniStore
 {
     public interface IValidator
     {

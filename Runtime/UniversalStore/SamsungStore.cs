@@ -5,7 +5,7 @@ using System.Linq;
 using Samsung;
 using UnityEngine;
 
-namespace UniversalStore
+namespace UniStore
 {
     public class SamsungStore : BaseStore
     {

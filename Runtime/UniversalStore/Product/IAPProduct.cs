@@ -1,4 +1,4 @@
-namespace UniversalStore
+namespace UniStore
 {
     public struct IAPProduct
     {

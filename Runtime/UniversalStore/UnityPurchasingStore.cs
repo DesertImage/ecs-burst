@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Purchasing;
 using UnityEngine.Purchasing.Extension;
 
-namespace UniversalStore
+namespace UniStore
 {
     public class UnityPurchasingStore : BaseStore, IStoreListener
     {

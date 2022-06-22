@@ -1,6 +1,6 @@
 using UnityEngine.Purchasing;
 
-namespace UniversalStore
+namespace UniStore
 {
     public struct PurchaseInfo
     {

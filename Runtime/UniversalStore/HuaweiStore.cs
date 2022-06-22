@@ -6,7 +6,7 @@ using HmsPlugin;
 using HuaweiMobileServices.IAP;
 using HuaweiMobileServices.Utils;
 
-namespace UniversalStore
+namespace UniStore
 {
     public class HuaweiStore : BaseStore
     {

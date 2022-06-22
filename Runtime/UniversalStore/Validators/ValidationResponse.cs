@@ -1,6 +1,6 @@
 using System;
 
-namespace UniversalStore
+namespace UniStore
 {
     [Serializable]
     public class ValidationResponse
