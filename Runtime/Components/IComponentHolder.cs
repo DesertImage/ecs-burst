@@ -1,8 +1,9 @@
 using System;
+using DesertImage.Events;
 
 namespace DesertImage.ECS
 {
-    public interface IComponentHolder : IDisposable
+    public interface IComponentHolder : IEventUnit, IDisposable
     {
         event Action<IComponentHolder, IComponent> OnComponentAdded;
         event Action<IComponentHolder, IComponent> OnComponentRemoved;
