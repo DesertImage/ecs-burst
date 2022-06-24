@@ -4,7 +4,7 @@
     "references": [
         "desertimage.events",
         "LeanTween",
-        "UniRx",
+        "UniRx"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
