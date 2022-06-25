@@ -12,6 +12,10 @@ namespace Group
         private readonly Dictionary<ushort, List<EntityGroup>> _entityGroups =
             new Dictionary<ushort, List<EntityGroup>>();
 
+        //to avoid duplicated Update event during OnEntityUpdated callback
+        private readonly HashSet<EntityGroup> _updatedGroups = new HashSet<EntityGroup>();
+        private readonly HashSet<EntityGroup> _preUpdatedGroups = new HashSet<EntityGroup>();
+
         public void Init(IWorld world)
         {
             _world = world;
@@ -33,6 +37,13 @@ namespace Group
 
             if (_entityGroups.TryGetValue((ushort)entity.Id, out var groupsList))
             {
+                if (group.Id == 58)
+                {
+                    #if DEBUG
+                    UnityEngine.Debug.LogError("<b>[GroupsManager]</b> alsdkjlaksdj");
+                    #endif
+                    
+                }
                 groupsList.Add(group);
             }
             else
@@ -47,6 +58,13 @@ namespace Group
 
             if (_entityGroups.TryGetValue((ushort)entity.Id, out var groupsList))
             {
+                if (group.Id == 58)
+                {
+#if DEBUG
+                    UnityEngine.Debug.LogError("<b>[GroupsManager]</b> asdasdasdasd");
+#endif
+                }
+                
                 groupsList.Remove(group);
             }
         }
@@ -169,8 +187,14 @@ namespace Group
 
                 if (!matcher.IsContainsComponent(component.Id)) continue;
 
+                if (_preUpdatedGroups.Contains(group)) continue;
+                
                 group.PreUpdate(entity, component, newValues);
+
+                _preUpdatedGroups.Add(group);
             }
+
+            _preUpdatedGroups.Clear();
         }
 
         private void WorldOnEntityComponentUpdated(IEntity entity, IComponent component)
@@ -180,10 +204,16 @@ namespace Group
                 for (var i = 0; i < groups.Count; i++)
                 {
                     var group = groups[i];
-
+            
+                    if (_updatedGroups.Contains(group)) continue;
+                    
                     group.Update(entity, component);
-                }
 
+                    _updatedGroups.Add(group);
+                }
+                
+                _updatedGroups.Clear();
+            
                 return;
             }
 
