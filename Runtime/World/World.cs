@@ -18,14 +18,7 @@ namespace DesertImage.ECS
         event Action<IEntity, IComponent, IComponent> OnEntityComponentPreUpdated;
         event Action<IEntity, IComponent> OnEntityComponentUpdated;
 
-        event Action<IMatcher, EntityGroup> OnGroupAdded;
-        event Action<IMatcher, EntityGroup> OnGroupRemoved;
-
         HashSet<IEntity> Entities { get; }
-
-        CustomDictionary<IMatcher, EntityGroup> Groups { get; }
-        CustomDictionary<ushort, IMatcher> Matchers { get; }
-        CustomDictionary<ushort, List<(IMatcher, EntityGroup)>> ComponentGroups { get; }
 
         void AddEntity(IEntity entity);
         void RemoveEntity(IEntity entity);
@@ -51,21 +44,17 @@ namespace DesertImage.ECS
         public event Action<IEntity, IComponent, IComponent> OnEntityComponentPreUpdated;
         public event Action<IEntity, IComponent> OnEntityComponentUpdated;
 
-        public event Action<IMatcher, EntityGroup> OnGroupAdded;
-        public event Action<IMatcher, EntityGroup> OnGroupRemoved;
-
         public HashSet<IEntity> Entities { get; } = new HashSet<IEntity>();
 
-        public CustomDictionary<IMatcher, EntityGroup> Groups { get; } =
-            new CustomDictionary<IMatcher, EntityGroup>(new MatchersComparer());
 
-        public CustomDictionary<ushort, IMatcher> Matchers { get; } = new CustomDictionary<ushort, IMatcher>();
-
-        public CustomDictionary<ushort, List<(IMatcher, EntityGroup)>> ComponentGroups { get; } =
-            new CustomDictionary<ushort, List<(IMatcher, EntityGroup)>>();
+        private GroupsManager _groupsManager;
 
         private readonly Pool<IEntity> EntitiesPool = new PoolEntity();
-        private readonly Pool<EntityGroup> GroupsPool = new EntityGroupsPool();
+
+        public World(GroupsManager groupsManager)
+        {
+            _groupsManager = groupsManager;
+        }
 
         public void AddEntity(IEntity entity)
         {
@@ -124,79 +113,17 @@ namespace DesertImage.ECS
 
         public EntityGroup GetGroup(IMatcher matcher)
         {
-            if (Groups.TryGetValue(matcher, out var group))
-            {
-                return group;
-            }
-
-            group = GroupsPool.GetInstance();
-
-            AddGroup(matcher, group);
-
-            return group;
+            return _groupsManager.GetGroup(matcher);
         }
 
         public EntityGroup GetGroup(ushort componentId)
         {
-            for (var i = 0; i < Groups.Count; i++)
-            {
-                var (matcher, group) = Groups[i];
-
-                if ((matcher.ComponentIds?.Length ?? 0) > 1) continue;
-                if (!matcher.IsContainsComponent(componentId)) continue;
-
-                return group;
-            }
-
-            var targetGroup = GroupsPool.GetInstance();
-
-            AddGroup(Match.AllOf(componentId), targetGroup);
-
-            return targetGroup;
+            return _groupsManager.GetGroup(componentId);
         }
 
         public EntityGroup GetGroup(ushort[] componentIds)
         {
-            for (var i = 0; i < Groups.Count; i++)
-            {
-                var (matcher, group) = Groups[i];
-
-                if (matcher.ComponentIds?.Length != componentIds.Length) continue;
-                if (!matcher.ComponentIds.IsEqual(componentIds, (id1, id2) => id1 == id2)) continue;
-
-                return group;
-            }
-
-            var targetGroup = GroupsPool.GetInstance();
-
-            AddGroup(Match.AllOf(componentIds), targetGroup);
-
-            return targetGroup;
-        }
-
-        private void AddGroup(IMatcher matcher, EntityGroup group)
-        {
-            Groups.Add
-            (
-                matcher,
-                group
-            );
-
-            Matchers.Add(group.Id, matcher);
-
-            foreach (var componentId in matcher.ComponentIds)
-            {
-                if (ComponentGroups.TryGetValue(componentId, out var groupInfos))
-                {
-                    groupInfos.Add((matcher, group));
-                }
-                else
-                {
-                    ComponentGroups.Add(componentId, new List<(IMatcher, EntityGroup)> { (matcher, group) });
-                }
-            }
-
-            OnGroupAdded?.Invoke(matcher, group);
+            return _groupsManager.GetGroup(componentIds);
         }
 
         #region CALLBACKS

@@ -72,6 +72,20 @@ namespace DesertImage.Pools
 
         protected virtual void ReturnStuff<T>(T instance)
         {
+            var hash = HashCodeTypeTool.GetCachedHashCode<T>();
+
+            if (Instances.TryGetValue(hash, out var stack))
+            {
+                stack.Push(instance);
+            }
+            else
+            {
+                var newStack = new Stack<object>();
+
+                newStack.Push(instance);
+
+                Instances.Add(hash, newStack);
+            }
         }
 
         protected virtual T CreateInstance<T>() where T : new()
