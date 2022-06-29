@@ -1,6 +1,4 @@
-using DesertImage.ECS;
-
-namespace DesertImage
+namespace DesertImage.ECS
 {
     public struct ComponentPreUpdatedEvent
     {

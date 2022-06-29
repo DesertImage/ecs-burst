@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using DesertImage;
-using DesertImage.ECS;
 using DesertImage.Events;
 
-namespace Group
+namespace DesertImage.ECS
 {
     public class EntitiesGroup : EventUnit, IPoolable
     {

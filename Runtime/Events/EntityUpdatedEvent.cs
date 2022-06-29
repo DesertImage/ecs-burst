@@ -1,7 +1,4 @@
-using DesertImage.ECS;
-using Group;
-
-namespace DesertImage
+namespace DesertImage.ECS
 {
     public struct EntityUpdatedEvent
     {

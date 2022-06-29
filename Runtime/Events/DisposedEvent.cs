@@ -1,6 +1,6 @@
 using System;
 
-namespace DesertImage
+namespace DesertImage.ECS
 {
     public struct DisposedEvent
     {
