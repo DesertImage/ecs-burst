@@ -91,7 +91,8 @@ namespace DesertImage.ECS
                 {
                     Value = entity,
                     Previous = component,
-                    Future = newValues
+                    Future = newValues,
+                    Group = this
                 }
             );
         }
@@ -103,7 +104,8 @@ namespace DesertImage.ECS
                 new EntityUpdatedEvent
                 {
                     Value = entity,
-                    Component = component
+                    Component = component,
+                    Group = this
                 }
             );
         }
