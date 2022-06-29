@@ -27,15 +27,15 @@ namespace DesertImage.Managers
 
     public class ManagerTimers : IManagerTimers
     {
-        private readonly Pool<ITimer> _pool = new PoolTimers();
-        private readonly Pool<ITimer> _sequencePool;
+        private readonly Pool<Timer> _pool = new Pool<Timer>(() => new Timer());
+        private readonly Pool<Timer> _sequencePool;
 
         private readonly CustomDictionary<int, CustomList<ITimer>> _timers =
             new CustomDictionary<int, CustomList<ITimer>>();
 
         public ManagerTimers()
         {
-            _sequencePool = new PoolTimersSequence(_pool);
+            _sequencePool = new Pool<Timer>(() => new TimerSequence(_pool));
         }
 
         public void OnAwake()

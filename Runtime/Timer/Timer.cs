@@ -7,78 +7,86 @@ namespace DesertImage.Timers
 {
     public class Timer : ITimer
     {
-        public Action<ITimer> OnFinish { get; set; }
-
-        public Timer(int id)
-        {
-            Id = id;
-        }
+        public event Action<ITimer> OnFinish;
+        public event Action<ITimer> OnDispose;
 
         public int Id { get; }
         public float Time { get; private set; }
 
-        protected float TargetTime;
-        protected Action Action;
+        private static int _timersIdCounter;
 
-        protected bool IsPlaying;
+        private float _targetTime;
+        private Action _action;
 
-        protected bool IsIgnoreTimescale;
+        private bool _isPlaying;
+
+        private bool _isIgnoreTimescale;
+
+        public Timer()
+        {
+            Id = _timersIdCounter++;
+        }
 
         public virtual void Tick()
         {
-            if (!IsPlaying) return;
+            if (!_isPlaying) return;
 
-            Time += IsIgnoreTimescale ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+            Time += _isIgnoreTimescale ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
 
-            if (Time < TargetTime) return;
+            if (Time < _targetTime) return;
 
-            IsPlaying = false;
+            _isPlaying = false;
 
-            Action.Invoke();
+            _action.Invoke();
 
-            Action = null;
+            _action = null;
 
-            OnFinish?.Invoke(this);
+            Completed();
 
             ReturnToPool();
+        }
+
+        protected void Completed()
+        {
+            OnFinish?.Invoke(this);
         }
 
         #region PLAY / STOP / RESET
 
         public void Play(Action action, float timeDelay = 1f, bool ignoreTimeScale = false)
         {
-            IsPlaying = true;
+            _isPlaying = true;
 
-            Action = action;
+            _action = action;
 
-            TargetTime = timeDelay;
+            _targetTime = timeDelay;
 
-            IsIgnoreTimescale = ignoreTimeScale;
+            _isIgnoreTimescale = ignoreTimeScale;
         }
 
         public void Play(Action<Timer> action, float timeDelay = 1f, bool ignoreTimeScale = false)
         {
-            IsPlaying = true;
+            _isPlaying = true;
 
-            Action = () => action?.Invoke(this);
+            _action = () => action?.Invoke(this);
 
-            TargetTime = timeDelay;
+            _targetTime = timeDelay;
 
-            IsIgnoreTimescale = ignoreTimeScale;
+            _isIgnoreTimescale = ignoreTimeScale;
         }
 
         public void Stop()
         {
-            IsPlaying = false;
+            _isPlaying = false;
 
             Reset();
         }
 
         public void PlayAndReturnToPool()
         {
-            if (!IsPlaying) return;
+            if (!_isPlaying) return;
 
-            Action?.Invoke();
+            _action?.Invoke();
 
             ReturnToPool();
         }
@@ -87,9 +95,9 @@ namespace DesertImage.Timers
         {
             Time = 0f;
 
-            Action = null;
+            _action = null;
 
-            TargetTime = 0.3f;
+            _targetTime = 0.3f;
         }
 
         #endregion
@@ -108,10 +116,15 @@ namespace DesertImage.Timers
             Stop();
 
             Core.Instance?.Get<TimersUpdater>().Remove(this);
-
             Core.Instance?.Get<ManagerTimers>().ReturnInstance(this);
         }
 
         #endregion
+
+        public void Dispose()
+        {
+            OnDispose?.Invoke(this);
+            //TODO: return to pool by manager
+        }
     }
 }

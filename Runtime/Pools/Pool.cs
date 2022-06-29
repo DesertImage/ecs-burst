@@ -1,10 +1,18 @@
+using System;
 using System.Collections.Generic;
 
 namespace DesertImage.Pools
 {
-    public abstract class Pool<T> where T : IPoolable
+    public class Pool<T> where T : IPoolable, new()
     {
         protected readonly Stack<T> Stack = new Stack<T>();
+
+        protected readonly Func<T> Factory;
+
+        public Pool(Func<T> factory = null)
+        {
+            Factory = factory;
+        }
 
         public void Register(int count)
         {
@@ -28,6 +36,9 @@ namespace DesertImage.Pools
             Stack.Push(instance);
         }
 
-        protected abstract T CreateInstance();
+        protected virtual T CreateInstance()
+        {
+            return Factory != null ? Factory.Invoke() : new T();
+        }
     }
 }

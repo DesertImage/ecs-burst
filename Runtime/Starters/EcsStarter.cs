@@ -18,12 +18,7 @@ namespace DesertImage.ECS
 
             Core.Add<ManagerUpdate>();
 
-            var groupsManager = Core.Add<GroupsManager>();
-
-            var world = new World(groupsManager);
-            Core.Add(world);
-
-            groupsManager.Init(world);
+            var world = Core.Add(new World());
 
             SystemsManager = Core.Add(new SystemsManager(world));
 

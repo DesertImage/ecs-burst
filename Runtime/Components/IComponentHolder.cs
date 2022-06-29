@@ -5,13 +5,6 @@ namespace DesertImage.ECS
 {
     public interface IComponentHolder : IEventUnit, IDisposable
     {
-        event Action<IComponentHolder, IComponent> OnComponentAdded;
-        event Action<IComponentHolder, IComponent> OnComponentRemoved;
-        event Action<IComponentHolder, IComponent, IComponent> OnComponentPreUpdated;
-        event Action<IComponentHolder, IComponent> OnComponentUpdated;
-
-        event Action<IComponentHolder> OnDispose;
-
         IComponent Add(IComponent component);
         TComponent Add<TComponent>() where TComponent : IComponent, new();
 

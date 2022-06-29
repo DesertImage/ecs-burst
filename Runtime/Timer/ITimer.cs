@@ -2,9 +2,10 @@ using System;
 
 namespace DesertImage.Timers
 {
-    public interface ITimer : ITick, IPoolable
+    public interface ITimer : ITick, IPoolable, IDisposable
     {
-        public Action<ITimer> OnFinish { get; set; }
+        event Action<ITimer> OnFinish;
+        event Action<ITimer> OnDispose;
 
         int Id { get; }
 

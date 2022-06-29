@@ -1,4 +1,3 @@
-using System;
 using DesertImage.Events;
 
 namespace DesertImage.ECS
@@ -15,18 +14,21 @@ namespace DesertImage.ECS
         IListen<ComponentPreUpdatedEvent>,
         IListen<ComponentUpdatedEvent>
     {
-        public event Action<IComponentHolder, IComponent> OnComponentAdded;
-        public event Action<IComponentHolder, IComponent> OnComponentRemoved;
-        public event Action<IComponentHolder, IComponent, IComponent> OnComponentPreUpdated;
-        public event Action<IComponentHolder, IComponent> OnComponentUpdated;
-
-        public event Action<IComponentHolder> OnDispose;
-
         public int Id { get; }
 
         public IComponent[] Components { get; }
 
         private int _componentsCount;
+
+        private static int _entitiesIdCounter;
+
+        public Entity()
+        {
+            Id = _entitiesIdCounter;
+            _entitiesIdCounter++;
+
+            Components = new IComponent[ECSSettings.ComponentsCount];
+        }
 
         public Entity(int id, int componentsBuffer = ECSSettings.ComponentsCount)
         {
@@ -46,16 +48,12 @@ namespace DesertImage.ECS
 
             Components[component.Id] = component;
 
-            // OnComponentAdded?.Invoke(this, component);
-
             EventsManager.Send(new ComponentAddedEvent
             {
                 Holder = this,
                 Value = component
             });
 
-            // component.OnPreUpdated += ComponentOnPreUpdated;
-            // component.OnUpdated += ComponentOnUpdated;
             component.ListenEvent<ComponentPreUpdatedEvent>(this);
             component.ListenEvent<ComponentUpdatedEvent>(this);
 
@@ -73,14 +71,9 @@ namespace DesertImage.ECS
         {
             var component = Components[id];
 
-            Components[id] = null;
-
             if (component == null) return;
 
-            // component.OnPreUpdated -= ComponentOnPreUpdated;
-            // component.OnUpdated -= ComponentOnUpdated;
-
-            // OnComponentRemoved?.Invoke(this, component);
+            Components[id] = null;
 
             component.UnlistenEvent<ComponentPreUpdatedEvent>(this);
             component.UnlistenEvent<ComponentUpdatedEvent>(this);
@@ -125,29 +118,6 @@ namespace DesertImage.ECS
             }
         }
 
-        private void ComponentOnPreUpdated(IComponent component, IComponent newValues)
-        {
-            // OnComponentPreUpdated?.Invoke(this, component, newValues);
-
-            EventsManager.Send(new ComponentPreUpdatedEvent
-            {
-                Holder = this,
-                PreviousValue = component,
-                FutureValue = newValues
-            });
-        }
-
-        private void ComponentOnUpdated(IComponent component)
-        {
-            // OnComponentUpdated?.Invoke(this, component);
-
-            EventsManager.Send(new ComponentUpdatedEvent
-            {
-                Holder = this,
-                Value = component
-            });
-        }
-
         #endregion
 
         public void OnCreate()
@@ -165,14 +135,10 @@ namespace DesertImage.ECS
         {
             ClearComponents();
 
-            OnDispose?.Invoke(this);
-
-            OnComponentAdded = null;
-            OnComponentRemoved = null;
-            OnComponentUpdated = null;
-
-            OnDispose = null;
+            EventsManager.Send(new DisposedEvent { Value = this });
         }
+
+        #region CALLBACKS
 
         public void HandleCallback(ComponentRemovedEvent arguments)
         {
@@ -210,6 +176,8 @@ namespace DesertImage.ECS
                 }
             );
         }
+
+        #endregion
 
         public override int GetHashCode()
         {

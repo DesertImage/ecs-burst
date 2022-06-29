@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DesertImage.Events;
 using DesertImage.Extensions;
 using External;
 using External.Extensions;
@@ -7,29 +8,35 @@ using Group;
 
 namespace DesertImage.ECS
 {
-    public class SystemsManager : ITick, IDisposable
+    public class SystemsManager :
+        ITick,
+        IDisposable,
+        IListen<EntityAddedEvent>,
+        IListen<EntityRemovedEvent>,
+        IListen<EntityUpdatedEvent>,
+        IListen<EntityPreUpdatedEvent>
     {
         private readonly IWorld _world;
 
-        private readonly CustomDictionary<int, (ISystem, EntityGroup)> _systems =
-            new CustomDictionary<int, (ISystem, EntityGroup)>(10, 3, -1);
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _systems =
+            new CustomDictionary<int, (ISystem, EntitiesGroup)>(10, 3, -1);
 
-        private readonly CustomDictionary<int, (ISystem, EntityGroup)> _executeSystems =
-            new CustomDictionary<int, (ISystem, EntityGroup)>(10, 3, -1);
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeSystems =
+            new CustomDictionary<int, (ISystem, EntitiesGroup)>(10, 3, -1);
 
-        private readonly CustomDictionary<int, (EntityGroup, List<IReactEntityAddedSystem>)> _entityAddedGroups =
-            new CustomDictionary<int, (EntityGroup, List<IReactEntityAddedSystem>)>(10, 3, -1);
+        private readonly CustomDictionary<int, (EntitiesGroup, List<IReactEntityAddedSystem>)> _entityAddedGroups =
+            new CustomDictionary<int, (EntitiesGroup, List<IReactEntityAddedSystem>)>(10, 3, -1);
 
-        private readonly CustomDictionary<int, (EntityGroup, List<IReactEntityRemovedSystem>)>
+        private readonly CustomDictionary<int, (EntitiesGroup, List<IReactEntityRemovedSystem>)>
             _entityRemovedGroups =
-                new CustomDictionary<int, (EntityGroup, List<IReactEntityRemovedSystem>)>(10, 3, -1);
+                new CustomDictionary<int, (EntitiesGroup, List<IReactEntityRemovedSystem>)>(10, 3, -1);
 
-        private readonly CustomDictionary<int, (EntityGroup, List<IReactivePreUpdateSystem>)>
+        private readonly CustomDictionary<int, (EntitiesGroup, List<IReactivePreUpdateSystem>)>
             _reactivePreUpdateSystems =
-                new CustomDictionary<int, (EntityGroup, List<IReactivePreUpdateSystem>)>(10, 3, -1);
+                new CustomDictionary<int, (EntitiesGroup, List<IReactivePreUpdateSystem>)>(10, 3, -1);
 
-        private readonly CustomDictionary<int, (EntityGroup, List<IReactiveUpdateSystem>)> _reactiveUpdateSystems =
-            new CustomDictionary<int, (EntityGroup, List<IReactiveUpdateSystem>)>(10, 3, -1);
+        private readonly CustomDictionary<int, (EntitiesGroup, List<IReactiveUpdateSystem>)> _reactiveUpdateSystems =
+            new CustomDictionary<int, (EntitiesGroup, List<IReactiveUpdateSystem>)>(10, 3, -1);
 
         private readonly List<IEndSystem> _endSystems = new List<IEndSystem>();
 
@@ -94,7 +101,7 @@ namespace DesertImage.ECS
             {
                 var group = _world.GetGroup(reactivePreUpdateSystem.Matcher);
 
-                group.OnEntityPreUpdated += GroupOnEntityPreUpdated;
+                group.ListenEvent<EntityPreUpdatedEvent>(this);
 
                 _systems.AddIfNotContains(hashCode, (system, group));
 
@@ -127,7 +134,7 @@ namespace DesertImage.ECS
             {
                 var group = _world.GetGroup(reactiveSystem.Matcher);
 
-                group.OnEntityUpdated += GroupOnEntityUpdated;
+                group.ListenEvent<EntityUpdatedEvent>(this);
 
                 _systems.AddIfNotContains(hashCode, (system, group));
 
@@ -154,7 +161,7 @@ namespace DesertImage.ECS
             {
                 var group = _world.GetGroup(reactEntityAddedSystem.Matcher);
 
-                group.OnEntityAdded += GroupOnEntityAdded;
+                group.ListenEvent<EntityAddedEvent>(this);
 
                 _systems.AddIfNotContains(hashCode, (system, group));
 
@@ -181,7 +188,7 @@ namespace DesertImage.ECS
             {
                 var group = _world.GetGroup(reactEntityRemovedSystem.Matcher);
 
-                group.OnEntityRemoved += GroupOnEntityRemoved;
+                group.ListenEvent<EntityRemovedEvent>(this);
 
                 _systems.AddIfNotContains(hashCode, (system, group));
 
@@ -200,7 +207,7 @@ namespace DesertImage.ECS
             }
         }
 
-        #endregion
+        #endregion ADD
 
         #region REMOVE
 
@@ -216,7 +223,7 @@ namespace DesertImage.ECS
 
             if (system is IReactivePreUpdateSystem reactivePreUpdateSystem)
             {
-                group.OnEntityPreUpdated -= GroupOnEntityPreUpdated;
+                group.UnlistenEvent<EntityPreUpdatedEvent>(this);
 
                 if (_reactivePreUpdateSystems.TryGetValue(group.Id, out var data))
                 {
@@ -226,7 +233,7 @@ namespace DesertImage.ECS
 
             if (system is IReactiveUpdateSystem reactiveUpdateSystem)
             {
-                group.OnEntityUpdated -= GroupOnEntityUpdated;
+                group.UnlistenEvent<EntityUpdatedEvent>(this);
 
                 if (_reactiveUpdateSystems.TryGetValue(group.Id, out var data))
                 {
@@ -236,7 +243,7 @@ namespace DesertImage.ECS
 
             if (system is IReactEntityAddedSystem reactEntityAddedSystem)
             {
-                group.OnEntityAdded -= GroupOnEntityAdded;
+                group.UnlistenEvent<EntityAddedEvent>(this);
 
                 if (_entityAddedGroups.TryGetValue(group.Id, out var data))
                 {
@@ -246,7 +253,7 @@ namespace DesertImage.ECS
 
             if (system is IReactEntityRemovedSystem reactEntityRemovedSystem)
             {
-                group.OnEntityRemoved -= GroupOnEntityRemoved;
+                group.UnlistenEvent<EntityRemovedEvent>(this);
 
                 if (_entityRemovedGroups.TryGetValue(group.Id, out var data))
                 {
@@ -262,7 +269,7 @@ namespace DesertImage.ECS
             system.Deactivate();
         }
 
-        #endregion
+        #endregion REMOVE
 
         public void Tick()
         {
@@ -293,8 +300,21 @@ namespace DesertImage.ECS
 
         #region CALLBACKS
 
-        private void GroupOnEntityAdded(IGroup @group, IEntity entity)
+        public void Dispose()
         {
+            foreach (var endSystem in _endSystems)
+            {
+                endSystem.ExecuteEnd();
+            }
+
+            _endSystems.Clear();
+        }
+
+        public void HandleCallback(EntityAddedEvent arguments)
+        {
+            var group = arguments.Group;
+            var entity = arguments.Value;
+
             if (!_entityAddedGroups.TryGetValue(@group.Id, out var systemData)) return;
 
             var (_, systems) = systemData;
@@ -303,15 +323,16 @@ namespace DesertImage.ECS
             {
                 system.Execute(entity);
 
-                if (!(group is IGroup<IEntity> entityGroup)) continue;
-
                 //if entity no longer in group then quit
-                if (!entityGroup.Contains(entity)) break;
+                if (!group.Contains(entity)) break;
             }
         }
 
-        private void GroupOnEntityRemoved(IGroup @group, IEntity entity)
+        public void HandleCallback(EntityRemovedEvent arguments)
         {
+            var group = arguments.Group;
+            var entity = arguments.Value;
+
             if (!_entityRemovedGroups.TryGetValue(@group.Id, out var systemData)) return;
 
             var (_, systems) = systemData;
@@ -320,29 +341,36 @@ namespace DesertImage.ECS
             {
                 system.Execute(entity);
 
-                if (!(group is IGroup<IEntity> entityGroup)) continue;
-
                 //if entity no longer in group then quit
-                if (!entityGroup.Contains(entity)) break;
+                if (!group.Contains(entity)) break;
             }
         }
 
-        private void GroupOnEntityPreUpdated(IGroup group, IEntity entity, IComponent component, IComponent newValues)
+        public void HandleCallback(EntityPreUpdatedEvent arguments)
         {
+            var group = arguments.Group;
+            var entity = arguments.Value;
+            var currentValue = arguments.Previous;
+            var newValue = arguments.Future;
+
             if (!_reactivePreUpdateSystems.TryGetValue(group.Id, out var systemData)) return;
 
             var (_, systems) = systemData;
 
             foreach (var system in systems)
             {
-                if (component.Id != system.GetTargetComponentId()) continue;
+                if (currentValue.Id != system.GetTargetComponentId()) continue;
 
-                system.Execute(entity, component, newValues);
+                system.Execute(entity, currentValue, newValue);
             }
         }
 
-        private void GroupOnEntityUpdated(IGroup group, IEntity entity, IComponent component)
+        public void HandleCallback(EntityUpdatedEvent arguments)
         {
+            var group = arguments.Group;
+            var entity = arguments.Value;
+            var component = arguments.Component;
+
             if (!_reactiveUpdateSystems.TryGetValue(group.Id, out var systemData)) return;
 
             var (_, systems) = systemData;
@@ -355,16 +383,6 @@ namespace DesertImage.ECS
             }
         }
 
-        #endregion
-
-        public void Dispose()
-        {
-            foreach (var endSystem in _endSystems)
-            {
-                endSystem.ExecuteEnd();
-            }
-
-            _endSystems.Clear();
-        }
+        #endregion CALLBACKS
     }
 }

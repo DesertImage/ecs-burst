@@ -7,11 +7,11 @@ namespace DesertImage.Timers
     {
         private readonly Queue<TimerEntry> _queue = new Queue<TimerEntry>();
 
-        private readonly Pool<ITimer> _pool;
+        private readonly Pool<Timer> _pool;
 
         private TimerEntry _currentEntry;
 
-        public TimerSequence(int id, Pool<ITimer> pool) : base(id)
+        public TimerSequence(Pool<Timer> pool)
         {
             _pool = pool;
         }
@@ -38,7 +38,7 @@ namespace DesertImage.Timers
         {
             if (_queue.Count == 0)
             {
-                OnFinish?.Invoke(this);
+                Completed();
 
                 return;
             }
