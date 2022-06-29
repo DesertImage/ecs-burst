@@ -3,12 +3,7 @@ using UnityEngine;
 
 namespace Entities
 {
-    public interface IEntityExtension
-    {
-        void Link(IEntity entity);
-    }
-
-    public abstract class EntityExtension : MonoBehaviour, IEntityExtension
+    public abstract class EntityExtension : MonoBehaviour
     {
         [SerializeField] protected EntityMono Entity;
 
@@ -18,7 +13,5 @@ namespace Entities
 
             Entity = GetComponent<EntityMono>();
         }
-
-        public abstract void Link(IEntity entity);
     }
 }
