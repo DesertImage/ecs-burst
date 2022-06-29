@@ -87,11 +87,11 @@ namespace DesertImage.ECS
         {
             EventsManager.Send
             (
-                new ComponentPreUpdatedEvent
+                new EntityPreUpdatedEvent
                 {
-                    Holder = entity,
-                    PreviousValue = component,
-                    FutureValue = newValues
+                    Value = entity,
+                    Previous = component,
+                    Future = newValues
                 }
             );
         }
@@ -100,10 +100,10 @@ namespace DesertImage.ECS
         {
             EventsManager.Send
             (
-                new ComponentUpdatedEvent
+                new EntityUpdatedEvent
                 {
-                    Holder = entity,
-                    Value = component
+                    Value = entity,
+                    Component = component
                 }
             );
         }
