@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class TransformExtensions
     {

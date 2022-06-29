@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using DesertImage.External;
 using DesertImage.Pools;
-using DesertImage.Timers;
 using External;
 
-namespace DesertImage.Managers
+namespace DesertImage.Timers
 {
     public interface IManagerTimers : IAwake
     {
@@ -30,8 +28,8 @@ namespace DesertImage.Managers
         private readonly Pool<Timer> _pool = new Pool<Timer>(() => new Timer());
         private readonly Pool<Timer> _sequencePool;
 
-        private readonly CustomDictionary<int, CustomList<ITimer>> _timers =
-            new CustomDictionary<int, CustomList<ITimer>>();
+        private readonly CustomDictionary<int, List<ITimer>> _timers =
+            new CustomDictionary<int, List<ITimer>>();
 
         public ManagerTimers()
         {
@@ -60,7 +58,7 @@ namespace DesertImage.Managers
                 }
                 else
                 {
-                    _timers.Add(sender.GetHashCode(), new CustomList<ITimer> { timer });
+                    _timers.Add(sender.GetHashCode(), new List<ITimer> { timer });
                 }
             }
 
@@ -86,7 +84,7 @@ namespace DesertImage.Managers
                 }
                 else
                 {
-                    _timers.Add(sender.GetHashCode(), new CustomList<ITimer> { timerSequence });
+                    _timers.Add(sender.GetHashCode(), new List<ITimer> { timerSequence });
                 }
             }
 

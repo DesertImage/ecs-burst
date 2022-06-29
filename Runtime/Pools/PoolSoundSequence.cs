@@ -12,9 +12,9 @@ namespace DesertImage.Pools
         protected override SoundSequence CreateInstance()
         {
             var newObj = new GameObject("SoundSequence");
-            
+
             newObj.AddComponent<AudioSource>();
-            
+
             return newObj.AddComponent<SoundSequence>();
         }
     }

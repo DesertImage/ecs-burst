@@ -1,6 +1,6 @@
 using System;
 using DesertImage.ECS;
-using DesertImage.Extensions;
+using DesertImage;
 using UnityEngine;
 
 namespace DesertImage.Audio

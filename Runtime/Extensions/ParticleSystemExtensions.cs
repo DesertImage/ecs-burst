@@ -7,7 +7,7 @@ namespace DesertImage
         public static void Play(this ParticleSystem[] particleSystems)
         {
             if (particleSystems == null) return;
-            
+
             foreach (var particleSystem in particleSystems)
             {
                 particleSystem.Play();

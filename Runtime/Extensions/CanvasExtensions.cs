@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static partial class CanvasExtensions
     {

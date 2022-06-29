@@ -1,4 +1,4 @@
-using Framework.FX;
+using DesertImage.FX;
 using UnityEngine;
 
 namespace DesertImage.Pools

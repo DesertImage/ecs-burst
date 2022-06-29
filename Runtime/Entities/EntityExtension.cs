@@ -7,8 +7,8 @@ namespace Entities
     {
         void Link(IEntity entity);
     }
-    
-    public abstract class EntityExtension : MonoBehaviour
+
+    public abstract class EntityExtension : MonoBehaviour, IEntityExtension
     {
         [SerializeField] protected EntityMono Entity;
 
@@ -18,5 +18,7 @@ namespace Entities
 
             Entity = GetComponent<EntityMono>();
         }
+
+        public abstract void Link(IEntity entity);
     }
 }

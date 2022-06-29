@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DesertImage.Extensions;
-using DesertImage.Managers;
 
 namespace DesertImage.ECS
 {

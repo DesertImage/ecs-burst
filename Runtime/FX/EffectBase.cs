@@ -1,8 +1,7 @@
-using DesertImage;
 using DesertImage.ECS;
 using UnityEngine;
 
-namespace Framework.FX
+namespace DesertImage.FX
 {
     public class EffectBase : MonoBehaviour, IFX, IPoolable
     {
@@ -22,7 +21,7 @@ namespace Framework.FX
         {
             Stop();
 
-            Core.Instance.Get<ServiceFx>().ReturnInstance(this);
+            Core.Instance.Get<FXService>().ReturnInstance(this);
         }
     }
 }

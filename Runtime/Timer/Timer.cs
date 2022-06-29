@@ -1,6 +1,6 @@
 ﻿using System;
 using DesertImage.ECS;
-using DesertImage.Managers;
+using DesertImage.Timers;
 using Managers;
 
 namespace DesertImage.Timers

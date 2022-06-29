@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class HashCodeTypeTool
     {
@@ -12,9 +12,9 @@ namespace DesertImage.Extensions
             var type = typeof(T);
 
             if (HashCodes.TryGetValue(type, out var hash)) return hash;
-            
+
             hash = typeof(T).GetHashCode();
-                
+
             HashCodes.Add(type, hash);
 
             return hash;
@@ -23,9 +23,9 @@ namespace DesertImage.Extensions
         public static int GetCachedHashCode<T>(this T instance)
         {
             var type = instance.GetType();
-            
-            if(HashCodes.ContainsKey(type)) return HashCodes[type];
-            
+
+            if (HashCodes.ContainsKey(type)) return HashCodes[type];
+
             var hash = type.GetHashCode();
 
             HashCodes.Add(type, hash);

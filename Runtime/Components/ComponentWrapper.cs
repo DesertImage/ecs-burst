@@ -6,7 +6,7 @@ namespace DesertImage.ECS
     {
         void Link(IComponentHolder componentHolder);
     }
-    
+
     public abstract class ComponentWrapper : MonoBehaviour, IComponentWrapper
     {
         public abstract void Link(IComponentHolder componentHolder);
@@ -23,7 +23,7 @@ namespace DesertImage.ECS
 
         public override void Link(IComponentHolder componentHolder)
         {
-            componentHolder.Add(GetData()); 
+            componentHolder.Add(GetData());
         }
     }
 }

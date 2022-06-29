@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DesertImage.Audio;
-using DesertImage.Extensions;
-using DesertImage.External;
+using DesertImage;
 using DesertImage.Pools;
 using External;
 using External.Extensions;
@@ -29,8 +28,8 @@ namespace DesertImage
         private readonly CustomDictionary<ushort, ISoundLayer> _soundLayers =
             new CustomDictionary<ushort, ISoundLayer>(3, 3, 65000);
 
-        private readonly Dictionary<int, CustomList<SoundBase>> _playingSounds =
-            new Dictionary<int, CustomList<SoundBase>>();
+        private readonly Dictionary<int, List<SoundBase>> _playingSounds =
+            new Dictionary<int, List<SoundBase>>();
 
         public void OnAwake()
         {
@@ -114,7 +113,7 @@ namespace DesertImage
             }
             else
             {
-                _playingSounds.Add(soundId, new CustomList<SoundBase>(MaxDuplicateSoundsCount) { soundBase });
+                _playingSounds.Add(soundId, new List<SoundBase>(MaxDuplicateSoundsCount) { soundBase });
             }
 
             return soundBase;

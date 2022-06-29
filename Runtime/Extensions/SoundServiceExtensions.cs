@@ -3,7 +3,7 @@ using DesertImage.ECS;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class SoundServiceExtensions
     {

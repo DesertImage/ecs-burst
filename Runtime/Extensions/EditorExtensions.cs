@@ -1,4 +1,4 @@
-﻿using DesertImage.Extensions;
+﻿using DesertImage;
 using UnityEngine;
 
 namespace Extensions

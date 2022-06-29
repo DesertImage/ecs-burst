@@ -110,7 +110,7 @@ namespace DesertImage.Data
                 case SaveFormat.Binary:
                     var fileStream = File.Open(filePath, FileMode.Open);
 
-                    data = (T) _binaryFormatter.Deserialize(fileStream);
+                    data = (T)_binaryFormatter.Deserialize(fileStream);
 
                     fileStream.Close();
                     break;

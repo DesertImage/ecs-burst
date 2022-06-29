@@ -1,10 +1,8 @@
 using System.Collections.Generic;
-using DesertImage;
-using DesertImage.ECS;
 using DesertImage.Events;
 using DesertImage.Pools;
 
-namespace Group
+namespace DesertImage.ECS
 {
     public class GroupsManager : EventUnit
     {

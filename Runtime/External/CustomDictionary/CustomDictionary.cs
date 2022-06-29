@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using DesertImage.ECS;
-using DesertImage.Extensions;
+using DesertImage;
 using UnityEngine;
 
 namespace External

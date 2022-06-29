@@ -1,6 +1,6 @@
 using System;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class MathExtensions
     {

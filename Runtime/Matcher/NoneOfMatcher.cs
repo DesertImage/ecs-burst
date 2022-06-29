@@ -1,4 +1,4 @@
-using DesertImage.Extensions;
+using DesertImage;
 
 namespace DesertImage.ECS
 {

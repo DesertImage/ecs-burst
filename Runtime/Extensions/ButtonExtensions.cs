@@ -8,7 +8,7 @@ namespace Extensions
         public static void SetOnClick(this Button button, Action action)
         {
             if (!button) return;
-            
+
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action?.Invoke());
         }

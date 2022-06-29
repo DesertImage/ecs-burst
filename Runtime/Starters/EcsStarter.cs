@@ -1,5 +1,3 @@
-using DesertImage.Managers;
-using Group;
 using UnityEngine;
 
 namespace DesertImage.ECS
@@ -24,7 +22,7 @@ namespace DesertImage.ECS
 
             Core.Add<SpawnService>();
             Core.Add<ServiceSound>();
-            Core.Add<ServiceFx>();
+            Core.Add<FXService>();
 
             InitComponents();
 

@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using Random = UnityEngine.Random;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class EnumExtensions
     {

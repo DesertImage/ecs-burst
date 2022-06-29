@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class CollectionsExtensions
     {

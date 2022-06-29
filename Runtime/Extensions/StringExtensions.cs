@@ -1,4 +1,4 @@
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class StringExtensions
     {
@@ -31,17 +31,17 @@ namespace DesertImage.Extensions
         {
             return $"<{tag} {parameter}>{text}</{tag}>";
         }
-        
+
         public static string BoldTag(this string text)
         {
             return $"<b>{text}</b>";
         }
-        
+
         public static string ColorTag(this string text, string color)
         {
             return $"<color={color}>{text}</color>";
         }
-        
+
         public static string SizeTag(this string text, int size = 16)
         {
             return $"<size={size.ToString()}>{text}</size>";

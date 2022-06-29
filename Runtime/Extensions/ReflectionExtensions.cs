@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class ReflectionExtensions
     {

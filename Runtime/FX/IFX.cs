@@ -1,4 +1,4 @@
-namespace Framework.FX
+namespace DesertImage.FX
 {
     public interface IFX
     {

@@ -4,7 +4,8 @@ namespace DesertImage.ECS
 {
     public class MultiMatcher : MatcherBase, IMultiMatcher
     {
-        public MultiMatcher(IMatcher[] matchers) : base(matchers.SelectMany(x => x.ComponentIds).OrderBy(x => x).ToArray())
+        public MultiMatcher(IMatcher[] matchers) : base(matchers.SelectMany(x => x.ComponentIds).OrderBy(x => x)
+            .ToArray())
         {
             Matchers = matchers;
         }

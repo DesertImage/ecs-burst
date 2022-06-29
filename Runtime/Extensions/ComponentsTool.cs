@@ -2,7 +2,7 @@ using DesertImage.ECS;
 using DesertImage.Pools;
 using UnityEngine.SceneManagement;
 
-namespace DesertImage.Extensions
+namespace DesertImage
 {
     public static class ComponentsTool
     {

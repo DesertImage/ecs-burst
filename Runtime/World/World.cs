@@ -1,6 +1,5 @@
 using System;
 using DesertImage.Events;
-using Group;
 
 namespace DesertImage.ECS
 {

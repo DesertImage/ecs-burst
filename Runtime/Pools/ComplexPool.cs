@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using DesertImage.Extensions;
+using DesertImage;
 
 namespace DesertImage.Pools
 {

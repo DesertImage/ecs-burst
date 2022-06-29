@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using DesertImage;
 
-namespace Framework.Extensions
+namespace DesertImage
 {
     public static class PoolablesExtensions
     {

@@ -4,6 +4,5 @@ namespace DesertImage.ECS
     {
         public IComponentHolder Holder;
         public IComponent Value;
-
     }
 }

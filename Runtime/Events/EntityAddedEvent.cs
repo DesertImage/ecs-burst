@@ -1,6 +1,3 @@
-using DesertImage.ECS;
-using Group;
-
 namespace DesertImage.ECS
 {
     public struct EntityAddedEvent

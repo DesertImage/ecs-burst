@@ -1,5 +1,5 @@
 ﻿using System;
-using DesertImage.Extensions;
+using DesertImage;
 using UnityEngine;
 
 namespace DesertImage.Audio

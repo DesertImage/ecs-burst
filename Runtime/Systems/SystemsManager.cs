@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using DesertImage.Events;
-using DesertImage.Extensions;
+using DesertImage;
 using External;
 using External.Extensions;
-using Group;
 
 namespace DesertImage.ECS
 {

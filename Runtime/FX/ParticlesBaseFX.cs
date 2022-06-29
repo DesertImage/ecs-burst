@@ -1,7 +1,7 @@
 using DesertImage;
 using UnityEngine;
 
-namespace Framework.FX
+namespace DesertImage.FX
 {
     public class ParticlesBaseFX : EffectBase, ITick
     {
@@ -103,7 +103,7 @@ namespace Framework.FX
 
         private void OnValidate()
         {
-            if (particleSystems is {Length: 0})
+            if (particleSystems is { Length: 0 })
             {
                 particleSystems = GetComponentsInChildren<ParticleSystem>();
             }
