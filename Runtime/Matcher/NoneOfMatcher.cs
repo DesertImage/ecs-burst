@@ -2,7 +2,7 @@ using DesertImage;
 
 namespace DesertImage.ECS
 {
-    public class NoneOfMatcher : MatcherBase
+    public class NoneOfMatcher : BaseMatcher
     {
         public NoneOfMatcher(ushort componentId) : base(componentId)
         {

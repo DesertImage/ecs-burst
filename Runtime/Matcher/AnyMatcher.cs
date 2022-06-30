@@ -2,7 +2,7 @@ using System.Linq;
 
 namespace DesertImage.ECS
 {
-    public partial class AnyMatcher : MatcherBase
+    public partial class AnyMatcher : BaseMatcher
     {
         public AnyMatcher(ushort componentId) : base(componentId)
         {

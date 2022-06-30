@@ -2,7 +2,7 @@ using System.Linq;
 
 namespace DesertImage.ECS
 {
-    public class MultiMatcher : MatcherBase, IMultiMatcher
+    public class MultiMatcher : BaseMatcher, IMultiMatcher
     {
         public MultiMatcher(IMatcher[] matchers) : base(matchers.SelectMany(x => x.ComponentIds).OrderBy(x => x)
             .ToArray())

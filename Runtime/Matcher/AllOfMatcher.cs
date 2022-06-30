@@ -2,7 +2,7 @@ using DesertImage;
 
 namespace DesertImage.ECS
 {
-    public partial class AllOfMatcher : MatcherBase
+    public partial class AllOfMatcher : BaseMatcher
     {
         public AllOfMatcher(ushort componentId) : base(componentId)
         {

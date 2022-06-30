@@ -6,8 +6,8 @@ namespace DesertImage.ECS
 {
     public class GroupsManager : EventUnit
     {
-        public Dictionary<ushort, List<EntitiesGroup>> EntityGroups { get; } =
-            new Dictionary<ushort, List<EntitiesGroup>>();
+        public Dictionary<ushort, HashSet<EntitiesGroup>> EntityGroups { get; } =
+            new Dictionary<ushort, HashSet<EntitiesGroup>>();
 
         public Dictionary<IMatcher, EntitiesGroup> MatcherGroups { get; } =
             new Dictionary<IMatcher, EntitiesGroup>(new MatchersComparer());
@@ -21,7 +21,7 @@ namespace DesertImage.ECS
         private readonly HashSet<EntitiesGroup> _updatedGroups = new HashSet<EntitiesGroup>();
         private readonly HashSet<EntitiesGroup> _preUpdatedGroups = new HashSet<EntitiesGroup>();
 
-        private readonly Pool<EntitiesGroup> _groupsPool = new Pool<EntitiesGroup>();
+        private readonly Pool<EntitiesGroup> _groupsPool = new Pool<EntitiesGroup>(() => new EntitiesGroup());
 
         public GroupsManager(IWorld world)
         {
@@ -125,7 +125,7 @@ namespace DesertImage.ECS
             }
             else
             {
-                EntityGroups.Add((ushort)entity.Id, new List<EntitiesGroup> { group });
+                EntityGroups.Add((ushort)entity.Id, new HashSet<EntitiesGroup> { group });
             }
         }
 
@@ -158,10 +158,14 @@ namespace DesertImage.ECS
         {
             if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
 
-            for (var i = groups.Count - 1; i >= 0; i--)
+            foreach (var group in groups)
             {
-                groups[i].Remove(entity);
+                group.Remove(entity);
             }
+            // for (var i = groups.Count - 1; i >= 0; i--)
+            // {
+            // groups[i].Remove(entity);
+            // }
 
             groups.Clear();
 
@@ -176,7 +180,7 @@ namespace DesertImage.ECS
             {
                 var matcher = _groupMatchers[group.Id];
 
-                if (!matcher.IsContainsComponent(component.Id)) continue;
+                // if (!matcher.IsContainsComponent(component.Id)) continue;
 
                 var isContainsEntity = group.Contains(entity);
 
@@ -198,11 +202,13 @@ namespace DesertImage.ECS
 
         private void WorldOnEntityComponentPreUpdated(IEntity entity, IComponent component, IComponent newValues)
         {
-            if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
+            if (!_componentGroups.TryGetValue(component.Id, out var groups)) return;
 
-            for (var i = 0; i < groups.Count; i++)
+            // if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
+
+            foreach (var group in groups)
             {
-                var group = groups[i];
+                if (!group.Contains(entity)) continue;
 
                 if (_preUpdatedGroups.Contains(group)) continue;
 
@@ -210,24 +216,47 @@ namespace DesertImage.ECS
 
                 _preUpdatedGroups.Add(group);
             }
+            // for (var i = 0; i < groups.Count; i++)
+            // {
+            // var group = groups[i];
+
+            // if (_preUpdatedGroups.Contains(group)) continue;
+
+            // group.PreUpdate(entity, component, newValues);
+
+            // _preUpdatedGroups.Add(group);
+            // }
 
             _preUpdatedGroups.Clear();
         }
 
         private void WorldOnEntityComponentUpdated(IEntity entity, IComponent component)
         {
-            if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
+            if (!_componentGroups.TryGetValue(component.Id, out var groups)) return;
+            
+            // if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
 
-            for (var i = 0; i < groups.Count; i++)
+            foreach (var group in groups)
             {
-                var group = groups[i];
-
+                if (!group.Contains(entity)) continue;
+                
                 if (_updatedGroups.Contains(group)) continue;
 
                 group.Update(entity, component);
 
                 _updatedGroups.Add(group);
             }
+
+            // for (var i = 0; i < groups.Count; i++)
+            // {
+            //     var group = groups[i];
+            //
+            //     if (_updatedGroups.Contains(group)) continue;
+            //
+            //     group.Update(entity, component);
+            //
+            //     _updatedGroups.Add(group);
+            // }
 
             _updatedGroups.Clear();
         }

@@ -1,6 +1,6 @@
 namespace DesertImage.ECS
 {
-    public class MultiOrMatcher : MatcherBase, IMultiMatcher
+    public class MultiOrMatcher : BaseMatcher, IMultiMatcher
     {
         public MultiOrMatcher(IMatcher[] matchers) : base(null)
         {

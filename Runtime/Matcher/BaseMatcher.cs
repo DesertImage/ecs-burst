@@ -4,28 +4,28 @@ using External;
 
 namespace DesertImage.ECS
 {
-    public class MatcherBase : IMatcher
+    public class BaseMatcher : IMatcher
     {
-        private static ushort MatchersCounter;
+        private static ushort _matchersCounter;
 
         public ushort Id { get; }
 
         public ushort[] ComponentIds { get; }
         private readonly HashSet<ushort> _componentsHashSet;
 
-        protected MatcherBase(ushort componentId)
+        protected BaseMatcher(ushort componentId)
         {
-            Id = MatchersCounter;
-            MatchersCounter++;
+            Id = _matchersCounter;
+            _matchersCounter++;
 
             ComponentIds = new[] { componentId };
             _componentsHashSet = new HashSet<ushort>(ComponentIds, new UshortComparer());
         }
 
-        public MatcherBase(ushort[] componentIds)
+        public BaseMatcher(ushort[] componentIds)
         {
-            Id = MatchersCounter;
-            MatchersCounter++;
+            Id = _matchersCounter;
+            _matchersCounter++;
 
             if (componentIds == null) return;
 
@@ -66,7 +66,7 @@ namespace DesertImage.ECS
 
         protected virtual bool IsEqualTypes(IMatcher other)
         {
-            return other is MatcherBase;
+            return other is BaseMatcher;
         }
 
         public override int GetHashCode()
