@@ -71,12 +71,14 @@ namespace DesertImage.ECS
         {
             var entity = (Entity)arguments.Value;
 
-            entity.UnlistenEvent<ComponentAddedEvent>(this);
-            entity.UnlistenEvent<ComponentRemovedEvent>(this);
-            entity.UnlistenEvent<ComponentUpdatedEvent>(this);
-            entity.UnlistenEvent<ComponentPreUpdatedEvent>(this);
-            entity.UnlistenEvent<DisposedEvent>(this);
+            // entity.UnlistenEvent<ComponentAddedEvent>(this);
+            // entity.UnlistenEvent<ComponentRemovedEvent>(this);
+            // entity.UnlistenEvent<ComponentUpdatedEvent>(this);
+            // entity.UnlistenEvent<ComponentPreUpdatedEvent>(this);
+            // entity.UnlistenEvent<DisposedEvent>(this);
 
+            EventsManager.Send(arguments);
+            
             _pool.ReturnInstance(entity);
         }
 

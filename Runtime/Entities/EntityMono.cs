@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using DesertImage.Events;
 using UnityEngine;
@@ -7,13 +6,6 @@ namespace DesertImage.ECS
 {
     public class EntityMono : MonoBehaviour, IEntity
     {
-        public event Action<IComponentHolder, IComponent> OnComponentAdded;
-        public event Action<IComponentHolder, IComponent> OnComponentRemoved;
-        public event Action<IComponentHolder, IComponent, IComponent> OnComponentPreUpdated;
-        public event Action<IComponentHolder, IComponent> OnComponentUpdated;
-
-        public event Action<IComponentHolder> OnDispose;
-
         public int Id => _localEntity?.Id ?? 0;
 
         public IComponent[] Components => _localEntity?.Components;

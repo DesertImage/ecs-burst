@@ -32,6 +32,8 @@ namespace DesertImage.ECS
             world.OnEntityComponentRemoved += WorldOnEntityComponentAddedOrRemoved;
             world.OnEntityComponentPreUpdated += WorldOnEntityComponentPreUpdated;
             world.OnEntityComponentUpdated += WorldOnEntityComponentUpdated;
+
+            world.OnEntityDisposed += WorldOnEntityDisposed;
         }
 
         public EntitiesGroup GetGroup(IMatcher matcher)
@@ -233,13 +235,13 @@ namespace DesertImage.ECS
         private void WorldOnEntityComponentUpdated(IEntity entity, IComponent component)
         {
             if (!_componentGroups.TryGetValue(component.Id, out var groups)) return;
-            
+
             // if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
 
             foreach (var group in groups)
             {
                 if (!group.Contains(entity)) continue;
-                
+
                 if (_updatedGroups.Contains(group)) continue;
 
                 group.Update(entity, component);
@@ -259,6 +261,16 @@ namespace DesertImage.ECS
             // }
 
             _updatedGroups.Clear();
+        }
+
+        private void WorldOnEntityDisposed(IEntity entity)
+        {
+            if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
+
+            foreach (var group in groups)
+            {
+                group.Remove(entity);
+            }
         }
 
         #endregion

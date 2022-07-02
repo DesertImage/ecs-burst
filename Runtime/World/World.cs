@@ -12,6 +12,7 @@ namespace DesertImage.ECS
         event Action<IEntity, IComponent> OnEntityComponentRemoved;
         event Action<IEntity, IComponent, IComponent> OnEntityComponentPreUpdated;
         event Action<IEntity, IComponent> OnEntityComponentUpdated;
+        event Action<IEntity> OnEntityDisposed;
 
         IEntity GetNewEntity();
         IEntity GetNewEntity(Action<IEntity> setup);
@@ -26,6 +27,7 @@ namespace DesertImage.ECS
         IListen<ComponentRemovedEvent>,
         IListen<ComponentPreUpdatedEvent>,
         IListen<ComponentUpdatedEvent>,
+        IListen<DisposedEvent>,
         IListen<GroupAddedEvent>
     {
         public event Action<IEntity> OnEntityAdded;
@@ -35,6 +37,7 @@ namespace DesertImage.ECS
         public event Action<IEntity, IComponent> OnEntityComponentRemoved;
         public event Action<IEntity, IComponent, IComponent> OnEntityComponentPreUpdated;
         public event Action<IEntity, IComponent> OnEntityComponentUpdated;
+        public event Action<IEntity> OnEntityDisposed;
 
         private readonly EntitiesManager _entitiesManager;
         private readonly GroupsManager _groupsManager;
@@ -49,6 +52,7 @@ namespace DesertImage.ECS
             _entitiesManager.ListenEvent<ComponentRemovedEvent>(this);
             _entitiesManager.ListenEvent<ComponentUpdatedEvent>(this);
             _entitiesManager.ListenEvent<ComponentPreUpdatedEvent>(this);
+            _entitiesManager.ListenEvent<DisposedEvent>(this);
         }
 
         #region GET NEW ENTITY
@@ -109,6 +113,11 @@ namespace DesertImage.ECS
                 arguments.PreviousValue,
                 arguments.FutureValue
             );
+        }
+
+        public void HandleCallback(DisposedEvent arguments)
+        {
+            OnEntityDisposed?.Invoke(arguments.Value as IEntity);
         }
 
         public void HandleCallback(GroupAddedEvent arguments)

@@ -3,7 +3,7 @@ using DesertImage.Events;
 
 namespace DesertImage.ECS
 {
-    public class EntitiesGroup : EventUnit, IPoolable, IListen<DisposedEvent>
+    public class EntitiesGroup : EventUnit, IPoolable
     {
         public ushort Id { get; }
 
@@ -39,8 +39,6 @@ namespace DesertImage.ECS
 
             Entities.Add(entity);
 
-            entity.ListenEvent<DisposedEvent>(this);
-            
             EventsManager.Send
             (
                 new EntityAddedEvent
@@ -60,8 +58,6 @@ namespace DesertImage.ECS
                 _entitiesHashSet.Remove(entity);
                 Entities.Remove(entity);
             }
-
-            entity.UnlistenEvent<DisposedEvent>(this);
 
             EventsManager.Send
             (
@@ -127,11 +123,6 @@ namespace DesertImage.ECS
             Entities.Clear();
 
             _isDisposing = false;
-        }
-
-        public void HandleCallback(DisposedEvent arguments)
-        {
-            Remove(arguments.Value as IEntity);
         }
     }
 }
