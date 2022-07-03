@@ -128,7 +128,7 @@ namespace DesertImage.ECS
 
                 if (arguments.Matcher.IsMatch(entity))
                 {
-                    arguments.Value.Add(entity);
+                    _groupsManager.AddToGroup(arguments.Value, entity);
                 }
             }
         }

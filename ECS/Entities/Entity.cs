@@ -126,8 +126,6 @@ namespace DesertImage.ECS
 
         public void ReturnToPool()
         {
-            EventsManager.Clear();
-
             Dispose();
         }
 
@@ -136,6 +134,7 @@ namespace DesertImage.ECS
             ClearComponents();
 
             EventsManager.Send(new DisposedEvent { Value = this });
+            EventsManager.Clear();
         }
 
         #region CALLBACKS

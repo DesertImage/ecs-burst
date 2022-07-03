@@ -117,7 +117,7 @@ namespace DesertImage.ECS
             return newGroup;
         }
 
-        private void AddToGroup(EntitiesGroup group, IEntity entity)
+        public void AddToGroup(EntitiesGroup group, IEntity entity)
         {
             group.Add(entity);
 
@@ -131,7 +131,7 @@ namespace DesertImage.ECS
             }
         }
 
-        private void RemoveFromGroup(EntitiesGroup group, IEntity entity)
+        public void RemoveFromGroup(EntitiesGroup group, IEntity entity)
         {
             group.Remove(entity);
 
