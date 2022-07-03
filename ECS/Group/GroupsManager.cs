@@ -6,8 +6,8 @@ namespace DesertImage.ECS
 {
     public class GroupsManager : EventUnit
     {
-        public Dictionary<ushort, HashSet<EntitiesGroup>> EntityGroups { get; } =
-            new Dictionary<ushort, HashSet<EntitiesGroup>>();
+        public Dictionary<ushort, List<EntitiesGroup>> EntityGroups { get; } =
+            new Dictionary<ushort, List<EntitiesGroup>>();
 
         public Dictionary<IMatcher, EntitiesGroup> MatcherGroups { get; } =
             new Dictionary<IMatcher, EntitiesGroup>(new MatchersComparer());
@@ -127,7 +127,7 @@ namespace DesertImage.ECS
             }
             else
             {
-                EntityGroups.Add((ushort)entity.Id, new HashSet<EntitiesGroup> { group });
+                EntityGroups.Add((ushort)entity.Id, new List<EntitiesGroup> { group });
             }
         }
 
@@ -267,9 +267,9 @@ namespace DesertImage.ECS
         {
             if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
 
-            foreach (var group in groups)
+            for (var i = 0; i < groups.Count; i++)
             {
-                group.Remove(entity);
+                groups[i].Remove(entity);
             }
         }
 

@@ -122,6 +122,8 @@ namespace DesertImage.ECS
             _entitiesHashSet.Clear();
             Entities.Clear();
 
+            EventsManager.Clear();
+            
             _isDisposing = false;
         }
     }

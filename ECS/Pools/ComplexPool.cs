@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using DesertImage;
 
 namespace DesertImage.Pools
 {
@@ -20,10 +19,6 @@ namespace DesertImage.Pools
             GetStuff(instance);
 
             return instance;
-        }
-
-        protected virtual void GetStuff<T>(T objInstance)
-        {
         }
 
         public virtual void Register<T>(T instance, int count) where T : class, new()
@@ -70,22 +65,12 @@ namespace DesertImage.Pools
             Instances.Clear();
         }
 
+        protected virtual void GetStuff<T>(T objInstance)
+        {
+        }
+        
         protected virtual void ReturnStuff<T>(T instance)
         {
-            var hash = HashCodeTypeTool.GetCachedHashCode<T>();
-
-            if (Instances.TryGetValue(hash, out var stack))
-            {
-                stack.Push(instance);
-            }
-            else
-            {
-                var newStack = new Stack<object>();
-
-                newStack.Push(instance);
-
-                Instances.Add(hash, newStack);
-            }
         }
 
         protected virtual T CreateInstance<T>() where T : new()

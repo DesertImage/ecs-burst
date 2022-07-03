@@ -43,11 +43,6 @@ namespace DesertImage.ECS
 
             if (!isAdded) return instance;
 
-            if (instance is IAwake awake)
-            {
-                awake.OnAwake();
-            }
-
             if (instance is IStart start)
             {
                 _starts.Add(start);

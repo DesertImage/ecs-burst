@@ -116,6 +116,8 @@ namespace DesertImage.ECS
                 Components[i]?.ReturnToPool();
                 Components[i] = null;
             }
+
+            _componentsCount = 0;
         }
 
         #endregion

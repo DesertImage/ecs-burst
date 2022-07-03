@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public class EntityMono : MonoBehaviour, IEntity
+    public class EntityMono : MonoBehaviour, IEntity, IListen<DisposedEvent>
     {
         public int Id => _localEntity?.Id ?? 0;
 
@@ -84,31 +84,7 @@ namespace DesertImage.ECS
 
         #endregion
 
-        public void OnCreate()
-        {
-            _world ??= Core.Instance.Get<World>();
-
-            _localEntity = _world.GetNewEntity();
-
-            _componentWrappers ??= GetComponents<IComponentWrapper>();
-
-            if ((_componentWrappers?.Length ?? 0) == 0) return;
-
-            foreach (var componentWrapper in _componentWrappers)
-            {
-                componentWrapper.Link(this);
-            }
-        }
-
-        public void ReturnToPool()
-        {
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            _localEntity = null;
-        }
+        #region EVENTS
 
         public void ListenEvent<TEvent>(IListen listener)
         {
@@ -123,6 +99,45 @@ namespace DesertImage.ECS
         public void SendEvent<TEvent>(TEvent @event)
         {
             _localEntity.SendEvent(@event);
+        }
+
+        #endregion
+
+        public void OnCreate()
+        {
+            _world ??= Core.Instance.Get<World>();
+
+            _localEntity = _world.GetNewEntity();
+            _localEntity.ListenEvent<DisposedEvent>(this);
+
+            _componentWrappers ??= GetComponents<IComponentWrapper>();
+
+            if ((_componentWrappers?.Length ?? 0) == 0) return;
+
+            foreach (var componentWrapper in _componentWrappers)
+            {
+                componentWrapper.Link(this);
+            }
+        }
+
+        public void ReturnToPool()
+        {
+            _localEntity?.UnlistenEvent<DisposedEvent>(this);
+            _localEntity?.Dispose();
+            
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            _localEntity = null;
+            
+            Core.Instance.Get<SpawnService>().ReturnInstance(gameObject);
+        }
+
+        public void HandleCallback(DisposedEvent arguments)
+        {
+            Dispose();
         }
     }
 }

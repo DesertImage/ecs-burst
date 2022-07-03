@@ -92,7 +92,7 @@ namespace DesertImage.ECS
 
         public void HandleCallback(ComponentAddedEvent arguments)
         {
-            OnEntityComponentRemoved?.Invoke((IEntity)arguments.Holder, arguments.Value);
+            OnEntityComponentAdded?.Invoke((IEntity)arguments.Holder, arguments.Value);
         }
 
         public void HandleCallback(ComponentRemovedEvent arguments)

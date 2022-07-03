@@ -27,6 +27,7 @@ namespace DesertImage.ECS
 
         public virtual void ReturnToPool()
         {
+            EventsManager.Clear();
         }
 
         protected Component<T> GetInstanceFromPool()
