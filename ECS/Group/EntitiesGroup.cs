@@ -49,7 +49,7 @@ namespace DesertImage.ECS
             );
         }
 
-        public void Remove(IEntity entity)
+        public void Remove(IEntity entity, bool silently = false)
         {
             if (!Contains(entity)) return;
 
@@ -58,6 +58,8 @@ namespace DesertImage.ECS
                 _entitiesHashSet.Remove(entity);
                 Entities.Remove(entity);
             }
+
+            if (silently) return;
 
             EventsManager.Send
             (
@@ -123,7 +125,7 @@ namespace DesertImage.ECS
             Entities.Clear();
 
             EventsManager.Clear();
-            
+
             _isDisposing = false;
         }
     }

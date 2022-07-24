@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace DesertImage.Pools
 {
-    public class ComplexPool
+    public class MultiTypePool
     {
         protected readonly Dictionary<int, Stack<object>> Instances = new Dictionary<int, Stack<object>>();
 

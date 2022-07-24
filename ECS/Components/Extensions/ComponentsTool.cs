@@ -5,8 +5,8 @@ namespace DesertImage.ECS
 {
     public static class ComponentsTool
     {
-        private static ComplexPool Pool => _pool ??= new ComplexPool();
-        private static ComplexPool _pool;
+        private static MultiTypePool Pool => _pool ??= new MultiTypePool();
+        private static MultiTypePool _pool;
 
         static ComponentsTool()
         {

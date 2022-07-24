@@ -2,11 +2,13 @@ using DesertImage.Events;
 
 namespace DesertImage.ECS
 {
-    public interface IEntity : IComponentHolder, IPoolable, IEventUnit
+    public interface IEntity : IComponentHolder, IPoolable
     {
         int Id { get; }
 
         IComponent[] Components { get; }
+
+        bool IsNull { get; }
     }
 
     public class Entity : EventUnit, IEntity,
@@ -17,6 +19,8 @@ namespace DesertImage.ECS
         public int Id { get; }
 
         public IComponent[] Components { get; }
+
+        public bool IsNull => _componentsCount == 0;
 
         private int _componentsCount;
 
@@ -183,6 +187,26 @@ namespace DesertImage.ECS
         public override int GetHashCode()
         {
             return Id;
+        }
+        
+        public static bool operator ==(Entity entity1, Entity entity2)
+        {
+            if (entity1 is null)
+            {
+                return entity2 is null || entity2.IsNull;
+            }
+
+            return entity1.Equals(entity2);
+        }
+
+        public static bool operator !=(Entity entity1, Entity entity2)
+        {
+            if (entity1 is null)
+            {
+                return !(entity2 is null || entity2.IsNull);
+            }
+            
+            return !(entity1 == entity2);
         }
     }
 }

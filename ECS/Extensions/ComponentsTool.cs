@@ -6,9 +6,9 @@ namespace DesertImage
 {
     public static class ComponentsTool
     {
-        private static ComplexPool Pool => _pool ??= Core.Instance?.Get<ComplexPool>();
+        private static MultiTypePool Pool => _pool ??= Core.Instance?.Get<MultiTypePool>();
 
-        private static ComplexPool _pool;
+        private static MultiTypePool _pool;
 
         static ComponentsTool()
         {

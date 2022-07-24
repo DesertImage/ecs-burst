@@ -9,6 +9,7 @@ namespace DesertImage.ECS
         public int Id => _localEntity?.Id ?? 0;
 
         public IComponent[] Components => _localEntity?.Components;
+        public bool IsNull => _localEntity?.IsNull ?? true;
 
         [SerializeField] private bool autoInitialize;
 
@@ -124,14 +125,14 @@ namespace DesertImage.ECS
         {
             _localEntity?.UnlistenEvent<DisposedEvent>(this);
             _localEntity?.Dispose();
-            
+
             Dispose();
         }
 
         public void Dispose()
         {
             _localEntity = null;
-            
+
             Core.Instance.Get<SpawnService>().ReturnInstance(gameObject);
         }
 

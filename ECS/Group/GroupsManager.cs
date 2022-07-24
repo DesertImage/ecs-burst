@@ -269,7 +269,7 @@ namespace DesertImage.ECS
 
             for (var i = 0; i < groups.Count; i++)
             {
-                groups[i].Remove(entity);
+                groups[i].Remove(entity, entity.IsNull);
             }
         }
 
