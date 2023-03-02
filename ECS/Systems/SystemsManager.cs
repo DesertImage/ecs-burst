@@ -9,6 +9,7 @@ namespace DesertImage.ECS
 {
     public class SystemsManager :
         ITick,
+        ITickFixed,
         IDisposable,
         IListen<EntityAddedEvent>,
         IListen<EntityRemovedEvent>,
@@ -17,11 +18,11 @@ namespace DesertImage.ECS
     {
         private readonly IWorld _world;
 
-        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _systems =
-            new CustomDictionary<int, (ISystem, EntitiesGroup)>(10, 3, -1);
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _systems = new(10, 3, -1);
 
-        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeSystems =
-            new CustomDictionary<int, (ISystem, EntitiesGroup)>(10, 3, -1);
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeSystems = new(10, 3, -1);
+
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeFixedUpdateSystems = new(10, 3, -1);
 
         private readonly CustomDictionary<int, (EntitiesGroup, List<IReactEntityAddedSystem>)> _entityAddedGroups =
             new CustomDictionary<int, (EntitiesGroup, List<IReactEntityAddedSystem>)>(10, 3, -1);
@@ -39,10 +40,7 @@ namespace DesertImage.ECS
 
         private readonly List<IEndSystem> _endSystems = new List<IEndSystem>();
 
-        public SystemsManager(IWorld world)
-        {
-            _world = world;
-        }
+        public SystemsManager(IWorld world) => _world = world;
 
         #region ADD
 
@@ -77,6 +75,23 @@ namespace DesertImage.ECS
                 _systems.AddIfNotContains(hashCode, (executeSystem, group));
 
                 _executeSystems.Add(hashCode, (executeSystem, group));
+            }
+
+            if (system is IExecuteFixedUpdateSystem fixedUpdateSystem)
+            {
+                if (_executeFixedUpdateSystems.TryGetValue(hashCode, out _))
+                {
+#if DEBUG
+                    UnityEngine.Debug.LogWarning("[SystemsManager] system already added");
+#endif
+                    return;
+                }
+
+                var group = _world.GetGroup(fixedUpdateSystem.Matcher);
+
+                _systems.AddIfNotContains(hashCode, (fixedUpdateSystem, group));
+
+                _executeFixedUpdateSystems.Add(hashCode, (fixedUpdateSystem, group));
             }
 
             if (system is InitSystem initSystem)
@@ -289,6 +304,29 @@ namespace DesertImage.ECS
                         for (var j = 0; j < group.Entities.Count; j++)
                         {
                             executeSystem.Execute(group.Entities[j]);
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        public void FixedTick()
+        {
+            for (var i = 0; i < _executeFixedUpdateSystems.Count; i++)
+            {
+                var (_, systemData) = _executeFixedUpdateSystems[i];
+
+                var (system, group) = systemData;
+
+                switch (system)
+                {
+                    case IExecuteFixedUpdateSystem fixedUpdateSystem:
+                    {
+                        for (var j = 0; j < group.Entities.Count; j++)
+                        {
+                            fixedUpdateSystem.Execute(group.Entities[j]);
                         }
 
                         break;
