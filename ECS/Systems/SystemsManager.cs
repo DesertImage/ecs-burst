@@ -18,11 +18,14 @@ namespace DesertImage.ECS
     {
         private readonly IWorld _world;
 
-        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _systems = new(10, 3, -1);
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _systems =
+            new CustomDictionary<int, (ISystem, EntitiesGroup)>(10, 3, -1);
 
-        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeSystems = new(10, 3, -1);
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeSystems =
+            new CustomDictionary<int, (ISystem, EntitiesGroup)>(10, 3, -1);
 
-        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeFixedUpdateSystems = new(10, 3, -1);
+        private readonly CustomDictionary<int, (ISystem, EntitiesGroup)> _executeFixedUpdateSystems =
+            new CustomDictionary<int, (ISystem, EntitiesGroup)>(10, 3, -1);
 
         private readonly CustomDictionary<int, (EntitiesGroup, List<IReactEntityAddedSystem>)> _entityAddedGroups =
             new CustomDictionary<int, (EntitiesGroup, List<IReactEntityAddedSystem>)>(10, 3, -1);
