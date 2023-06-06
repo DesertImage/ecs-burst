@@ -24,6 +24,12 @@ namespace DesertImage.ECS
             Core.Add<ServiceSound>();
             Core.Add<FXService>();
 
+            var sceneEntities = FindObjectsByType<EntityMono>(FindObjectsSortMode.None);
+            foreach (var entity in sceneEntities)
+            {
+                entity.OnCreate();
+            }
+            
             InitComponents();
 
             InitModules();

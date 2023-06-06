@@ -1,7 +1,7 @@
 ﻿namespace DesertImage.ECS
 {
-    public interface IExecuteFixedUpdateSystem : IExecuteSystem
+    public interface IExecuteFixedUpdateSystem  : IMatchSystem
     {
-        
+        void Execute(IEntity entity);
     }
 }
