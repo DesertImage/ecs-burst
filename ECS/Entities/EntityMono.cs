@@ -53,6 +53,8 @@ namespace DesertImage.ECS
             // OnCreate();
         }
 
+        public void Inject(IWorld world) => _world = world;
+
         #region COMPONENTS
 
         public IComponent Add(IComponent component)
