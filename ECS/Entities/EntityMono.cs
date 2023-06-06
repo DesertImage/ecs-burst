@@ -41,14 +41,14 @@ namespace DesertImage.ECS
 
         private IEnumerator Start()
         {
-            while (!Core.Instance?.IsInitialized ?? true)
-            {
-                yield return null;
-            }
-
-            if (!autoInitialize) yield break;
-
-            OnCreate();
+            // while (!Core.Instance?.IsInitialized ?? true)
+            // {
+            //     yield return null;
+            // }
+            //
+            // if (!autoInitialize) yield break;
+            //
+            // OnCreate();
         }
 
         #region COMPONENTS
