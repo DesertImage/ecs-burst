@@ -110,8 +110,6 @@ namespace DesertImage.ECS
 
         public void OnCreate()
         {
-            _world ??= Core.Instance.Get<World>();
-
             _localEntity = _world.GetNewEntity();
             _localEntity.ListenEvent<DisposedEvent>(this);
 
