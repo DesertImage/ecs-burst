@@ -41,6 +41,8 @@ namespace DesertImage.ECS
 
         private IEnumerator Start()
         {
+            yield return null;
+
             // while (!Core.Instance?.IsInitialized ?? true)
             // {
             //     yield return null;
