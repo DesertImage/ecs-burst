@@ -25,9 +25,14 @@ namespace DesertImage.ECS
             Core.Add<FXService>();
 
             var sceneEntities = FindObjectsByType<EntityMono>(FindObjectsSortMode.None);
+            
             foreach (var entity in sceneEntities)
             {
                 entity.Inject(world);
+            }
+
+            foreach (var entity in sceneEntities)
+            {
                 entity.OnCreate();
             }
             
