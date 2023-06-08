@@ -110,6 +110,9 @@ namespace DesertImage.ECS
 
         public void OnCreate()
         {
+            //TODO: fix injection
+            _world ??= Core.Instance.Get<World>();
+            
             _localEntity = _world.GetNewEntity();
             _localEntity.ListenEvent<DisposedEvent>(this);
 
