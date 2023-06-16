@@ -6,13 +6,9 @@ namespace DesertImage.Pools
     public class Pool<T> where T : IPoolable, new()
     {
         protected readonly Stack<T> Stack = new Stack<T>();
-
         protected readonly Func<T> Factory;
 
-        public Pool(Func<T> factory = null)
-        {
-            Factory = factory;
-        }
+        public Pool(Func<T> factory = null) => Factory = factory;
 
         public void Register(int count)
         {
@@ -31,14 +27,8 @@ namespace DesertImage.Pools
             return instance;
         }
 
-        public virtual void ReturnInstance(T instance)
-        {
-            Stack.Push(instance);
-        }
+        public virtual void ReturnInstance(T instance) => Stack.Push(instance);
 
-        protected virtual T CreateInstance()
-        {
-            return Factory != null ? Factory.Invoke() : new T();
-        }
+        protected virtual T CreateInstance() => Factory != null ? Factory.Invoke() : new T();
     }
 }

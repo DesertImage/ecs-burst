@@ -3,22 +3,14 @@ using DesertImage.ECS;
 
 namespace Entities
 {
-    public interface IEntityComparer : IEqualityComparer<IEntity>
+    public interface EntityComparer : IEqualityComparer<Entity>
     {
     }
 
-    public class EntityEqualityComparer : IEntityComparer
+    public class EntityEqualityComparer : EntityComparer
     {
-        public bool Equals(IEntity x, IEntity y)
-        {
-            if (x == null || y == null) return false;
+        public bool Equals(Entity x, Entity y) => x.Id == y.Id;
 
-            return x.Id == y.Id;
-        }
-
-        public int GetHashCode(IEntity obj)
-        {
-            return obj.Id;
-        }
+        public int GetHashCode(Entity obj) => obj.Id;
     }
 }

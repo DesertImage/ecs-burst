@@ -1,278 +1,204 @@
 using System.Collections.Generic;
-using DesertImage.Events;
-using DesertImage.Pools;
 
 namespace DesertImage.ECS
 {
-    public class GroupsManager : EventUnit
+    public struct GroupsManager
     {
-        public Dictionary<ushort, List<EntitiesGroup>> EntityGroups { get; } =
-            new Dictionary<ushort, List<EntitiesGroup>>();
+        public Dictionary<int, List<int>> EntityGroups;
+        public Dictionary<int, int> MatcherGroups;
 
-        public Dictionary<IMatcher, EntitiesGroup> MatcherGroups { get; } =
-            new Dictionary<IMatcher, EntitiesGroup>(new MatchersComparer());
+        private readonly Dictionary<int, Matcher> _groupMatchers;
+        private readonly Dictionary<int, List<int>> _componentGroups;
+        private readonly Dictionary<int, List<int>> _noneOfComponentGroups;
 
-        private readonly Dictionary<ushort, IMatcher> _groupMatchers = new Dictionary<ushort, IMatcher>();
+        private readonly List<EntitiesGroup> _groups;
 
-        private readonly Dictionary<ushort, List<EntitiesGroup>> _componentGroups =
-            new Dictionary<ushort, List<EntitiesGroup>>();
+        private readonly IWorld _world;
 
-        //to avoid duplicated Update event during OnEntityUpdated callback
-        private readonly HashSet<EntitiesGroup> _updatedGroups = new HashSet<EntitiesGroup>();
-        private readonly HashSet<EntitiesGroup> _preUpdatedGroups = new HashSet<EntitiesGroup>();
-
-        private readonly Pool<EntitiesGroup> _groupsPool = new Pool<EntitiesGroup>(() => new EntitiesGroup());
+        private static int _groupsIdCounter = -1;
 
         public GroupsManager(IWorld world)
         {
-            world.OnEntityAdded += WorldOnEntityAdded;
-            world.OnEntityRemoved += WorldOnEntityRemoved;
+            _world = world;
 
-            world.OnEntityComponentAdded += WorldOnEntityComponentAddedOrRemoved;
-            world.OnEntityComponentRemoved += WorldOnEntityComponentAddedOrRemoved;
-            world.OnEntityComponentPreUpdated += WorldOnEntityComponentPreUpdated;
-            world.OnEntityComponentUpdated += WorldOnEntityComponentUpdated;
+            EntityGroups = new Dictionary<int, List<int>>();
+            MatcherGroups = new Dictionary<int, int>();
 
-            world.OnEntityDisposed += WorldOnEntityDisposed;
+            _groupMatchers = new Dictionary<int, Matcher>();
+            _componentGroups = new Dictionary<int, List<int>>();
+            _noneOfComponentGroups = new Dictionary<int, List<int>>();
+
+            _groups = new List<EntitiesGroup>(20);
+
+            _groupsIdCounter = -1;
         }
 
-        public EntitiesGroup GetGroup(IMatcher matcher)
+        public EntitiesGroup GetGroup(Matcher matcher)
         {
-            return MatcherGroups.TryGetValue(matcher, out var group) ? group : GetNewGroup(matcher);
-        }
-
-        public EntitiesGroup GetGroup(ushort componentId)
-        {
-            if (_componentGroups.TryGetValue(componentId, out var groups))
-            {
-                foreach (var group in groups)
-                {
-                    var groupMatcher = _groupMatchers[group.Id];
-
-                    if (groupMatcher.ComponentIds.Length > 1) continue;
-
-                    return group;
-                }
-            }
-
-            return GetNewGroup(Match.AllOf(componentId));
-        }
-
-        public EntitiesGroup GetGroup(ushort[] componentIds)
-        {
-            foreach (var pair in MatcherGroups)
-            {
-                var matcher = pair.Key;
-                var group = pair.Value;
-
-                if (matcher.ComponentIds.Length != componentIds.Length) break;
-
-                var isMatch = true;
-
-                foreach (var componentId in componentIds)
-                {
-                    if (matcher.IsContainsComponent(componentId)) continue;
-
-                    isMatch = false;
-
-                    break;
-                }
-
-                return isMatch ? group : GetNewGroup(Match.AllOf(componentIds));
-            }
-
-            return GetNewGroup(Match.AllOf(componentIds));
+            return MatcherGroups.TryGetValue(matcher.Id, out var group) ? _groups[group - 1] : GetNewGroup(matcher);
         }
 
         private EntitiesGroup GetNewGroup()
         {
-            return _groupsPool.GetInstance();
+            var newGroup = new EntitiesGroup(++_groupsIdCounter);
+            _groups.Add(newGroup);
+            return newGroup;
         }
 
-        private EntitiesGroup GetNewGroup(IMatcher matcher)
+        private EntitiesGroup GetNewGroup(Matcher matcher)
         {
             var newGroup = GetNewGroup();
 
-            _groupMatchers.Add(newGroup.Id, matcher);
-            MatcherGroups.Add(matcher, newGroup);
+            var newGroupId = newGroup.Id;
 
-            foreach (var componentId in matcher.ComponentIds)
+            _groupMatchers.Add(newGroupId, matcher);
+            MatcherGroups.Add(matcher.Id, newGroupId);
+
+            foreach (var componentId in matcher.Components)
             {
                 if (_componentGroups.TryGetValue(componentId, out var groups))
                 {
-                    groups.Add(newGroup);
+                    groups.Add(newGroupId);
                 }
                 else
                 {
-                    _componentGroups.Add(componentId, new List<EntitiesGroup> { newGroup });
+                    _componentGroups.Add(componentId, new List<int> { newGroupId });
                 }
             }
 
-            EventsManager.Send(new GroupAddedEvent
+            foreach (var componentId in matcher.NoneOfComponents)
             {
-                Matcher = matcher,
-                Value = newGroup
-            });
+                if (_noneOfComponentGroups.TryGetValue(componentId, out var groups))
+                {
+                    groups.Add(newGroupId);
+                }
+                else
+                {
+                    _noneOfComponentGroups.Add(componentId, new List<int> { newGroupId });
+                }
+            }
 
             return newGroup;
         }
 
-        public void AddToGroup(EntitiesGroup group, IEntity entity)
+        private void AddToGroup(EntitiesGroup group, int entityId)
         {
-            group.Add(entity);
+            var groupId = group.Id;
 
-            if (EntityGroups.TryGetValue((ushort)entity.Id, out var groupsList))
+            group.Add(entityId);
+
+            if (EntityGroups.TryGetValue(entityId, out var groupsList))
             {
-                groupsList.Add(group);
+                groupsList.Add(groupId);
             }
             else
             {
-                EntityGroups.Add((ushort)entity.Id, new List<EntitiesGroup> { group });
+                EntityGroups.Add(entityId, new List<int> { groupId });
             }
         }
 
-        public void RemoveFromGroup(EntitiesGroup group, IEntity entity)
+        private void RemoveFromGroup(EntitiesGroup group, int entityId)
         {
-            group.Remove(entity);
-
-            if (EntityGroups.TryGetValue((ushort)entity.Id, out var groupsList))
-            {
-                groupsList.Remove(group);
-            }
+            group.Remove(entityId);
+            EntityGroups[entityId].Remove(group.Id);
         }
 
-        #region CALLBACKS
+        public void OnEntityCreated(int entityId) => EntityGroups.Add(entityId, new List<int>());
 
-        private void WorldOnEntityAdded(IEntity entity)
+        public void OnEntityComponentAdded(int entityId, int componentId)
         {
-            foreach (var pair in MatcherGroups)
+            var groups = EntityGroups[entityId];
+
+            for (var i = groups.Count - 1; i >= 0; i--)
             {
-                var matcher = pair.Key;
-                var group = pair.Value;
+                var groupId = groups[i];
 
-                if (!matcher.IsMatch(entity)) continue;
+                var matcher = _groupMatchers[groupId];
+                var components = _world.GetEntityComponents(entityId);
 
-                AddToGroup(group, entity);
+                if (matcher.Check(components)) continue;
+
+                RemoveFromGroup(_groups[groupId], entityId);
+            }
+
+            if (_componentGroups.TryGetValue(componentId, out var componentGroups))
+            {
+                ValidateEntityAdd(entityId, componentGroups);
+            }
+
+            if (_noneOfComponentGroups.TryGetValue(componentId, out componentGroups))
+            {
+                ValidateEntityRemove(entityId, componentGroups);
             }
         }
 
-        private void WorldOnEntityRemoved(IEntity entity)
+        private void ValidateEntityAdd(int entityId, IReadOnlyList<int> groups)
         {
-            if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
-
-            foreach (var group in groups)
+            for (var i = groups.Count - 1; i >= 0; i--)
             {
-                group.Remove(entity);
+                var groupId = groups[i];
+                var group = _groups[groupId];
+
+                if (group.Contains(entityId)) continue;
+
+                var matcher = _groupMatchers[groupId];
+                var components = _world.GetEntityComponents(entityId);
+
+                if (!matcher.Check(components)) continue;
+
+                AddToGroup(group, entityId);
             }
-            // for (var i = groups.Count - 1; i >= 0; i--)
-            // {
-            // groups[i].Remove(entity);
-            // }
-
-            groups.Clear();
-
-            return;
         }
 
-        private void WorldOnEntityComponentAddedOrRemoved(IEntity entity, IComponent component)
+        //TODO:refactor
+        private void ValidateEntityRemove(int entityId, IReadOnlyList<int> groups)
         {
-            if (!_componentGroups.TryGetValue(component.Id, out var groups)) return;
-
-            foreach (var group in groups)
+            for (var i = groups.Count - 1; i >= 0; i--)
             {
-                var matcher = _groupMatchers[group.Id];
+                var groupId = groups[i];
+                var group = _groups[groupId];
 
-                // if (!matcher.IsContainsComponent(component.Id)) continue;
+                if (!group.Contains(entityId)) continue;
 
-                var isContainsEntity = group.Contains(entity);
+                var matcher = _groupMatchers[groupId];
+                var components = _world.GetEntityComponents(entityId);
 
-                if (!matcher.IsMatch(entity))
-                {
-                    if (isContainsEntity)
-                    {
-                        RemoveFromGroup(group, entity);
-                    }
+                if (matcher.Check(components)) continue;
 
-                    continue;
-                }
-
-                if (isContainsEntity) continue;
-
-                AddToGroup(group, entity);
+                RemoveFromGroup(group, entityId);
             }
         }
 
-        private void WorldOnEntityComponentPreUpdated(IEntity entity, IComponent component, IComponent newValues)
+        public void OnEntityComponentRemoved(int entityId, int componentId)
         {
-            if (!_componentGroups.TryGetValue(component.Id, out var groups)) return;
+            var groups = EntityGroups[entityId];
 
-            // if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
-
-            foreach (var group in groups)
+            for (var i = groups.Count - 1; i >= 0; i--)
             {
-                if (!group.Contains(entity)) continue;
+                var groupId = groups[i];
 
-                if (_preUpdatedGroups.Contains(group)) continue;
+                var matcher = _groupMatchers[groupId];
+                var components = _world.GetEntityComponents(entityId);
 
-                group.PreUpdate(entity, component, newValues);
+                if (matcher.Check(components)) continue;
 
-                _preUpdatedGroups.Add(group);
-            }
-            // for (var i = 0; i < groups.Count; i++)
-            // {
-            // var group = groups[i];
-
-            // if (_preUpdatedGroups.Contains(group)) continue;
-
-            // group.PreUpdate(entity, component, newValues);
-
-            // _preUpdatedGroups.Add(group);
-            // }
-
-            _preUpdatedGroups.Clear();
-        }
-
-        private void WorldOnEntityComponentUpdated(IEntity entity, IComponent component)
-        {
-            if (!_componentGroups.TryGetValue(component.Id, out var groups)) return;
-
-            // if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
-
-            foreach (var group in groups)
-            {
-                if (!group.Contains(entity)) continue;
-
-                if (_updatedGroups.Contains(group)) continue;
-
-                group.Update(entity, component);
-
-                _updatedGroups.Add(group);
+                RemoveFromGroup(_groups[groupId], entityId);
             }
 
-            // for (var i = 0; i < groups.Count; i++)
-            // {
-            //     var group = groups[i];
-            //
-            //     if (_updatedGroups.Contains(group)) continue;
-            //
-            //     group.Update(entity, component);
-            //
-            //     _updatedGroups.Add(group);
-            // }
+            if (!_noneOfComponentGroups.TryGetValue(componentId, out var componentGroups)) return;
 
-            _updatedGroups.Clear();
-        }
-
-        private void WorldOnEntityDisposed(IEntity entity)
-        {
-            if (!EntityGroups.TryGetValue((ushort)entity.Id, out var groups)) return;
-
-            for (var i = 0; i < groups.Count; i++)
+            for (var i = componentGroups.Count - 1; i >= 0; i--)
             {
-                groups[i].Remove(entity, entity.IsNull);
+                var groupId = componentGroups[i];
+                var group = _groups[groupId];
+
+                var matcher = _groupMatchers[groupId];
+                var components = _world.GetEntityComponents(entityId);
+
+                if (!matcher.Check(components)) continue;
+
+                AddToGroup(group, entityId);
             }
         }
-
-        #endregion
     }
 }

@@ -1,19 +1,9 @@
-﻿using DesertImage.ECS;
-
-namespace Game
+﻿namespace DesertImage.ECS
 {
-    public class RemoveComponentSystem<T> : SystemBase, IReactEntityAddedSystem where T : IComponent, new()
+    public class RemoveComponentSystem<T> : ExecuteSystem where T : struct
     {
-        public IMatcher Matcher { get; }
+        public override Matcher Matcher => MatcherBuilder.Create().With<T>().Build();
 
-        private ushort _componentId;
-        
-        public RemoveComponentSystem()
-        {
-            var component = ComponentsTool.GetInstanceFromPool<T>();
-            Matcher = Match.AllOf(component.Id);
-        }
-
-        public void Execute(IEntity entity) => entity.Remove(_componentId);
+        public override void Execute(Entity entity, float deltaTime) => entity.Remove<T>();
     }
 }

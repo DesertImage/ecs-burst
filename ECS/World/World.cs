@@ -1,138 +1,83 @@
 using System;
-using DesertImage.Events;
 
 namespace DesertImage.ECS
 {
-    public interface IWorld
+    public interface IWorld : IDisposable
     {
-        event Action<IEntity> OnEntityAdded;
-        event Action<IEntity> OnEntityRemoved;
+        Entity SharedEntity { get; }
 
-        event Action<IEntity, IComponent> OnEntityComponentAdded;
-        event Action<IEntity, IComponent> OnEntityComponentRemoved;
-        event Action<IEntity, IComponent, IComponent> OnEntityComponentPreUpdated;
-        event Action<IEntity, IComponent> OnEntityComponentUpdated;
-        event Action<IEntity> OnEntityDisposed;
+        Entity GetEntityById(int id);
+        Entity GetNewEntity();
+        SortedSetPoolable<int> GetEntityComponents(int id);
+        void DestroyEntity(int entityId);
 
-        IEntity GetNewEntity();
-        IEntity GetNewEntity(Action<IEntity> setup);
+        void ReplaceComponent<T>(int entityId, T component) where T : struct;
+        void RemoveComponent<T>(int entityId) where T : struct;
+        bool HasComponent<T>(int entityId) where T : struct;
+        ref T GetComponent<T>(int entityId) where T : struct;
 
-        EntitiesGroup GetGroup(IMatcher matcher);
-        EntitiesGroup GetGroup(ushort componentId);
-        EntitiesGroup GetGroup(ushort[] componentIds);
+        public void Add<T>() where T : class, ISystem, new();
+
+        void Tick(float deltaTime);
+        
+        EntitiesGroup GetGroup(Matcher matcher);
     }
 
-    public class World : IWorld,
-        IListen<ComponentAddedEvent>,
-        IListen<ComponentRemovedEvent>,
-        IListen<ComponentPreUpdatedEvent>,
-        IListen<ComponentUpdatedEvent>,
-        IListen<DisposedEvent>,
-        IListen<GroupAddedEvent>
+    public sealed class World : IWorld
     {
-        public event Action<IEntity> OnEntityAdded;
-        public event Action<IEntity> OnEntityRemoved;
+        public static World Current { get; private set; }
 
-        public event Action<IEntity, IComponent> OnEntityComponentAdded;
-        public event Action<IEntity, IComponent> OnEntityComponentRemoved;
-        public event Action<IEntity, IComponent, IComponent> OnEntityComponentPreUpdated;
-        public event Action<IEntity, IComponent> OnEntityComponentUpdated;
-        public event Action<IEntity> OnEntityDisposed;
+        public Entity SharedEntity { get; }
 
-        private readonly EntitiesManager _entitiesManager;
-        private readonly GroupsManager _groupsManager;
+        private EntitiesManager EntitiesManager { get; }
+        private GroupsManager GroupsManager { get; }
+        private SystemsManager SystemsManager { get; }
 
-        public World(GroupsManager groupsManager = null, EntitiesManager entitiesManager = null)
+        public World()
         {
-            _groupsManager = groupsManager ?? new GroupsManager(this);
-            _groupsManager.ListenEvent<GroupAddedEvent>(this);
+            Current = this;
 
-            _entitiesManager = entitiesManager ?? new EntitiesManager();
-            _entitiesManager.ListenEvent<ComponentAddedEvent>(this);
-            _entitiesManager.ListenEvent<ComponentRemovedEvent>(this);
-            _entitiesManager.ListenEvent<ComponentUpdatedEvent>(this);
-            _entitiesManager.ListenEvent<ComponentPreUpdatedEvent>(this);
-            _entitiesManager.ListenEvent<DisposedEvent>(this);
+            GroupsManager = new GroupsManager(this);
+            EntitiesManager = new EntitiesManager(this);
+            SystemsManager = new SystemsManager(this);
+
+            SharedEntity = EntitiesManager.GetNewEntity();
         }
 
-        #region GET NEW ENTITY
-
-        public IEntity GetNewEntity()
+        public void ReplaceComponent<T>(int entityId, T component) where T : struct
         {
-            return _entitiesManager.GetNewEntity();
+            EntitiesManager.ReplaceComponent(entityId, component);
+            GroupsManager.OnEntityComponentAdded(entityId, ComponentTools.GetComponentId<T>());
         }
 
-        public IEntity GetNewEntity(Action<IEntity> setup)
+        public void RemoveComponent<T>(int entityId) where T : struct
         {
-            return _entitiesManager.GetNewEntity(setup);
+            EntitiesManager.RemoveComponent<T>(entityId);
+            GroupsManager.OnEntityComponentRemoved(entityId, ComponentTools.GetComponentId<T>());
         }
 
-        #endregion
+        public bool HasComponent<T>(int entityId) where T : struct => EntitiesManager.HasComponent<T>(entityId);
+        public ref T GetComponent<T>(int entityId) where T : struct => ref EntitiesManager.GetComponent<T>(entityId);
 
-        #region GET GROUP
+        public void Add<T>() where T : class, ISystem, new() => SystemsManager.Add<T>();
 
-        public EntitiesGroup GetGroup(IMatcher matcher)
+        public Entity GetEntityById(int id) => EntitiesManager.GetEntityById(id);
+
+        public Entity GetNewEntity()
         {
-            return _groupsManager.GetGroup(matcher);
+            var newEntity = EntitiesManager.GetNewEntity();
+            GroupsManager.OnEntityCreated(newEntity.Id);
+            return newEntity;
         }
 
-        public EntitiesGroup GetGroup(ushort componentId)
-        {
-            return _groupsManager.GetGroup(componentId);
-        }
+        public SortedSetPoolable<int> GetEntityComponents(int id) => EntitiesManager.GetComponents(id);
 
-        public EntitiesGroup GetGroup(ushort[] componentIds)
-        {
-            return _groupsManager.GetGroup(componentIds);
-        }
+        public void DestroyEntity(int entityId) => EntitiesManager.DestroyEntity(entityId);
 
-        #endregion
+        public EntitiesGroup GetGroup(Matcher matcher) => GroupsManager.GetGroup(matcher);
 
-        #region CALLBACKS
+        public void Tick(float delta) => SystemsManager.Tick(delta);
 
-        public void HandleCallback(ComponentAddedEvent arguments)
-        {
-            OnEntityComponentAdded?.Invoke((IEntity)arguments.Holder, arguments.Value);
-        }
-
-        public void HandleCallback(ComponentRemovedEvent arguments)
-        {
-            OnEntityComponentRemoved?.Invoke((IEntity)arguments.Holder, arguments.Value);
-        }
-
-        public void HandleCallback(ComponentUpdatedEvent arguments)
-        {
-            OnEntityComponentUpdated?.Invoke((IEntity)arguments.Holder, arguments.Value);
-        }
-
-        public void HandleCallback(ComponentPreUpdatedEvent arguments)
-        {
-            OnEntityComponentPreUpdated?.Invoke
-            (
-                (IEntity)arguments.Holder,
-                arguments.PreviousValue,
-                arguments.FutureValue
-            );
-        }
-
-        public void HandleCallback(DisposedEvent arguments)
-        {
-            OnEntityDisposed?.Invoke(arguments.Value as IEntity);
-        }
-
-        public void HandleCallback(GroupAddedEvent arguments)
-        {
-            foreach (var pair in _entitiesManager.Entities)
-            {
-                var entity = pair.Value;
-
-                if (arguments.Matcher.IsMatch(entity))
-                {
-                    _groupsManager.AddToGroup(arguments.Value, entity);
-                }
-            }
-        }
-
-        #endregion
+        public void Dispose() => SystemsManager.Dispose();
     }
 }

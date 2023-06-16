@@ -1,132 +1,36 @@
+using System;
 using System.Collections.Generic;
-using DesertImage.Events;
 
 namespace DesertImage.ECS
 {
-    public class EntitiesGroup : EventUnit, IPoolable
+    [Serializable]
+    public struct EntitiesGroup
     {
-        public ushort Id { get; }
+        public readonly int Id;
+        
+        //TODO: use Sparse Set
+        public readonly List<int> Entities;
+        public readonly HashSet<int> EntitiesHashSet;
 
-        private static ushort _groupsIdCounter;
-
-        public List<IEntity> Entities { get; }
-
-        private readonly HashSet<IEntity> _entitiesHashSet = new HashSet<IEntity>();
-
-        private bool _isDisposing;
-
-        public EntitiesGroup()
+        public EntitiesGroup(int id)
         {
-            Id = _groupsIdCounter;
-
-            Entities = new List<IEntity>();
-
-            _groupsIdCounter++;
+            Id = id;
+            Entities = new List<int>();
+            EntitiesHashSet = new HashSet<int>();
         }
 
-        public EntitiesGroup(List<IEntity> entities)
+        public void Add(int entityId)
         {
-            Id = _groupsIdCounter;
-
-            Entities = entities;
-
-            _groupsIdCounter++;
+            Entities.Add(entityId);
+            EntitiesHashSet.Add(entityId);
         }
 
-        public void Add(IEntity entity)
+        public void Remove(int entityId)
         {
-            _entitiesHashSet.Add(entity);
-
-            Entities.Add(entity);
-
-            EventsManager.Send
-            (
-                new EntityAddedEvent
-                {
-                    Group = this,
-                    Value = entity
-                }
-            );
+            Entities.Remove(entityId);
+            EntitiesHashSet.Remove(entityId);
         }
 
-        public void Remove(IEntity entity, bool silently = false)
-        {
-            if (!Contains(entity)) return;
-
-            if (!_isDisposing)
-            {
-                _entitiesHashSet.Remove(entity);
-                Entities.Remove(entity);
-            }
-
-            if (silently) return;
-
-            EventsManager.Send
-            (
-                new EntityRemovedEvent
-                {
-                    Group = this,
-                    Value = entity
-                }
-            );
-        }
-
-        public bool Contains(IEntity entity)
-        {
-            return _entitiesHashSet.Contains(entity);
-        }
-
-        public void OnCreate()
-        {
-        }
-
-        public void ReturnToPool()
-        {
-            Dispose();
-        }
-
-        public void PreUpdate(IEntity entity, IComponent component, IComponent newValues)
-        {
-            EventsManager.Send
-            (
-                new EntityPreUpdatedEvent
-                {
-                    Value = entity,
-                    Previous = component,
-                    Future = newValues,
-                    Group = this
-                }
-            );
-        }
-
-        public void Update(IEntity entity, IComponent component)
-        {
-            EventsManager.Send
-            (
-                new EntityUpdatedEvent
-                {
-                    Value = entity,
-                    Component = component,
-                    Group = this
-                }
-            );
-        }
-
-        public void Dispose()
-        {
-            _isDisposing = true;
-
-            foreach (var entity in Entities)
-            {
-                Remove(entity);
-            }
-
-            _entitiesHashSet.Clear();
-            Entities.Clear();
-
-            EventsManager.Clear();
-
-            _isDisposing = false;
-        }
+        public bool Contains(int entityId) => EntitiesHashSet.Contains(entityId);
     }
 }

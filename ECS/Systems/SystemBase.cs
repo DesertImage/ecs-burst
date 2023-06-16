@@ -6,19 +6,8 @@ namespace DesertImage.ECS
 
         protected IWorld World;
 
-        public virtual void Activate()
-        {
-            IsActive = true;
-        }
-
-        public virtual void Deactivate()
-        {
-            IsActive = false;
-        }
-
-        public virtual void Init(IWorld world)
-        {
-            World = world;
-        }
+        public virtual void Activate() => IsActive = true;
+        public virtual void Deactivate() => IsActive = false;
+        public virtual void Inject(IWorld world) => World = world;
     }
 }

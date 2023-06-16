@@ -2,57 +2,36 @@ using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public class EcsStarter : MonoBehaviour
+    public abstract class EcsStarter : MonoBehaviour
     {
-        [SerializeField] private ScriptableObject[] modules;
-
-        protected Core Core;
-
-        protected SystemsManager SystemsManager;
+        protected IWorld World;
 
         protected virtual void Awake()
         {
-            Core = new Core();
+            World = new World();
 
-            Core.Add<ManagerUpdate>();
+            InitSceneEntities();
+            InitComponents();
+            InitSystems();
+        }
 
-            var world = Core.Add(new World());
+        protected virtual void OnDestroy() => World.Dispose();
 
-            SystemsManager = Core.Add(new SystemsManager(world));
+        private void Update() => World.Tick(Time.deltaTime);
 
-            Core.Add<SpawnService>();
-            Core.Add<ServiceSound>();
-            Core.Add<FXService>();
-
+        private static void InitSceneEntities()
+        {
             var sceneEntities = FindObjectsByType<EntityMono>(FindObjectsSortMode.None);
-            
-            foreach (var entity in sceneEntities)
-            {
-                entity.Inject(world);
-            }
-
             foreach (var entity in sceneEntities)
             {
                 entity.OnCreate();
             }
-            
-            InitComponents();
-
-            InitModules();
-
-            InitSystems();
-        }
-
-        private void Start()
-        {
-            Core.OnStart();
         }
 
         private void InitComponents()
         {
-            var components = GetComponents<IComponentWrapper>();
-
-            var entity = Core.Get<World>().GetNewEntity();
+            var components = GetComponents<IEntityLinkable>();
+            var entity = World.SharedEntity;
 
             foreach (var componentWrapper in components)
             {
@@ -60,25 +39,6 @@ namespace DesertImage.ECS
             }
         }
 
-        protected virtual void InitModules()
-        {
-            if (modules == null) return;
-
-            foreach (var module in modules)
-            {
-                if (!module) continue;
-
-                Core.Add(module);
-            }
-        }
-
-        protected virtual void InitSystems()
-        {
-        }
-
-        private void OnDestroy()
-        {
-            Core.Dispose();
-        }
+        protected abstract void InitSystems();
     }
 }

@@ -1,149 +1,27 @@
-using System.Collections;
-using DesertImage.Events;
 using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public class EntityMono : MonoBehaviour, IEntity, IListen<DisposedEvent>
+    public class EntityMono : MonoBehaviour, IPoolable
     {
-        public int Id => _localEntity?.Id ?? 0;
+        private Entity _entity;
 
-        public IComponent[] Components => _localEntity?.Components;
-        public bool IsNull => _localEntity?.IsNull ?? true;
-
-        [SerializeField] private bool autoInitialize;
-
-        private IComponentWrapper[] _componentWrappers;
-
-        protected IEntity LocalEntity
-        {
-            get
-            {
-#if DEBUG
-                if (_localEntity == null)
-                {
-                    UnityEngine.Debug.LogError($"<b>[EntityMono]</b> entity {name} not initialized");
-                    return default;
-                }
-#endif
-                return _localEntity;
-            }
-        }
-
-        private IEntity _localEntity;
-
-        private IWorld _world;
-
-        private void Awake()
-        {
-            _componentWrappers ??= GetComponents<IComponentWrapper>();
-        }
-
-        private IEnumerator Start()
-        {
-            yield return null;
-
-            // while (!Core.Instance?.IsInitialized ?? true)
-            // {
-            //     yield return null;
-            // }
-            //
-            // if (!autoInitialize) yield break;
-            //
-            // OnCreate();
-        }
-
-        public void Inject(IWorld world) => _world = world;
-
-        #region COMPONENTS
-
-        public IComponent Add(IComponent component)
-        {
-            return LocalEntity?.Add(component);
-        }
-
-        public TComponent Add<TComponent>() where TComponent : IComponent, new()
-        {
-            return LocalEntity == null ? default : LocalEntity.Add<TComponent>();
-        }
-
-        public IComponent Get(ushort id)
-        {
-            return LocalEntity?.Get(id);
-        }
-
-        public T Get<T>(ushort id) where T : IComponent
-        {
-            return LocalEntity == null ? default : LocalEntity.Get<T>(id);
-        }
-
-        public bool HasComponent(ushort id)
-        {
-            return LocalEntity?.HasComponent(id) ?? default;
-        }
-
-        public void Remove(ushort id)
-        {
-            LocalEntity?.Remove(id);
-        }
-
-        #endregion
-
-        #region EVENTS
-
-        public void ListenEvent<TEvent>(IListen listener)
-        {
-            _localEntity.ListenEvent<TEvent>(listener);
-        }
-
-        public void UnlistenEvent<TEvent>(IListen listener)
-        {
-            _localEntity.UnlistenEvent<TEvent>(listener);
-        }
-
-        public void SendEvent<TEvent>(TEvent @event)
-        {
-            _localEntity.SendEvent(@event);
-        }
-
-        #endregion
+        private IEntityLinkable[] _entityLinkables;
 
         public void OnCreate()
         {
-            //TODO: fix injection
-            _world ??= Core.Instance.Get<World>();
-            
-            _localEntity = _world.GetNewEntity();
-            _localEntity.ListenEvent<DisposedEvent>(this);
+            _entity = World.Current.GetNewEntity();
 
-            _componentWrappers ??= GetComponents<IComponentWrapper>();
-
-            if ((_componentWrappers?.Length ?? 0) == 0) return;
-
-            foreach (var componentWrapper in _componentWrappers)
+            _entityLinkables ??= GetComponents<IEntityLinkable>();
+            foreach (var linkable in _entityLinkables)
             {
-                componentWrapper.Link(this);
+                linkable.Link(_entity);
             }
         }
 
         public void ReturnToPool()
         {
-            _localEntity?.UnlistenEvent<DisposedEvent>(this);
-            _localEntity?.Dispose();
-
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            _localEntity = null;
-
-            Core.Instance.Get<SpawnService>().ReturnInstance(gameObject);
-        }
-
-        public void HandleCallback(DisposedEvent arguments)
-        {
-            Dispose();
+            World.Current.DestroyEntity(_entity.Id);
         }
     }
 }

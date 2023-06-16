@@ -1,83 +1,109 @@
 using System;
 using System.Collections.Generic;
-using DesertImage.Events;
 using DesertImage.Pools;
 
 namespace DesertImage.ECS
 {
-    public class EntitiesManager : EventUnit,
-        IListen<ComponentAddedEvent>,
-        IListen<ComponentRemovedEvent>,
-        IListen<ComponentPreUpdatedEvent>,
-        IListen<ComponentUpdatedEvent>,
-        IListen<DisposedEvent>
+    public struct EntitiesManager
     {
-        public Dictionary<int, IEntity> Entities { get; } = new Dictionary<int, IEntity>();
+        private readonly Dictionary<int, Entity> _entities;
+        private readonly Dictionary<int, SortedSetPoolable<int>> _components;
 
-        private readonly Pool<Entity> _pool = new Pool<Entity>();
+        private readonly Pool<SortedSetPoolable<int>> _pool;
 
-        public IEntity GetEntityById(ushort id)
+        private ComponentsStorageBase[] _componentsStorages;
+
+        private static int _idCounter;
+
+        public EntitiesManager(World world)
         {
-            return Entities.TryGetValue(id, out var entity) ? entity : GetNewEntity();
+            _entities = new Dictionary<int, Entity>();
+            _components = new Dictionary<int, SortedSetPoolable<int>>();
+            _componentsStorages = new ComponentsStorageBase[ECSSettings.ComponentsDenseCapacity];
+
+            _pool = new Pool<SortedSetPoolable<int>>();
+
+            _idCounter = -1;
         }
 
-        public IEntity GetNewEntity()
+        public Entity GetEntityById(int id) => _entities.TryGetValue(id, out var entity) ? entity : GetNewEntity();
+
+        public Entity GetNewEntity()
         {
-            var newEntity = _pool.GetInstance();
+            //TODO: pool entities
+            var newEntity = new Entity(++_idCounter);
 
-            newEntity.ListenEvent<ComponentAddedEvent>(this);
-            newEntity.ListenEvent<ComponentRemovedEvent>(this);
-            newEntity.ListenEvent<ComponentUpdatedEvent>(this);
-            newEntity.ListenEvent<ComponentPreUpdatedEvent>(this);
-            newEntity.ListenEvent<DisposedEvent>(this);
+            var id = newEntity.Id;
 
-            Entities.Add(newEntity.Id, newEntity);
+            _entities.Add(id, newEntity);
+            _components.Add(id, _pool.GetInstance());
 
             return newEntity;
         }
 
-        public IEntity GetNewEntity(Action<IEntity> setup)
+        public SortedSetPoolable<int> GetComponents(int id) => _components[id];
+
+        public void ReplaceComponent<T>(int entityId, T component) where T : struct
         {
-            var newEntity = GetNewEntity();
+            var componentId = ComponentTools.GetComponentId<T>();
 
-            setup?.Invoke(newEntity);
+            if (componentId >= _componentsStorages.Length)
+            {
+                Array.Resize(ref _componentsStorages, componentId << 1);
+            }
 
-            return newEntity;
+            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+
+            if (storage == null)
+            {
+                var newInstance = new ComponentsStorage<T>
+                (
+                    ECSSettings.ComponentsDenseCapacity,
+                    ECSSettings.ComponentsSparseCapacity
+                );
+                
+                _componentsStorages[componentId] = newInstance;
+                storage = newInstance;
+            }
+
+            storage.Data.Add(entityId, component);
+            _components[entityId].Add(componentId);
         }
 
-        #region CALLBACKS
-
-        public void HandleCallback(ComponentAddedEvent arguments)
+        public void RemoveComponent<T>(int entityId) where T : struct
         {
-            EventsManager.Send(arguments);
+            var componentId = ComponentTools.GetComponentId<T>();
+
+            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+
+            storage.Data.Remove(entityId);
+            _components[entityId].Remove(componentId);
         }
 
-        public void HandleCallback(ComponentRemovedEvent arguments)
+        public bool HasComponent<T>(int entityId) where T : struct
         {
-            EventsManager.Send(arguments);
+            var componentId = ComponentTools.GetComponentId<T>();
+
+            if (componentId >= _componentsStorages.Length)
+            {
+#if DEBUG
+                throw new Exception("out of ComponentStorages");
+#endif
+                return false;
+            }
+
+            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+
+            return storage.Data.Contains(entityId);
         }
 
-        public void HandleCallback(ComponentPreUpdatedEvent arguments)
+        public ref T GetComponent<T>(int entityId) where T : struct
         {
-            EventsManager.Send(arguments);
+            var componentId = ComponentTools.GetComponentId<T>();
+            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+            return ref storage.Data.Get(entityId);
         }
 
-        public void HandleCallback(ComponentUpdatedEvent arguments)
-        {
-            EventsManager.Send(arguments);
-        }
-
-        public void HandleCallback(DisposedEvent arguments)
-        {
-            var entity = (Entity)arguments.Value;
-
-            Entities.Remove(entity.Id);
-            
-            EventsManager.Send(arguments);
-            
-            _pool.ReturnInstance(entity);
-        }
-
-        #endregion
+        public void DestroyEntity(int entityId) => _pool.ReturnInstance(GetComponents(entityId));
     }
 }
