@@ -8,6 +8,11 @@
         {
             World.Current.ReplaceComponent(entity.Id, component);
         }
+        
+        public static void Replace<T>(this Entity entity) where T : struct
+        {
+            World.Current.ReplaceComponent(entity.Id, new T());
+        }
 
         public static void Remove<T>(this Entity entity) where T : struct
         {
