@@ -24,5 +24,7 @@ namespace DesertImage.ECS
             Entity = default;
             World.Current.DestroyEntity(Entity.Id);
         }
+
+        public static explicit operator Entity(EntityWrapper wrapper) => wrapper.Entity;
     }
 }
