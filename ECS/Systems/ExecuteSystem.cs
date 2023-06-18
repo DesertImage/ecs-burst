@@ -4,6 +4,6 @@ namespace DesertImage.ECS
     {
         public abstract Matcher Matcher { get; }
 
-        public abstract void Execute(Entity entity, float delta);
+        public abstract void Execute(Entity entity, float deltaTime);
     }
 }
