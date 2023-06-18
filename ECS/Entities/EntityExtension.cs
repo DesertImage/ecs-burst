@@ -5,12 +5,12 @@ namespace Entities
 {
     public abstract class EntityExtension : MonoBehaviour
     {
-        [SerializeField] protected EntityWrapper Entity;
+        [SerializeField] protected EntityWrapper Wrapper;
 
         protected virtual void OnValidate()
         {
-            if (Entity) return;
-            Entity = GetComponent<EntityWrapper>();
+            if (Wrapper) return;
+            Wrapper = GetComponent<EntityWrapper>();
         }
     }
 }
