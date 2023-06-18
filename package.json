@@ -1,6 +1,6 @@
   {
     "name": "com.desertimage.ecs",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "displayName": "ECS",
     "description": "",
     "unity": "2020.3",
@@ -8,4 +8,3 @@
     "gitDependencies": {
   }
 }
-                                                                           z
