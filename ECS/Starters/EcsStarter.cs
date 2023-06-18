@@ -10,7 +10,11 @@ namespace DesertImage.ECS
         {
             World = new World();
 
-            InitSceneEntities();
+            Initialize();
+        }
+
+        protected virtual void Initialize()
+        {
             InitComponents();
             InitSystems();
         }
@@ -18,15 +22,6 @@ namespace DesertImage.ECS
         protected virtual void OnDestroy() => World.Dispose();
 
         private void Update() => World.Tick(Time.deltaTime);
-
-        private static void InitSceneEntities()
-        {
-            var sceneEntities = FindObjectsByType<EntityMono>(FindObjectsSortMode.None);
-            foreach (var entity in sceneEntities)
-            {
-                entity.OnCreate();
-            }
-        }
 
         private void InitComponents()
         {

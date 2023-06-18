@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public class EntityMono : MonoBehaviour, IPoolable
+    public class EntityWrapper : MonoBehaviour, IPoolable
     {
         public Entity Entity { get; private set; }
 
@@ -19,6 +19,10 @@ namespace DesertImage.ECS
             }
         }
 
-        public void ReturnToPool() => World.Current.DestroyEntity(Entity.Id);
+        public void ReturnToPool()
+        {
+            Entity = default;
+            World.Current.DestroyEntity(Entity.Id);
+        }
     }
 }
