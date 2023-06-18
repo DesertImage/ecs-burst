@@ -9,6 +9,8 @@ namespace DesertImage.ECS
         Entity GetEntityById(int id);
         Entity GetNewEntity();
         SortedSetPoolable<int> GetEntityComponents(int id);
+
+        bool IsEntityAlive(int entityId);
         void DestroyEntity(int entityId);
 
         void ReplaceComponent<T>(int entityId, T component) where T : struct;
@@ -57,6 +59,7 @@ namespace DesertImage.ECS
         }
 
         public bool HasComponent<T>(int entityId) where T : struct => EntitiesManager.HasComponent<T>(entityId);
+
         public ref T GetComponent<T>(int entityId) where T : struct => ref EntitiesManager.GetComponent<T>(entityId);
 
         public void Add<T>() where T : class, ISystem, new() => SystemsManager.Add<T>();
@@ -71,6 +74,7 @@ namespace DesertImage.ECS
         }
 
         public SortedSetPoolable<int> GetEntityComponents(int id) => EntitiesManager.GetComponents(id);
+        public bool IsEntityAlive(int entityId) => EntitiesManager.IsAlive(entityId);
 
         public void DestroyEntity(int entityId) => EntitiesManager.DestroyEntity(entityId);
 

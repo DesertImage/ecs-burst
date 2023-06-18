@@ -4,24 +4,21 @@ namespace DesertImage.ECS
 {
     public class EntityMono : MonoBehaviour, IPoolable
     {
-        private Entity _entity;
+        public Entity Entity { get; private set; }
 
         private IEntityLinkable[] _entityLinkables;
 
         public void OnCreate()
         {
-            _entity = World.Current.GetNewEntity();
+            Entity = World.Current.GetNewEntity();
 
             _entityLinkables ??= GetComponents<IEntityLinkable>();
             foreach (var linkable in _entityLinkables)
             {
-                linkable.Link(_entity);
+                linkable.Link(Entity);
             }
         }
 
-        public void ReturnToPool()
-        {
-            World.Current.DestroyEntity(_entity.Id);
-        }
+        public void ReturnToPool() => World.Current.DestroyEntity(Entity.Id);
     }
 }

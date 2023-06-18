@@ -10,6 +10,7 @@ namespace DesertImage.ECS
         private readonly Dictionary<int, SortedSetPoolable<int>> _components;
 
         private readonly Pool<SortedSetPoolable<int>> _pool;
+        private readonly Stack<Entity> _entitiesPool;
 
         private ComponentsStorageBase[] _componentsStorages;
 
@@ -22,6 +23,7 @@ namespace DesertImage.ECS
             _componentsStorages = new ComponentsStorageBase[ECSSettings.ComponentsDenseCapacity];
 
             _pool = new Pool<SortedSetPoolable<int>>();
+            _entitiesPool = new Stack<Entity>();
 
             _idCounter = -1;
         }
@@ -30,8 +32,7 @@ namespace DesertImage.ECS
 
         public Entity GetNewEntity()
         {
-            //TODO: pool entities
-            var newEntity = new Entity(++_idCounter);
+            var newEntity = _entitiesPool.Count > 0 ? _entitiesPool.Pop() : new Entity(++_idCounter);
 
             var id = newEntity.Id;
 
@@ -45,6 +46,9 @@ namespace DesertImage.ECS
 
         public void ReplaceComponent<T>(int entityId, T component) where T : struct
         {
+#if DEBUG
+            if (!IsAlive(entityId)) throw new Exception($"Entity {entityId} is not alive!");
+#endif
             var componentId = ComponentTools.GetComponentId<T>();
 
             if (componentId >= _componentsStorages.Length)
@@ -61,7 +65,7 @@ namespace DesertImage.ECS
                     ECSSettings.ComponentsDenseCapacity,
                     ECSSettings.ComponentsSparseCapacity
                 );
-                
+
                 _componentsStorages[componentId] = newInstance;
                 storage = newInstance;
             }
@@ -72,6 +76,9 @@ namespace DesertImage.ECS
 
         public void RemoveComponent<T>(int entityId) where T : struct
         {
+#if DEBUG
+            if (!IsAlive(entityId)) throw new Exception($"Entity {entityId} is not alive!");
+#endif
             var componentId = ComponentTools.GetComponentId<T>();
 
             var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
@@ -82,6 +89,9 @@ namespace DesertImage.ECS
 
         public bool HasComponent<T>(int entityId) where T : struct
         {
+#if DEBUG
+            if (!IsAlive(entityId)) throw new Exception($"Entity {entityId} is not alive!");
+#endif
             var componentId = ComponentTools.GetComponentId<T>();
 
             if (componentId >= _componentsStorages.Length)
@@ -99,11 +109,30 @@ namespace DesertImage.ECS
 
         public ref T GetComponent<T>(int entityId) where T : struct
         {
+#if DEBUG
+            if (!IsAlive(entityId)) throw new Exception($"Entity {entityId} is not alive!");
+#endif
             var componentId = ComponentTools.GetComponentId<T>();
             var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+
             return ref storage.Data.Get(entityId);
         }
 
-        public void DestroyEntity(int entityId) => _pool.ReturnInstance(GetComponents(entityId));
+        public bool IsAlive(int entityId) => _entities.ContainsKey(entityId);
+
+        public void DestroyEntity(int entityId)
+        {
+            var components = GetComponents(entityId);
+            components.Clear();
+
+            var entity = GetEntityById(entityId);
+
+            _components.Remove(entityId);
+            _entities.Remove(entityId);
+
+            _pool.ReturnInstance(components);
+
+            _entitiesPool.Push(entity);
+        }
     }
 }
