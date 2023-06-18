@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 
 namespace DesertImage.ECS
@@ -18,6 +19,45 @@ namespace DesertImage.ECS
 
             Assert.IsFalse(entity.Has<TestComponent>());
         }
+
+        [Test]
+        public void CheckHasNull()
+        {
+            var world = new World();
+            var entity = world.GetNewEntity();
+
+            Assert.IsFalse(entity.Has<TestComponent>());
+        }
+
+        [Test]
+        public void CheckRemoveNull()
+        {
+            var world = new World();
+            var entity = world.GetNewEntity();
+
+            entity.Remove<TestComponent>();
+        }
+
+#if DEBUG
+        [Test]
+        public void CheckHasOnDeadEntity()
+        {
+            var world = new World();
+            var entity = new Entity(1);
+
+            try
+            {
+                entity.Has<TestComponent>();
+            }
+            catch (Exception)
+            {
+                Assert.IsTrue(true);
+                return;
+            }
+
+            Assert.IsTrue(false);
+        }
+#endif
 
         [Test]
         public void CheckComponentRemove()
@@ -132,7 +172,7 @@ namespace DesertImage.ECS
             entity.Replace(new TestValueComponent { Value = 1 });
 
             world.Tick(.1f);
-            
+
             Assert.IsTrue(entity.Has<TestComponent>());
             Assert.IsFalse(entity.Has<TestValueComponent>());
         }

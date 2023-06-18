@@ -56,19 +56,7 @@ namespace DesertImage.ECS
                 Array.Resize(ref _componentsStorages, componentId << 1);
             }
 
-            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
-
-            if (storage == null)
-            {
-                var newInstance = new ComponentsStorage<T>
-                (
-                    ECSSettings.ComponentsDenseCapacity,
-                    ECSSettings.ComponentsSparseCapacity
-                );
-
-                _componentsStorages[componentId] = newInstance;
-                storage = newInstance;
-            }
+            var storage = GetStorage<T>(componentId);
 
             storage.Data.Add(entityId, component);
             _components[entityId].Add(componentId);
@@ -81,7 +69,7 @@ namespace DesertImage.ECS
 #endif
             var componentId = ComponentTools.GetComponentId<T>();
 
-            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+            var storage = GetStorage<T>(componentId);
 
             storage.Data.Remove(entityId);
             _components[entityId].Remove(componentId);
@@ -102,7 +90,7 @@ namespace DesertImage.ECS
                 return false;
             }
 
-            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+            var storage = GetStorage<T>(componentId);
 
             return storage.Data.Contains(entityId);
         }
@@ -133,6 +121,24 @@ namespace DesertImage.ECS
             _pool.ReturnInstance(components);
 
             _entitiesPool.Push(entity);
+        }
+
+        private ComponentsStorage<T> GetStorage<T>(int componentId)
+        {
+            var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
+
+            if (storage != null) return storage;
+
+            var newInstance = new ComponentsStorage<T>
+            (
+                ECSSettings.ComponentsDenseCapacity,
+                ECSSettings.ComponentsSparseCapacity
+            );
+
+            _componentsStorages[componentId] = newInstance;
+            storage = newInstance;
+
+            return storage;
         }
     }
 }
