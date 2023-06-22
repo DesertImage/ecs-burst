@@ -100,7 +100,7 @@ namespace DesertImage.ECS
         {
 #if DEBUG
             if (!IsAlive(entityId)) throw new Exception($"Entity {entityId} is not alive!");
-            if (!HasComponent<T>(entityId)) throw new Exception($"Entity {entityId} has not this component");
+            if (!HasComponent<T>(entityId)) throw new Exception($"Entity {entityId} has not component {typeof(T)}");
 #endif
             var componentId = ComponentTools.GetComponentId<T>();
             var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
