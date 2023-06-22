@@ -5,7 +5,8 @@ namespace DesertImage.ECS
 {
     public readonly struct SystemsManager : IDisposable
     {
-        private readonly IWorld _world;
+        private readonly EntitiesManager _entitiesManager;
+        private readonly GroupsManager _groupsManager;
 
         private readonly HashSet<ISystem> _systems;
 
@@ -14,9 +15,10 @@ namespace DesertImage.ECS
 
         private readonly Dictionary<ISystem, EntitiesGroup> _systemGroups;
 
-        public SystemsManager(IWorld world)
+        public SystemsManager(EntitiesManager entitiesManager, GroupsManager groupsManager)
         {
-            _world = world;
+            _entitiesManager = entitiesManager;
+            _groupsManager = groupsManager;
 
             _systems = new HashSet<ISystem>();
 
@@ -33,13 +35,11 @@ namespace DesertImage.ECS
 #if DEBUG
             if (_systems.Contains(system)) throw new Exception($"System already added {typeof(T)}");
 #endif
-            if (system is IInjectWorld worldInit) worldInit.Inject(_world);
-
             system.Activate();
 
             if (system is IExecuteSystem executeSystem)
             {
-                _systemGroups.Add(system, _world.GetGroup(executeSystem.Matcher));
+                _systemGroups.Add(system, _groupsManager.GetGroup(executeSystem.Matcher));
 
                 _systems.Add(executeSystem);
                 _executeSystems.Add(executeSystem);
@@ -58,7 +58,7 @@ namespace DesertImage.ECS
 
                 for (var j = 0; j < group.Entities.Count; j++)
                 {
-                    system.Execute(_world.GetEntityById(group.Entities[j]), delta);
+                    system.Execute(_entitiesManager.GetEntityById(group.Entities[j]), delta);
                 }
             }
         }

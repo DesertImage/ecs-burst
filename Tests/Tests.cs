@@ -8,7 +8,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckComponentAdd()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            
             var entity = world.GetNewEntity();
 
             entity.Replace(new TestComponent());
@@ -23,7 +24,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckHasNull()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
             var entity = world.GetNewEntity();
 
             Assert.IsFalse(entity.Has<TestComponent>());
@@ -32,7 +34,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckRemoveNull()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
             var entity = world.GetNewEntity();
 
             entity.Remove<TestComponent>();
@@ -42,7 +45,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckHasOnDeadEntity()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
             var entity = new Entity(1);
 
             try
@@ -62,7 +66,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckComponentRemove()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
             var entity = world.GetNewEntity();
 
             entity.Replace(new TestComponent());
@@ -74,7 +79,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckComponentReplace()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
             var entity = world.GetNewEntity();
 
             entity.Replace(new TestValueComponent { Value = 1 });
@@ -86,19 +92,26 @@ namespace DesertImage.ECS
         [Test]
         public void CheckChangingValueByRef()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
             var entity = world.GetNewEntity();
 
             entity.Replace(new TestValueComponent { Value = 1 });
             entity.Get<TestValueComponent>().Value = 2;
 
             Assert.AreEqual(2, entity.Get<TestValueComponent>().Value);
+
+            ref var testValueComponent = ref entity.Get<TestValueComponent>();
+            testValueComponent.Value = 4;
+
+            Assert.AreEqual(4, entity.Get<TestValueComponent>().Value);
         }
 
         [Test]
         public void CheckGroupAddRemove()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
 
             var entity = world.GetNewEntity();
             var entityId = entity.Id;
@@ -133,7 +146,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckExecuteSystem()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            
             world.Add<TestValueSystem>();
 
             var entity = world.GetNewEntity();
@@ -158,7 +172,8 @@ namespace DesertImage.ECS
         [Test]
         public void CheckRemoveComponentSystem()
         {
-            var world = new World();
+            var world = Worlds.Create();
+            ;
             world.Add<RemoveComponentSystem<TestValueComponent>>();
 
             var entity = world.GetNewEntity();

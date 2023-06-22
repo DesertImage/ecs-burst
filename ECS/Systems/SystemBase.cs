@@ -4,10 +4,10 @@ namespace DesertImage.ECS
     {
         public bool IsActive { get; protected set; }
 
-        protected IWorld World;
+        protected World World;
 
         public virtual void Activate() => IsActive = true;
         public virtual void Deactivate() => IsActive = false;
-        public virtual void Inject(IWorld world) => World = world;
+        public virtual void Inject(World world) => World = world;
     }
 }

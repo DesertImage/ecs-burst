@@ -4,12 +4,11 @@ namespace DesertImage.ECS
 {
     public abstract class EcsStarter : MonoBehaviour
     {
-        protected IWorld World;
+        protected World World;
 
         protected virtual void Awake()
         {
-            World = new World();
-
+            World = Worlds.Create();
             Initialize();
         }
 

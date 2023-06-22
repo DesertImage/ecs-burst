@@ -1,6 +1,6 @@
 namespace DesertImage.ECS
 {
-    public interface ISystem : ISwitchable, IInjectWorld
+    public interface ISystem : ISwitchable
     {
     }
 }

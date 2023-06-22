@@ -2,6 +2,6 @@ namespace DesertImage.ECS
 {
     public interface IInjectWorld
     {
-        void Inject(IWorld world);
+        void Inject(World world);
     }
 }

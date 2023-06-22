@@ -10,7 +10,7 @@ namespace DesertImage.ECS
 
         public void OnCreate()
         {
-            Entity = World.Current.GetNewEntity();
+            Entity = Worlds.Current.GetNewEntity();
 
             _entityLinkables ??= GetComponents<IEntityLinkable>();
             foreach (var linkable in _entityLinkables)
@@ -22,7 +22,7 @@ namespace DesertImage.ECS
         public void ReturnToPool()
         {
             Entity = default;
-            World.Current.DestroyEntity(Entity.Id);
+            Worlds.Current.DestroyEntity(Entity.Id);
         }
 
         public static explicit operator Entity(EntityWrapper wrapper) => wrapper.Entity;

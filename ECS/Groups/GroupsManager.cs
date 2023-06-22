@@ -4,8 +4,8 @@ namespace DesertImage.ECS
 {
     public struct GroupsManager
     {
-        public Dictionary<int, List<int>> EntityGroups;
-        public Dictionary<int, int> MatcherGroups;
+        private readonly Dictionary<int, List<int>> _entityGroups;
+        private readonly Dictionary<int, int> _matcherGroups;
 
         private readonly Dictionary<int, Matcher> _groupMatchers;
         private readonly Dictionary<int, List<int>> _componentGroups;
@@ -13,16 +13,16 @@ namespace DesertImage.ECS
 
         private readonly List<EntitiesGroup> _groups;
 
-        private readonly IWorld _world;
+        private readonly EntitiesManager _entitiesManager;
 
         private static int _groupsIdCounter = -1;
 
-        public GroupsManager(IWorld world)
+        public GroupsManager(EntitiesManager entitiesManager)
         {
-            _world = world;
+            _entitiesManager = entitiesManager;
 
-            EntityGroups = new Dictionary<int, List<int>>();
-            MatcherGroups = new Dictionary<int, int>();
+            _entityGroups = new Dictionary<int, List<int>>();
+            _matcherGroups = new Dictionary<int, int>();
 
             _groupMatchers = new Dictionary<int, Matcher>();
             _componentGroups = new Dictionary<int, List<int>>();
@@ -33,26 +33,26 @@ namespace DesertImage.ECS
             _groupsIdCounter = -1;
         }
 
-        public EntitiesGroup GetGroup(Matcher matcher)
+        public readonly EntitiesGroup GetGroup(Matcher matcher)
         {
-            return MatcherGroups.TryGetValue(matcher.Id, out var group) ? _groups[group - 1] : GetNewGroup(matcher);
+            return _matcherGroups.TryGetValue(matcher.Id, out var group) ? _groups[group - 1] : GetNewGroup(matcher);
         }
 
-        private EntitiesGroup GetNewGroup()
+        private readonly EntitiesGroup GetNewGroup()
         {
             var newGroup = new EntitiesGroup(++_groupsIdCounter);
             _groups.Add(newGroup);
             return newGroup;
         }
 
-        private EntitiesGroup GetNewGroup(Matcher matcher)
+        private readonly EntitiesGroup GetNewGroup(Matcher matcher)
         {
             var newGroup = GetNewGroup();
 
             var newGroupId = newGroup.Id;
 
             _groupMatchers.Add(newGroupId, matcher);
-            MatcherGroups.Add(matcher.Id, newGroupId);
+            _matcherGroups.Add(matcher.Id, newGroupId);
 
             foreach (var componentId in matcher.Components)
             {
@@ -87,34 +87,34 @@ namespace DesertImage.ECS
 
             group.Add(entityId);
 
-            if (EntityGroups.TryGetValue(entityId, out var groupsList))
+            if (_entityGroups.TryGetValue(entityId, out var groupsList))
             {
                 groupsList.Add(groupId);
             }
             else
             {
-                EntityGroups.Add(entityId, new List<int> { groupId });
+                _entityGroups.Add(entityId, new List<int> { groupId });
             }
         }
 
         private void RemoveFromGroup(EntitiesGroup group, int entityId)
         {
             group.Remove(entityId);
-            EntityGroups[entityId].Remove(group.Id);
+            _entityGroups[entityId].Remove(group.Id);
         }
 
-        public void OnEntityCreated(int entityId) => EntityGroups.Add(entityId, new List<int>());
+        public void OnEntityCreated(int entityId) => _entityGroups.Add(entityId, new List<int>());
 
         public void OnEntityComponentAdded(int entityId, int componentId)
         {
-            var groups = EntityGroups[entityId];
+            var groups = _entityGroups[entityId];
 
             for (var i = groups.Count - 1; i >= 0; i--)
             {
                 var groupId = groups[i];
 
                 var matcher = _groupMatchers[groupId];
-                var components = _world.GetEntityComponents(entityId);
+                var components = _entitiesManager.GetComponents(entityId);
 
                 if (matcher.Check(components)) continue;
 
@@ -142,7 +142,7 @@ namespace DesertImage.ECS
                 if (group.Contains(entityId)) continue;
 
                 var matcher = _groupMatchers[groupId];
-                var components = _world.GetEntityComponents(entityId);
+                var components = _entitiesManager.GetComponents(entityId);
 
                 if (!matcher.Check(components)) continue;
 
@@ -161,7 +161,7 @@ namespace DesertImage.ECS
                 if (!group.Contains(entityId)) continue;
 
                 var matcher = _groupMatchers[groupId];
-                var components = _world.GetEntityComponents(entityId);
+                var components = _entitiesManager.GetComponents(entityId);
 
                 if (matcher.Check(components)) continue;
 
@@ -171,14 +171,14 @@ namespace DesertImage.ECS
 
         public void OnEntityComponentRemoved(int entityId, int componentId)
         {
-            var groups = EntityGroups[entityId];
+            var groups = _entityGroups[entityId];
 
             for (var i = groups.Count - 1; i >= 0; i--)
             {
                 var groupId = groups[i];
 
                 var matcher = _groupMatchers[groupId];
-                var components = _world.GetEntityComponents(entityId);
+                var components = _entitiesManager.GetComponents(entityId);
 
                 if (matcher.Check(components)) continue;
 
@@ -193,7 +193,7 @@ namespace DesertImage.ECS
                 var group = _groups[groupId];
 
                 var matcher = _groupMatchers[groupId];
-                var components = _world.GetEntityComponents(entityId);
+                var components = _entitiesManager.GetComponents(entityId);
 
                 if (!matcher.Check(components)) continue;
 

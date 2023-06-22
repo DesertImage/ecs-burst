@@ -1,49 +1,35 @@
-using System;
+using System.Collections.Generic;
 
 namespace DesertImage.ECS
 {
-    public interface IWorld : IDisposable
+    public struct World
     {
-        Entity SharedEntity { get; }
-
-        Entity GetEntityById(int id);
-        Entity GetNewEntity();
-        SortedSetPoolable<int> GetEntityComponents(int id);
-
-        bool IsEntityAlive(int entityId);
-        void DestroyEntity(int entityId);
-
-        void ReplaceComponent<T>(int entityId, T component) where T : struct;
-        void RemoveComponent<T>(int entityId) where T : struct;
-        bool HasComponent<T>(int entityId) where T : struct;
-        ref T GetComponent<T>(int entityId) where T : struct;
-
-        public void Add<T>() where T : class, ISystem, new();
-
-        void Tick(float deltaTime);
-        
-        EntitiesGroup GetGroup(Matcher matcher);
-    }
-
-    public sealed class World : IWorld
-    {
-        public static World Current { get; private set; }
+        public int Id { get; private set; }
 
         public Entity SharedEntity { get; }
+
+        internal WorldState State { get; private set; }
 
         private EntitiesManager EntitiesManager { get; }
         private GroupsManager GroupsManager { get; }
         private SystemsManager SystemsManager { get; }
 
-        public World()
+        public World(int id)
         {
-            Current = this;
+            Id = id;
 
-            GroupsManager = new GroupsManager(this);
-            EntitiesManager = new EntitiesManager(this);
-            SystemsManager = new SystemsManager(this);
+            State = new WorldState
+            (
+                new Dictionary<int, Entity>(),
+                new Dictionary<int, SortedSetPoolable<int>>()
+            );
+
+            EntitiesManager = new EntitiesManager(State);
+            GroupsManager = new GroupsManager(EntitiesManager);
+            SystemsManager = new SystemsManager(EntitiesManager, GroupsManager);
 
             SharedEntity = EntitiesManager.GetNewEntity();
+            GroupsManager.OnEntityCreated(SharedEntity.Id);
         }
 
         public void ReplaceComponent<T>(int entityId, T component) where T : struct
@@ -75,12 +61,11 @@ namespace DesertImage.ECS
 
         public SortedSetPoolable<int> GetEntityComponents(int id) => EntitiesManager.GetComponents(id);
         public bool IsEntityAlive(int entityId) => EntitiesManager.IsAlive(entityId);
-
         public void DestroyEntity(int entityId) => EntitiesManager.DestroyEntity(entityId);
 
         public EntitiesGroup GetGroup(Matcher matcher) => GroupsManager.GetGroup(matcher);
 
-        public void Tick(float delta) => SystemsManager.Tick(delta);
+        public void Tick(float deltaTime) => SystemsManager.Tick(deltaTime);
 
         public void Dispose() => SystemsManager.Dispose();
     }

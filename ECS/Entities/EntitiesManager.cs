@@ -6,9 +6,6 @@ namespace DesertImage.ECS
 {
     public struct EntitiesManager
     {
-        private readonly Dictionary<int, Entity> _entities;
-        private readonly Dictionary<int, SortedSetPoolable<int>> _components;
-
         private readonly Pool<SortedSetPoolable<int>> _pool;
         private readonly Stack<Entity> _entitiesPool;
 
@@ -16,10 +13,12 @@ namespace DesertImage.ECS
 
         private static int _idCounter;
 
-        public EntitiesManager(World world)
+        private readonly WorldState _state;
+
+        public EntitiesManager(WorldState state)
         {
-            _entities = new Dictionary<int, Entity>();
-            _components = new Dictionary<int, SortedSetPoolable<int>>();
+            _state = state;
+
             _componentsStorages = new ComponentsStorageBase[ECSSettings.ComponentsDenseCapacity];
 
             _pool = new Pool<SortedSetPoolable<int>>();
@@ -28,21 +27,22 @@ namespace DesertImage.ECS
             _idCounter = -1;
         }
 
-        public Entity GetEntityById(int id) => _entities.TryGetValue(id, out var entity) ? entity : GetNewEntity();
+        public readonly Entity GetEntityById(int id) =>
+            _state.Entities.TryGetValue(id, out var entity) ? entity : GetNewEntity();
 
-        public Entity GetNewEntity()
+        public readonly Entity GetNewEntity()
         {
             var newEntity = _entitiesPool.Count > 0 ? _entitiesPool.Pop() : new Entity(++_idCounter);
 
             var id = newEntity.Id;
 
-            _entities.Add(id, newEntity);
-            _components.Add(id, _pool.GetInstance());
+            _state.Entities.Add(id, newEntity);
+            _state.Components.Add(id, _pool.GetInstance());
 
             return newEntity;
         }
 
-        public SortedSetPoolable<int> GetComponents(int id) => _components[id];
+        public readonly SortedSetPoolable<int> GetComponents(int id) => _state.Components[id];
 
         public void ReplaceComponent<T>(int entityId, T component) where T : struct
         {
@@ -59,7 +59,7 @@ namespace DesertImage.ECS
             var storage = GetStorage<T>(componentId);
 
             storage.Data.Add(entityId, component);
-            _components[entityId].Add(componentId);
+            _state.Components[entityId].Add(componentId);
         }
 
         public void RemoveComponent<T>(int entityId) where T : struct
@@ -72,7 +72,7 @@ namespace DesertImage.ECS
             var storage = GetStorage<T>(componentId);
 
             storage.Data.Remove(entityId);
-            _components[entityId].Remove(componentId);
+            _state.Components[entityId].Remove(componentId);
         }
 
         public bool HasComponent<T>(int entityId) where T : struct
@@ -86,8 +86,9 @@ namespace DesertImage.ECS
             {
 #if DEBUG
                 throw new Exception("out of ComponentStorages");
-#endif
+#else
                 return false;
+#endif
             }
 
             var storage = GetStorage<T>(componentId);
@@ -99,6 +100,7 @@ namespace DesertImage.ECS
         {
 #if DEBUG
             if (!IsAlive(entityId)) throw new Exception($"Entity {entityId} is not alive!");
+            if (!HasComponent<T>(entityId)) throw new Exception($"Entity {entityId} has not this component");
 #endif
             var componentId = ComponentTools.GetComponentId<T>();
             var storage = (ComponentsStorage<T>)_componentsStorages[componentId];
@@ -106,7 +108,7 @@ namespace DesertImage.ECS
             return ref storage.Data.Get(entityId);
         }
 
-        public bool IsAlive(int entityId) => _entities.ContainsKey(entityId);
+        public bool IsAlive(int entityId) => _state.Entities.ContainsKey(entityId);
 
         public void DestroyEntity(int entityId)
         {
@@ -115,8 +117,8 @@ namespace DesertImage.ECS
 
             var entity = GetEntityById(entityId);
 
-            _components.Remove(entityId);
-            _entities.Remove(entityId);
+            _state.Components.Remove(entityId);
+            _state.Entities.Remove(entityId);
 
             _pool.ReturnInstance(components);
 

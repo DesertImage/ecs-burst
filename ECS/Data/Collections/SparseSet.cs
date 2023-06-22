@@ -4,6 +4,8 @@ namespace DesertImage
 {
     public class SparseSet<T>
     {
+        public int Count => _denseCount;
+        
         private readonly T[] _dense;
         private readonly int[] _sparse;
         private int[] _recycled;
@@ -42,6 +44,8 @@ namespace DesertImage
 
             _dense[_sparse[index]] = default;
             _sparse[index] = 0;
+
+            _denseCount--;
 
             AddRecycled(oldSparse);
         }
