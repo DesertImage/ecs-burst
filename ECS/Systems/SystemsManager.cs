@@ -35,6 +35,7 @@ namespace DesertImage.ECS
 #if DEBUG
             if (_systems.Contains(system)) throw new Exception($"System already added {typeof(T)}");
 #endif
+            system.Inject(Worlds.Current);
             system.Activate();
 
             if (system is IExecuteSystem executeSystem)
