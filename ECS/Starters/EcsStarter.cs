@@ -32,7 +32,7 @@ namespace DesertImage.ECS
                 componentWrapper.Link(entity);
             }
         }
-
+        
         protected abstract void InitSystems();
     }
 }

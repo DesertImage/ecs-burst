@@ -60,6 +60,19 @@ namespace DesertImage.ECS
 
             storage.Data.Add(entityId, component);
             _state.Components[entityId].Add(componentId);
+
+#if UNITY_EDITOR
+            if (ComponentsDebug.Components.TryGetValue(entityId, out var components))
+            {
+                components[componentId] = component;
+            }
+            else
+            {
+                var array = new object[ECSSettings.ComponentsDenseCapacity];
+                array[componentId] = component;
+                ComponentsDebug.Components.Add(entityId, array);
+            }
+#endif
         }
 
         public void RemoveComponent<T>(int entityId) where T : struct
@@ -73,6 +86,13 @@ namespace DesertImage.ECS
 
             storage.Data.Remove(entityId);
             _state.Components[entityId].Remove(componentId);
+            
+#if UNITY_EDITOR
+            if (ComponentsDebug.Components.TryGetValue(entityId, out var components))
+            {
+                components[componentId] = null;
+            }
+#endif
         }
 
         public bool HasComponent<T>(int entityId) where T : struct

@@ -93,7 +93,6 @@ namespace DesertImage.ECS
         public void CheckChangingValueByRef()
         {
             var world = Worlds.Create();
-            ;
             var entity = world.GetNewEntity();
 
             entity.Replace(new TestValueComponent { Value = 1 });
