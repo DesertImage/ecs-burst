@@ -66,6 +66,7 @@ namespace DesertImage.ECS
         public EntitiesGroup GetGroup(Matcher matcher) => GroupsManager.GetGroup(matcher);
 
         public void Tick(float deltaTime) => SystemsManager.Tick(deltaTime);
+        public void PhysicTick(float deltaTime) => SystemsManager.PhysicTick(deltaTime);
 
         public void Dispose() => SystemsManager.Dispose();
     }

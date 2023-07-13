@@ -11,6 +11,7 @@ namespace DesertImage.ECS
         private readonly HashSet<ISystem> _systems;
 
         private readonly List<IExecuteSystem> _executeSystems;
+        private readonly List<IPhysicsSystem> _physicsSystems;
         private readonly List<IEndSystem> _endSystems;
 
         private readonly Dictionary<ISystem, EntitiesGroup> _systemGroups;
@@ -23,6 +24,8 @@ namespace DesertImage.ECS
             _systems = new HashSet<ISystem>();
 
             _executeSystems = new List<IExecuteSystem>();
+            _physicsSystems = new List<IPhysicsSystem>();
+            
             _endSystems = new List<IEndSystem>();
 
             _systemGroups = new Dictionary<ISystem, EntitiesGroup>();
@@ -45,6 +48,14 @@ namespace DesertImage.ECS
                 _systems.Add(executeSystem);
                 _executeSystems.Add(executeSystem);
             }
+            
+            if (system is IPhysicsSystem physicsSystem)
+            {
+                _systemGroups.Add(system, _groupsManager.GetGroup(physicsSystem.Matcher));
+
+                _systems.Add(physicsSystem);
+                _physicsSystems.Add(physicsSystem);
+            }
 
             if (system is InitSystem initSystem) initSystem.Execute();
             if (system is IEndSystem endSystem) _endSystems.Add(endSystem);
@@ -57,10 +68,6 @@ namespace DesertImage.ECS
                 var system = _executeSystems[i];
                 var group = _systemGroups[system];
 
-                foreach (var entity in group.Entities)
-                {
-                    
-                }
                 for (var j = 0; j < group.Entities.Count; j++)
                 {
                     system.Execute(_entitiesManager.GetEntityById(group.Entities[j]), delta);
@@ -68,6 +75,20 @@ namespace DesertImage.ECS
             }
         }
 
+        public void PhysicTick(float delta)
+        {
+            for (var i = 0; i < _physicsSystems.Count; i++)
+            {
+                var system = _physicsSystems[i];
+                var group = _systemGroups[system];
+
+                for (var j = 0; j < group.Entities.Count; j++)
+                {
+                    system.Execute(_entitiesManager.GetEntityById(group.Entities[j]), delta);
+                }
+            }
+        }
+        
         public void Dispose()
         {
             for (var i = 0; i < _endSystems.Count; i++)

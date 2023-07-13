@@ -21,6 +21,7 @@ namespace DesertImage.ECS
         protected virtual void OnDestroy() => World.Dispose();
 
         private void Update() => World.Tick(Time.deltaTime);
+        private void FixedUpdate() => World.PhysicTick(Time.fixedDeltaTime);
 
         private void InitComponents()
         {
