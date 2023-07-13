@@ -57,6 +57,10 @@ namespace DesertImage.ECS
                 var system = _executeSystems[i];
                 var group = _systemGroups[system];
 
+                foreach (var entity in group.Entities)
+                {
+                    
+                }
                 for (var j = 0; j < group.Entities.Count; j++)
                 {
                     system.Execute(_entitiesManager.GetEntityById(group.Entities[j]), delta);

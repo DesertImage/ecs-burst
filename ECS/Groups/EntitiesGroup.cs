@@ -7,15 +7,15 @@ namespace DesertImage.ECS
     {
         public readonly int Id;
 
-        public SparseSet<int> Entities;
+        public SparseSetInt Entities;
 
         public EntitiesGroup(int id)
         {
             Id = id;
-            Entities = new SparseSet<int>(ECSSettings.ComponentsDenseCapacity, ECSSettings.ComponentsSparseCapacity);
+            Entities = new SparseSetInt(ECSSettings.ComponentsDenseCapacity, ECSSettings.ComponentsSparseCapacity);
         }
 
-        public void Add(int entityId) => Entities.Add(entityId, entityId);
+        public void Add(int entityId) => Entities.Add(entityId);
         public void Remove(int entityId) => Entities.Remove(entityId);
         public bool Contains(int entityId) => Entities.Contains(entityId);
     }

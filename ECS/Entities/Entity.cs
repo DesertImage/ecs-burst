@@ -11,9 +11,5 @@ namespace DesertImage.ECS
         public readonly int Id;
 
         public Entity(int id) => Id = id;
-
-#if UNITY_EDITOR
-        
-#endif
     }
 }
