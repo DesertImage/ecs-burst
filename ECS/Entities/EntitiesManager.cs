@@ -85,14 +85,21 @@ namespace DesertImage.ECS
             var storage = GetStorage<T>(componentId);
 
             storage.Data.Remove(entityId);
-            _state.Components[entityId].Remove(componentId);
             
+            var entityComponents = _state.Components[entityId];
+            entityComponents.Remove(componentId);
+
 #if UNITY_EDITOR
             if (ComponentsDebug.Components.TryGetValue(entityId, out var components))
             {
                 components[componentId] = null;
             }
 #endif
+            
+            if (entityComponents.Count == 0)
+            {
+                DestroyEntity(entityId);
+            }
         }
 
         public bool HasComponent<T>(int entityId) where T : struct

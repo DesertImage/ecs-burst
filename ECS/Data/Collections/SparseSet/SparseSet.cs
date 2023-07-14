@@ -6,8 +6,8 @@ namespace DesertImage
     {
         public int Count => _denseCount;
 
-        private readonly T[] _dense;
-        private readonly int[] _sparse;
+        private T[] _dense;
+        private int[] _sparse;
         private int[] _recycled;
 
         private int _recycledCount;
@@ -38,6 +38,11 @@ namespace DesertImage
 
             var targetIndex = _recycledCount > 0 ? _recycled[--_recycledCount] : _denseCount;
 
+            if (index >= _sparse.Length)
+            {
+                Array.Resize(ref _sparse, _sparse.Length << 1);
+            }
+            
             _sparse[index] = targetIndex;
             _dense[targetIndex] = value;
 
