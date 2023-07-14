@@ -69,6 +69,6 @@ namespace DesertImage
             _recycledCount++;
         }
 
-        public bool Contains(int index) => _sparse[index] != -1;
+        public bool Contains(int index) => _sparse.Length > index && _sparse[index] != -1;
     }
 }
