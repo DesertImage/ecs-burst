@@ -44,7 +44,7 @@ namespace DesertImage.ECS
 
         public readonly SortedSetPoolable<int> GetComponents(int id) => _state.Components[id];
 
-        public void ReplaceComponent<T>(int entityId, T component) where T : struct
+        public void ReplaceComponent<T>(int entityId, in T component) where T : struct
         {
 #if DEBUG
             if (!IsAlive(entityId)) throw new Exception($"Entity {entityId} is not alive!");

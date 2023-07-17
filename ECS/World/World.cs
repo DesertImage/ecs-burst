@@ -32,7 +32,7 @@ namespace DesertImage.ECS
             GroupsManager.OnEntityCreated(SharedEntity.Id);
         }
 
-        public void ReplaceComponent<T>(int entityId, T component) where T : struct
+        public void ReplaceComponent<T>(int entityId, in T component) where T : struct
         {
             EntitiesManager.ReplaceComponent(entityId, component);
             GroupsManager.OnEntityComponentAdded(entityId, ComponentTools.GetComponentId<T>());

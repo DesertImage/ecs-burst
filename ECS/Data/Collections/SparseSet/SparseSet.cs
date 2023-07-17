@@ -13,7 +13,7 @@ namespace DesertImage
         private int _recycledCount;
         private int _denseCount;
 
-        public T this[int index] => _dense[index];
+        public ref T this[int index] => ref _dense[index];
 
         public SparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity = 100)
         {
@@ -28,7 +28,7 @@ namespace DesertImage
             _recycled = new int[recycledCapacity];
         }
 
-        public void Add(int index, T value)
+        public void Add(int index, in T value)
         {
             if (Contains(index))
             {
