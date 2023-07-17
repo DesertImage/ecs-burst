@@ -49,6 +49,7 @@ namespace DesertImage.ECS
         public ref T GetComponent<T>(int entityId) where T : struct => ref EntitiesManager.GetComponent<T>(entityId);
 
         public void Add<T>() where T : class, ISystem, new() => SystemsManager.Add<T>();
+        public void Add<T>(T feature) where T : IFeature => feature.Link(this);
 
         public Entity GetEntityById(int id) => EntitiesManager.GetEntityById(id);
 
