@@ -2,9 +2,13 @@ using System;
 
 namespace DesertImage
 {
-    public class SparseSet<T>
+    public class SparseSet<T> : SparseSetAbstract
     {
-        public int Count => _denseCount;
+        public override int Count
+        {
+            get => _denseCount;
+            protected set => _denseCount = value;
+        }
 
         private T[] _dense;
         private int[] _sparse;

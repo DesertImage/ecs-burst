@@ -1,6 +1,6 @@
 ﻿namespace DesertImage.ECS
 {
-    public static class ComponentsExtensions
+    public static partial class ComponentsExtensions
     {
         public static ref T Get<T>(this in Entity entity) where T : struct
         {

@@ -1,9 +1,5 @@
 ﻿namespace DesertImage.ECS
 {
-    public class ComponentsStorageBase
-    {
-    }
-
     public class ComponentsStorage<T> : ComponentsStorageBase
     {
         public readonly SparseSet<T> Data;

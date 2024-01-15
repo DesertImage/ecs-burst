@@ -173,31 +173,44 @@ namespace DesertImage.ECS
         {
             var groups = _entityGroups[entityId];
 
-            for (var i = groups.Count - 1; i >= 0; i--)
+            var isAlive = _entitiesManager.IsAlive(entityId);
+
+            if (!isAlive)
             {
-                var groupId = groups[i];
-
-                var matcher = _groupMatchers[groupId];
-                var components = _entitiesManager.GetComponents(entityId);
-
-                if (matcher.Check(components)) continue;
-
-                RemoveFromGroup(_groups[groupId], entityId);
+                for (var i = groups.Count - 1; i >= 0; i--)
+                {
+                    var groupId = groups[i];
+                    RemoveFromGroup(_groups[groupId], entityId);
+                }
             }
-
-            if (!_noneOfComponentGroups.TryGetValue(componentId, out var componentGroups)) return;
-
-            for (var i = componentGroups.Count - 1; i >= 0; i--)
+            else
             {
-                var groupId = componentGroups[i];
-                var group = _groups[groupId];
+                for (var i = groups.Count - 1; i >= 0; i--)
+                {
+                    var groupId = groups[i];
 
-                var matcher = _groupMatchers[groupId];
-                var components = _entitiesManager.GetComponents(entityId);
+                    var matcher = _groupMatchers[groupId];
+                    var components = _entitiesManager.GetComponents(entityId);
 
-                if (!matcher.Check(components)) continue;
+                    if (matcher.Check(components)) continue;
 
-                AddToGroup(group, entityId);
+                    RemoveFromGroup(_groups[groupId], entityId);
+                }
+
+                if (!_noneOfComponentGroups.TryGetValue(componentId, out var componentGroups)) return;
+
+                for (var i = componentGroups.Count - 1; i >= 0; i--)
+                {
+                    var groupId = componentGroups[i];
+                    var group = _groups[groupId];
+
+                    var matcher = _groupMatchers[groupId];
+                    var components = _entitiesManager.GetComponents(entityId);
+
+                    if (!matcher.Check(components)) continue;
+
+                    AddToGroup(group, entityId);
+                }
             }
         }
     }

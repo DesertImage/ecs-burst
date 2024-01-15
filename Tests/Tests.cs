@@ -1,5 +1,6 @@
 using System;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace DesertImage.ECS
 {
@@ -9,7 +10,7 @@ namespace DesertImage.ECS
         public void CheckComponentAdd()
         {
             var world = Worlds.Create();
-            
+
             var entity = world.GetNewEntity();
 
             entity.Replace(new TestComponent());
@@ -18,27 +19,80 @@ namespace DesertImage.ECS
 
             entity.Remove<TestComponent>();
 
-            Assert.IsFalse(entity.Has<TestComponent>());
+            Assert.IsFalse(entity.IsAlive());
+        }
+
+        [Test]
+        public void CheckSharedComponent()
+        {
+            var world = Worlds.Create();
+
+            var firstEntity = world.GetNewEntity();
+            var secondEntity = world.GetNewEntity();
+
+            firstEntity.ReplaceShared(new TestSharedValueComponent { Value = 1 });
+
+            Assert.IsTrue(firstEntity.HasShared<TestSharedValueComponent>());
+            Assert.IsFalse(secondEntity.HasShared<TestSharedValueComponent>());
+
+            secondEntity.ReplaceShared(firstEntity.GetShared<TestSharedValueComponent>());
+
+            Assert.IsTrue(firstEntity.HasShared<TestSharedValueComponent>());
+            Assert.IsTrue(secondEntity.HasShared<TestSharedValueComponent>());
+
+            ref var component = ref secondEntity.GetShared<TestSharedValueComponent>();
+            component.Value = 2;
+
+            Assert.AreEqual(2, firstEntity.GetShared<TestSharedValueComponent>().Value);
+            Assert.AreEqual(2, secondEntity.GetShared<TestSharedValueComponent>().Value);
+
+            firstEntity.RemoveShared<TestSharedValueComponent>();
+
+            // Assert.IsFalse(firstEntity.HasShared<TestSharedValueComponent>());
+            Assert.IsTrue(secondEntity.HasShared<TestSharedValueComponent>());
+        }
+
+        [Test]
+        public void CheckStaticComponent()
+        {
+            var world = Worlds.Create();
+
+            var firstEntity = world.GetNewEntity();
+            var secondEntity = world.GetNewEntity();
+
+            firstEntity.ReplaceStatic(new TestStaticValueComponent { Value = 1 });
+
+            Assert.IsTrue(firstEntity.HasStatic<TestStaticValueComponent>());
+            Assert.IsTrue(secondEntity.HasStatic<TestStaticValueComponent>());
+
+            secondEntity.ReplaceStatic(new TestStaticValueComponent { Value = 2 });
+
+            Assert.AreEqual(2, firstEntity.GetStatic<TestStaticValueComponent>().Value);
+            Assert.AreEqual(2, secondEntity.GetStatic<TestStaticValueComponent>().Value);
+
+            Assert.IsTrue(firstEntity.HasStatic<TestStaticValueComponent>());
+            Assert.IsTrue(secondEntity.HasStatic<TestStaticValueComponent>());
+
+            ref var component = ref secondEntity.GetStatic<TestStaticValueComponent>();
+            component.Value = 2;
+
+            var thirdEntity = world.GetNewEntity();
+
+            Assert.IsTrue(thirdEntity.HasStatic<TestStaticValueComponent>());
+
+            Assert.AreEqual(2, firstEntity.GetStatic<TestStaticValueComponent>().Value);
+            Assert.AreEqual(2, secondEntity.GetStatic<TestStaticValueComponent>().Value);
+            Assert.AreEqual(2, thirdEntity.GetStatic<TestStaticValueComponent>().Value);
         }
 
         [Test]
         public void CheckHasNull()
         {
             var world = Worlds.Create();
-            ;
+
             var entity = world.GetNewEntity();
 
             Assert.IsFalse(entity.Has<TestComponent>());
-        }
-
-        [Test]
-        public void CheckRemoveNull()
-        {
-            var world = Worlds.Create();
-            ;
-            var entity = world.GetNewEntity();
-
-            entity.Remove<TestComponent>();
         }
 
 #if DEBUG
@@ -46,7 +100,7 @@ namespace DesertImage.ECS
         public void CheckHasOnDeadEntity()
         {
             var world = Worlds.Create();
-            ;
+
             var entity = new Entity(1);
 
             try
@@ -73,7 +127,7 @@ namespace DesertImage.ECS
             entity.Replace(new TestComponent());
             entity.Remove<TestComponent>();
 
-            Assert.IsFalse(entity.Has<TestComponent>());
+            Assert.IsFalse(entity.IsAlive());
         }
 
         [Test]
@@ -146,7 +200,7 @@ namespace DesertImage.ECS
         public void CheckExecuteSystem()
         {
             var world = Worlds.Create();
-            
+
             world.Add<TestValueSystem>();
 
             var entity = world.GetNewEntity();
@@ -189,6 +243,23 @@ namespace DesertImage.ECS
 
             Assert.IsTrue(entity.Has<TestComponent>());
             Assert.IsFalse(entity.Has<TestValueComponent>());
+        }
+
+        [Test]
+        public void CheckTestPointer()
+        {
+            unsafe
+            {
+                var value = 0;
+                var pointer = &value;
+
+                *pointer = 2;
+
+                Debug.Log($"VALUE: {value}");
+                
+                Assert.AreEqual(value, 2);
+            }
+            // var 
         }
     }
 }

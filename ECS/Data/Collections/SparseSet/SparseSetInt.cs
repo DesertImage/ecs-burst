@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 namespace DesertImage
 {
-    public class SparseSetInt : IEnumerable<int>
+    public class SparseSetInt : SparseSetAbstract, IEnumerable<int>
     {
-        public int Count { get; private set; }
+        public override int Count { get; protected set; }
 
         private readonly int[] _dense;
         private readonly int[] _sparse;
