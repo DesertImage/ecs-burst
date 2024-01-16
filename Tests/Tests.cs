@@ -250,14 +250,23 @@ namespace DesertImage.ECS
         {
             unsafe
             {
-                var value = 0;
-                var pointer = &value;
+                var array = new[] { 2, 7 };
+                fixed (int* ptr = array)
+                {
+                    Debug.Log($"SIZE: {sizeof(int)}");
 
-                *pointer = 2;
+                    for (var i = 0; i < array.Length; i++)
+                    {
+                        Debug.Log($"VALUE {i}: {*(ptr + i)}");
+                    }
 
-                Debug.Log($"VALUE: {value}");
-                
-                Assert.AreEqual(value, 2);
+                    ptr[1] = 8;
+                    
+                    for (var i = 0; i < array.Length; i++)
+                    {
+                        Debug.Log($"VALUE {i}: {*(ptr + i)}");
+                    }
+                }
             }
             // var 
         }
