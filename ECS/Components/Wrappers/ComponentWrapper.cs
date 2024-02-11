@@ -2,7 +2,7 @@
 
 namespace DesertImage.ECS
 {
-    public class ComponentWrapper<T> : MonoBehaviour, IEntityLinkable where T : struct
+    public class ComponentWrapper<T> : MonoBehaviour, IEntityLinkable where T : unmanaged
     {
         [SerializeField] protected T Data;
 

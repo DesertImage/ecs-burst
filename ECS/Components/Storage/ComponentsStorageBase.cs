@@ -1,6 +1,9 @@
+using System;
+
 namespace DesertImage.ECS
 {
-    public class ComponentsStorageBase
+    public abstract class ComponentsStorageBase : IDisposable
     {
+        public abstract void Dispose();
     }
 }

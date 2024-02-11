@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using Unity.Collections;
 
 namespace DesertImage.ECS
 {
@@ -6,11 +6,15 @@ namespace DesertImage.ECS
     {
         private static int _matcherIdCounter;
 
-        private readonly HashSet<int> _all;
-        private readonly HashSet<int> _none;
-        private readonly HashSet<int> _any;
+        private UnsafeList<int> _all;
+        private UnsafeList<int> _none;
+        private UnsafeList<int> _any;
 
-        private MatcherBuilder(HashSet<int> all, HashSet<int> none, HashSet<int> any)
+        private int _allCounter;
+        private int _noneCounter;
+        private int _anyCounter;
+
+        private MatcherBuilder(UnsafeList<int> all, UnsafeList<int> none, UnsafeList<int> any) : this()
         {
             _all = all;
             _none = none;
@@ -19,10 +23,24 @@ namespace DesertImage.ECS
 
         public static MatcherBuilder Create()
         {
-            return new MatcherBuilder(new HashSet<int>(), new HashSet<int>(), new HashSet<int>());
+            return new MatcherBuilder
+            (
+                new UnsafeList<int>(10, Allocator.Persistent),
+                new UnsafeList<int>(10, Allocator.Persistent),
+                new UnsafeList<int>(10, Allocator.Persistent)
+            );
         }
 
-        public Matcher Build() => new Matcher(++_matcherIdCounter, _all, _none, _any);
+        public Matcher Build()
+        {
+            var matcher = new Matcher(++_matcherIdCounter, _all, _none, _any);
+
+            _all.Dispose();
+            _any.Dispose();
+            _none.Dispose();
+
+            return matcher;
+        }
 
         public MatcherBuilder With<T>() where T : struct
         {
@@ -42,6 +60,10 @@ namespace DesertImage.ECS
         {
             _all.Add(ComponentTools.GetComponentId<T1>());
             _all.Add(ComponentTools.GetComponentId<T2>());
+
+            _all.Add(ComponentTools.GetComponentId<T1>());
+            _all.Add(ComponentTools.GetComponentId<T2>());
+
             return this;
         }
 
@@ -49,6 +71,7 @@ namespace DesertImage.ECS
         {
             AllOf<T1, T2>();
             _all.Add(ComponentTools.GetComponentId<T3>());
+
             return this;
         }
 

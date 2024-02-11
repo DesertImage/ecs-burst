@@ -1,6 +1,6 @@
 namespace DesertImage.ECS
 {
-    public interface IPhysicsSystem : IMatchSystem
+    public interface IPhysicsSystem : ISystem
     {
         void Execute(Entity entity, float deltaTime);
     }

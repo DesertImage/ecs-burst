@@ -1,15 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using Unity.Collections;
 
 namespace DesertImage.ECS
 {
     public class ComponentsSharedStorage<T> : ComponentsStorageBase
     {
         public T Data;
-        public readonly HashSet<int> Entities;
+        public NativeParallelHashSet<int> Entities;
 
-        public ComponentsSharedStorage(HashSet<int> entities)
+        public ComponentsSharedStorage(NativeParallelHashSet<int> entities)
         {
             Entities = entities;
+        }
+
+        public override void Dispose()
+        {
+            Entities.Dispose();
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using DesertImage.ECS;
 
-namespace ECS.Entities
+namespace DesertImage.ECS
 {
     [DebuggerDisplay("{Components}")]
     public class EntityDebugView

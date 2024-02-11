@@ -1,13 +1,16 @@
 ﻿namespace DesertImage.ECS
 {
-    public sealed class TestValueSystem : ExecuteSystem
+    public struct TestValueSystem : IExecuteSystem
     {
-        public override Matcher Matcher =>
-            MatcherBuilder.Create().With<TestValueComponent>().None<TestComponent>().Build();
+        public Matcher Matcher => MatcherBuilder.Create()
+            .With<TestValueComponent>()
+            .None<TestComponent>()
+            .Build();
 
-        public override void Execute(Entity entity, float deltaTime)
+        public void Execute(Entity entity, float deltaTime)
         {
-            entity.Get<TestValueComponent>().Value++;
+            ref var testValueComponent = ref entity.Get<TestValueComponent>();
+            testValueComponent.Value++;
         }
     }
 }

@@ -1,9 +1,9 @@
 ﻿namespace DesertImage.ECS
 {
-    public class RemoveComponentSystem<T> : ExecuteSystem where T : struct
+    public struct RemoveComponentSystem<T> : IExecuteSystem where T : unmanaged
     {
-        public override Matcher Matcher => MatcherBuilder.Create().With<T>().Build();
+        public Matcher Matcher => MatcherBuilder.Create().With<T>().Build();
 
-        public override void Execute(Entity entity, float deltaTime) => entity.Remove<T>();
+        public void Execute(Entity entity, float deltaTime) => entity.Remove<T>();
     }
 }

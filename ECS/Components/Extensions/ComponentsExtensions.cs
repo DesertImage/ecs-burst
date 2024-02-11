@@ -2,26 +2,26 @@
 {
     public static partial class ComponentsExtensions
     {
-        public static ref T Get<T>(this in Entity entity) where T : struct
+        public static ref T Get<T>(this in Entity entity) where T : unmanaged
         {
-            return ref Worlds.Current.GetComponent<T>(entity.Id);
+            return ref Worlds.GetCurrent().GetComponent<T>(entity.Id);
         }
 
-        public static void Replace<T>(this in Entity entity, in T component) where T : struct
+        public static void Replace<T>(this in Entity entity, in T component) where T : unmanaged
         {
-            Worlds.Current.ReplaceComponent(entity.Id, component);
+            Worlds.GetCurrent().ReplaceComponent(entity.Id, component);
         }
 
-        public static void Replace<T>(this in Entity entity) where T : struct
+        public static void Replace<T>(this in Entity entity) where T : unmanaged
         {
-            Worlds.Current.ReplaceComponent(entity.Id, new T());
+            Worlds.GetCurrent().ReplaceComponent(entity.Id, new T());
         }
 
-        public static void Remove<T>(this in Entity entity) where T : struct
+        public static void Remove<T>(this in Entity entity) where T : unmanaged
         {
-            Worlds.Current.RemoveComponent<T>(entity.Id);
+            Worlds.GetCurrent().RemoveComponent<T>(entity.Id);
         }
 
-        public static bool Has<T>(this in Entity entity) where T : struct => Worlds.Current.HasComponent<T>(entity.Id);
+        public static bool Has<T>(this in Entity entity) where T : unmanaged => Worlds.GetCurrent().HasComponent<T>(entity.Id);
     }
 }

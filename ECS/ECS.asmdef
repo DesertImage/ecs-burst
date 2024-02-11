@@ -1,18 +1,20 @@
 {
-  "name": "ecs",
-  "rootNamespace": "",
-  "references": [
-    "desertimage.events",
-    "LeanTween",
-    "UniRx"
-  ],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+    "name": "ecs",
+    "rootNamespace": "",
+    "references": [
+        "desertimage.events",
+        "LeanTween",
+        "UniRx",
+        "Unity.Collections",
+        "Unity.Burst"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

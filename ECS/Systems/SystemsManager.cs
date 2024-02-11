@@ -1,100 +1,150 @@
 using System;
-using System.Collections.Generic;
+using System.Reflection;
+using Unity.Burst;
+using Unity.Collections;
 
 namespace DesertImage.ECS
 {
-    public readonly struct SystemsManager : IDisposable
+    public unsafe struct SystemsManager : IDisposable
     {
-        private readonly EntitiesManager _entitiesManager;
-        private readonly GroupsManager _groupsManager;
+        private SystemsState _state;
 
-        private readonly HashSet<ISystem> _systems;
+        private EntitiesManager* _entitiesManager;
+        private GroupsManager* _groupsManager;
 
-        private readonly List<IExecuteSystem> _executeSystems;
-        private readonly List<IPhysicsSystem> _physicsSystems;
-        private readonly List<IEndSystem> _endSystems;
-
-        private readonly Dictionary<ISystem, EntitiesGroup> _systemGroups;
-
-        public SystemsManager(EntitiesManager entitiesManager, GroupsManager groupsManager)
+        public SystemsManager(EntitiesManager* entitiesManager, GroupsManager* groupsManager)
         {
             _entitiesManager = entitiesManager;
             _groupsManager = groupsManager;
 
-            _systems = new HashSet<ISystem>();
-
-            _executeSystems = new List<IExecuteSystem>();
-            _physicsSystems = new List<IPhysicsSystem>();
-            
-            _endSystems = new List<IEndSystem>();
-
-            _systemGroups = new Dictionary<ISystem, EntitiesGroup>();
+            _state = new SystemsState
+            {
+                ExecuteSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
+                DestroySystems = new UnsafeList<FunctionPointer<SystemsTools.Destroy>>(20, Allocator.Persistent),
+                SystemsHash = new UnsafeHashSet<int>(20, Allocator.Persistent)
+            };
         }
 
-        public void Add<T>() where T : class, ISystem, new() => Add(new T());
-
-        private void Add<T>(T system) where T : class, ISystem
+        public unsafe void Add<T>() where T : unmanaged, ISystem
         {
+            var systemType = typeof(T);
+
+            if (Has<T>())
+            {
 #if DEBUG
-            if (_systems.Contains(system)) throw new Exception($"System already added {typeof(T)}");
+                throw new Exception($"system {systemType} already added");
 #endif
-            system.Inject(Worlds.Current);
-            system.Activate();
-
-            if (system is IExecuteSystem executeSystem)
-            {
-                _systemGroups.Add(system, _groupsManager.GetGroup(executeSystem.Matcher));
-
-                _systems.Add(executeSystem);
-                _executeSystems.Add(executeSystem);
-            }
-            
-            if (system is IPhysicsSystem physicsSystem)
-            {
-                _systemGroups.Add(system, _groupsManager.GetGroup(physicsSystem.Matcher));
-
-                _systems.Add(physicsSystem);
-                _physicsSystems.Add(physicsSystem);
+                return;
             }
 
-            if (system is InitSystem initSystem) initSystem.Execute();
-            if (system is IEndSystem endSystem) _endSystems.Add(endSystem);
+            ref var state = ref _state;
+
+            var isAwake = typeof(IAwake).IsAssignableFrom(systemType);
+            if (isAwake)
+            {
+                var methodInfo = typeof(SystemsManager).GetMethod
+                (
+                    nameof(AddAwake),
+                    BindingFlags.Static | BindingFlags.NonPublic
+                );
+
+                var gMethod = methodInfo.MakeGenericMethod(systemType);
+
+                var targetDelegate = Delegate.CreateDelegate(typeof(Action), default, gMethod);
+                var converted = (Action)targetDelegate;
+
+                converted.Invoke();
+            }
+
+            var isExecute = typeof(IExecuteSystem).IsAssignableFrom(systemType);
+            if (isExecute)
+            {
+                var wrapper = new ExecuteSystemWrapper
+                {
+                    Value = MemoryTools.Allocate(default(T)),
+                };
+
+                var wrapperPtr = (ExecuteSystemWrapper*)MemoryTools.Allocate(wrapper);
+
+                var methodInfo = typeof(SystemsManager).GetMethod
+                (
+                    nameof(AddExecute),
+                    BindingFlags.Static | BindingFlags.NonPublic
+                );
+
+                var gMethod = methodInfo.MakeGenericMethod(systemType);
+
+                var targetDelegate = Delegate.CreateDelegate(typeof(Action<IntPtr>), default, gMethod);
+                var converted = (Action<IntPtr>)targetDelegate;
+
+                converted.Invoke((IntPtr)wrapperPtr);
+
+                _state.ExecuteSystems.Add(new ExecuteSystemData { Wrapper = wrapperPtr });
+            }
+
+            state.SystemsHash.Add(SystemsTools.GetId<T>());
         }
 
-        public void Tick(float delta)
-        {
-            for (var i = 0; i < _executeSystems.Count; i++)
-            {
-                var system = _executeSystems[i];
-                var group = _systemGroups[system];
+        private static void AddAwake<T>(T instance) where T : unmanaged, IAwake => instance.OnAwake();
 
+        private static void AddExecute<T>(IntPtr ptr) where T : unmanaged, IExecuteSystem
+        {
+            var wrapperPtr = (ExecuteSystemWrapper*)ptr;
+            wrapperPtr->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
+            wrapperPtr->Matcher = (*(T*)ptr).Matcher;
+        }
+
+        private unsafe void AddExecute<T>(SystemsState state, IntPtr ptr) where T : unmanaged, IExecuteSystem
+        {
+            state.ExecuteSystems.Add
+            (
+                new ExecuteSystemData { Wrapper = (ExecuteSystemWrapper*)ptr }
+            );
+        }
+
+        private bool Has<T>() where T : ISystem
+        {
+            var id = SystemsTools.GetId<T>();
+            return _state.SystemsHash.Contains(id);
+        }
+
+        public unsafe void Tick(float delta)
+        {
+            var executeSystems = _state.ExecuteSystems;
+
+            for (var i = 0; i < executeSystems.Count; i++)
+            {
+                var systemData = executeSystems[i];
+
+                var wrapper = systemData.Wrapper;
+                var functionPointer = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
+
+                var group = _groupsManager->GetGroup(systemData.Wrapper->Matcher);
                 for (var j = 0; j < group.Entities.Count; j++)
                 {
-                    system.Execute(_entitiesManager.GetEntityById(group.Entities[j]), delta);
+                    var entityId = group.Entities[j];
+                    functionPointer.Invoke(wrapper, _entitiesManager->GetEntityById(entityId), delta);
                 }
             }
         }
 
         public void PhysicTick(float delta)
         {
-            for (var i = 0; i < _physicsSystems.Count; i++)
-            {
-                var system = _physicsSystems[i];
-                var group = _systemGroups[system];
-
-                for (var j = 0; j < group.Entities.Count; j++)
-                {
-                    system.Execute(_entitiesManager.GetEntityById(group.Entities[j]), delta);
-                }
-            }
+            // for (var i = 0; i < _physicsSystems.Count; i++)
+            // {
+            //     var system = _physicsSystems[i];
+            //     var group = _systemGroups[system];
+            //
+            //     for (var j = 0; j < group.Entities.Count; j++)
+            //     {
+            //         system.Execute(_entitiesManager.GetEntityById(group.Entities[j]), delta);
+            //     }
+            // }
         }
-        
+
         public void Dispose()
         {
-            for (var i = 0; i < _endSystems.Count; i++)
-            {
-                _endSystems[i].ExecuteEnd();
-            }
+            _state.Dispose();
         }
     }
 }

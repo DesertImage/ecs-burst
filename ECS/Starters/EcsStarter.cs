@@ -8,7 +8,7 @@ namespace DesertImage.ECS
 
         protected virtual void Awake()
         {
-            World = Worlds.Create();
+            World = Worlds.Initialize();
             Initialize();
         }
 

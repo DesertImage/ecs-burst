@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using ECS.Entities;
 
 namespace DesertImage.ECS
 {
@@ -9,7 +8,12 @@ namespace DesertImage.ECS
     public struct Entity
     {
         public readonly int Id;
+        public bool IsAlive;
 
-        public Entity(int id) => Id = id;
+        public Entity(int id)
+        {
+            Id = id;
+            IsAlive = true;
+        }
     }
 }

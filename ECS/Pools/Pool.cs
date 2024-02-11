@@ -1,14 +1,16 @@
 using System;
-using System.Collections.Generic;
+using Unity.Collections;
 
 namespace DesertImage.Pools
 {
-    public class Pool<T> where T : IPoolable, new()
+    public struct Pool<T> where T : struct, IPoolable, IDisposable
     {
-        protected readonly Stack<T> Stack = new Stack<T>();
-        protected readonly Func<T> Factory;
+        private NativeQueue<T> Queue;
 
-        public Pool(Func<T> factory = null) => Factory = factory;
+        public Pool(NativeQueue<T> queue)
+        {
+            Queue = new NativeQueue<T>(AllocatorManager.Persistent);
+        }
 
         public void Register(int count)
         {
@@ -18,17 +20,17 @@ namespace DesertImage.Pools
             }
         }
 
-        public virtual T GetInstance()
+        public T GetInstance()
         {
-            var instance = Stack.Count > 0 ? Stack.Pop() : CreateInstance();
-
+            var instance = Queue.Count > 0 ? Queue.Dequeue() : CreateInstance();
             instance.OnCreate();
-
             return instance;
         }
 
-        public virtual void ReturnInstance(T instance) => Stack.Push(instance);
+        public void ReturnInstance(T instance) => Queue.Enqueue(instance);
 
-        protected virtual T CreateInstance() => Factory != null ? Factory.Invoke() : new T();
+        private T CreateInstance() => new T();
+
+        public void Dispose() => Queue.Dispose();
     }
 }

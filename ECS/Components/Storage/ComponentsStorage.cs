@@ -1,12 +1,17 @@
-﻿namespace DesertImage.ECS
+﻿using System;
+using DesertImage.Collections;
+
+namespace DesertImage.ECS
 {
-    public class ComponentsStorage<T> : ComponentsStorageBase
+    public class ComponentsStorage<T> : ComponentsStorageBase, IDisposable where T : unmanaged
     {
-        public readonly SparseSet<T> Data;
+        public UnsafeSparseSet<T> Data;
 
         public ComponentsStorage(int denseCapacity, int sparseCapacity)
         {
-            Data = new SparseSet<T>(denseCapacity, sparseCapacity);
+            Data = new UnsafeSparseSet<T>(denseCapacity, sparseCapacity);
         }
+
+        public override void Dispose() => Data.Dispose();
     }
 }

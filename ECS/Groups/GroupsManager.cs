@@ -1,51 +1,52 @@
-using System.Collections.Generic;
+using System;
+using Unity.Collections;
 
 namespace DesertImage.ECS
 {
-    public struct GroupsManager
+    public unsafe struct GroupsManager : IDisposable
     {
-        private readonly Dictionary<int, List<int>> _entityGroups;
-        private readonly Dictionary<int, int> _matcherGroups;
+        private UnsafeDictionary<int, UnsafeList<int>> _entityGroups;
+        private UnsafeDictionary<int, int> _matcherGroups;
 
-        private readonly Dictionary<int, Matcher> _groupMatchers;
-        private readonly Dictionary<int, List<int>> _componentGroups;
-        private readonly Dictionary<int, List<int>> _noneOfComponentGroups;
+        private UnsafeDictionary<int, Matcher> _groupMatchers;
+        private UnsafeDictionary<int, UnsafeList<int>> _componentGroups;
+        private UnsafeDictionary<int, UnsafeList<int>> _noneOfComponentGroups;
 
-        private readonly List<EntitiesGroup> _groups;
+        private UnsafeList<EntitiesGroup> _groups;
 
-        private readonly EntitiesManager _entitiesManager;
+        private readonly EntitiesManager* _entitiesManager;
 
         private static int _groupsIdCounter = -1;
 
-        public GroupsManager(EntitiesManager entitiesManager)
+        public GroupsManager(EntitiesManager* entitiesManager)
         {
             _entitiesManager = entitiesManager;
 
-            _entityGroups = new Dictionary<int, List<int>>();
-            _matcherGroups = new Dictionary<int, int>();
+            _entityGroups = new UnsafeDictionary<int, UnsafeList<int>>(20, Allocator.Persistent);
+            _matcherGroups = new UnsafeDictionary<int, int>(20, Allocator.Persistent);
 
-            _groupMatchers = new Dictionary<int, Matcher>();
-            _componentGroups = new Dictionary<int, List<int>>();
-            _noneOfComponentGroups = new Dictionary<int, List<int>>();
+            _groupMatchers = new UnsafeDictionary<int, Matcher>(20, Allocator.Persistent);
+            _componentGroups = new UnsafeDictionary<int, UnsafeList<int>>(20, Allocator.Persistent);
+            _noneOfComponentGroups = new UnsafeDictionary<int, UnsafeList<int>>(20, Allocator.Persistent);
 
-            _groups = new List<EntitiesGroup>(20);
+            _groups = new UnsafeList<EntitiesGroup>(20, Allocator.Persistent);
 
             _groupsIdCounter = -1;
         }
 
-        public readonly EntitiesGroup GetGroup(Matcher matcher)
+        public EntitiesGroup GetGroup(Matcher matcher)
         {
             return _matcherGroups.TryGetValue(matcher.Id, out var group) ? _groups[group - 1] : GetNewGroup(matcher);
         }
 
-        private readonly EntitiesGroup GetNewGroup()
+        private EntitiesGroup GetNewGroup()
         {
             var newGroup = new EntitiesGroup(++_groupsIdCounter);
             _groups.Add(newGroup);
             return newGroup;
         }
 
-        private readonly EntitiesGroup GetNewGroup(Matcher matcher)
+        private EntitiesGroup GetNewGroup(Matcher matcher)
         {
             var newGroup = GetNewGroup();
 
@@ -54,56 +55,82 @@ namespace DesertImage.ECS
             _groupMatchers.Add(newGroupId, matcher);
             _matcherGroups.Add(matcher.Id, newGroupId);
 
-            foreach (var componentId in matcher.Components)
+            for (var i = 0; i < matcher.Components.Length; i++)
             {
+                var componentId = matcher.Components[i];
+
                 if (_componentGroups.TryGetValue(componentId, out var groups))
                 {
                     groups.Add(newGroupId);
                 }
                 else
                 {
-                    _componentGroups.Add(componentId, new List<int> { newGroupId });
+                    _componentGroups.Add
+                    (
+                        componentId,
+                        new UnsafeList<int>(20, Allocator.Persistent) { newGroupId }
+                    );
                 }
             }
 
-            foreach (var componentId in matcher.NoneOfComponents)
+            for (var i = 0; i < matcher.NoneOfComponents.Length; i++)
             {
+                var componentId = matcher.NoneOfComponents[i];
+
                 if (_noneOfComponentGroups.TryGetValue(componentId, out var groups))
                 {
                     groups.Add(newGroupId);
                 }
                 else
                 {
-                    _noneOfComponentGroups.Add(componentId, new List<int> { newGroupId });
+                    _noneOfComponentGroups.Add
+                    (
+                        componentId,
+                        new UnsafeList<int>(20, Allocator.Persistent) { newGroupId }
+                    );
                 }
             }
 
             return newGroup;
         }
 
-        private void AddToGroup(EntitiesGroup group, int entityId)
+        private void AddToGroup(ref EntitiesGroup group, int entityId)
         {
             var groupId = group.Id;
 
             group.Add(entityId);
 
-            if (_entityGroups.TryGetValue(entityId, out var groupsList))
+            ref var groups = ref _entityGroups;
+
+            if (groups.TryGetValue(entityId, out var groupsList))
             {
                 groupsList.Add(groupId);
             }
             else
             {
-                _entityGroups.Add(entityId, new List<int> { groupId });
+                groups.Add
+                (
+                    entityId,
+                    new UnsafeList<int>(20, Allocator.Persistent) { groupId }
+                );
             }
         }
 
-        private void RemoveFromGroup(EntitiesGroup group, int entityId)
+        private void RemoveFromGroup(ref EntitiesGroup group, int entityId)
         {
             group.Remove(entityId);
-            _entityGroups[entityId].Remove(group.Id);
+
+            var entityGroup = _entityGroups[entityId];
+            entityGroup.RemoveAt(entityGroup.IndexOf(group.Id));
         }
 
-        public void OnEntityCreated(int entityId) => _entityGroups.Add(entityId, new List<int>());
+        public void OnEntityCreated(int entityId)
+        {
+            ref var groups = ref _entityGroups;
+            groups.Add(entityId, new UnsafeList<int>(20, Allocator.Persistent, default));
+
+            var entityGroup = _entityGroups[entityId];
+        }
 
         public void OnEntityComponentAdded(int entityId, int componentId)
         {
@@ -114,11 +141,12 @@ namespace DesertImage.ECS
                 var groupId = groups[i];
 
                 var matcher = _groupMatchers[groupId];
-                var components = _entitiesManager.GetComponents(entityId);
+                var components = _entitiesManager->GetComponents(entityId);
 
                 if (matcher.Check(components)) continue;
 
-                RemoveFromGroup(_groups[groupId], entityId);
+                ref var group = ref _groups.GetByRef(groupId);
+                RemoveFromGroup(ref group, entityId);
             }
 
             if (_componentGroups.TryGetValue(componentId, out var componentGroups))
@@ -132,40 +160,40 @@ namespace DesertImage.ECS
             }
         }
 
-        private void ValidateEntityAdd(int entityId, IReadOnlyList<int> groups)
+        private void ValidateEntityAdd(int entityId, UnsafeList<int> groups)
         {
             for (var i = groups.Count - 1; i >= 0; i--)
             {
                 var groupId = groups[i];
-                var group = _groups[groupId];
+                var group = _groups.GetByRef(groupId);
 
                 if (group.Contains(entityId)) continue;
 
                 var matcher = _groupMatchers[groupId];
-                var components = _entitiesManager.GetComponents(entityId);
+                var components = _entitiesManager->GetComponents(entityId);
 
                 if (!matcher.Check(components)) continue;
 
-                AddToGroup(group, entityId);
+                AddToGroup(ref group, entityId);
             }
         }
 
         //TODO:refactor
-        private void ValidateEntityRemove(int entityId, IReadOnlyList<int> groups)
+        private void ValidateEntityRemove(int entityId, UnsafeList<int> groups)
         {
             for (var i = groups.Count - 1; i >= 0; i--)
             {
                 var groupId = groups[i];
-                var group = _groups[groupId];
+                ref var group = ref _groups.GetByRef(groupId);
 
                 if (!group.Contains(entityId)) continue;
 
                 var matcher = _groupMatchers[groupId];
-                var components = _entitiesManager.GetComponents(entityId);
+                var components = _entitiesManager->GetComponents(entityId);
 
                 if (matcher.Check(components)) continue;
 
-                RemoveFromGroup(group, entityId);
+                RemoveFromGroup(ref group, entityId);
             }
         }
 
@@ -173,14 +201,16 @@ namespace DesertImage.ECS
         {
             var groups = _entityGroups[entityId];
 
-            var isAlive = _entitiesManager.IsAlive(entityId);
+            var isAlive = _entitiesManager->IsAlive(entityId);
 
             if (!isAlive)
             {
                 for (var i = groups.Count - 1; i >= 0; i--)
                 {
                     var groupId = groups[i];
-                    RemoveFromGroup(_groups[groupId], entityId);
+                    ref var group = ref _groups.GetByRef(groupId);
+
+                    RemoveFromGroup(ref group, entityId);
                 }
             }
             else
@@ -190,11 +220,12 @@ namespace DesertImage.ECS
                     var groupId = groups[i];
 
                     var matcher = _groupMatchers[groupId];
-                    var components = _entitiesManager.GetComponents(entityId);
+                    var components = _entitiesManager->GetComponents(entityId);
 
                     if (matcher.Check(components)) continue;
 
-                    RemoveFromGroup(_groups[groupId], entityId);
+                    ref var group = ref _groups.GetByRef(groupId);
+                    RemoveFromGroup(ref group, entityId);
                 }
 
                 if (!_noneOfComponentGroups.TryGetValue(componentId, out var componentGroups)) return;
@@ -202,16 +233,51 @@ namespace DesertImage.ECS
                 for (var i = componentGroups.Count - 1; i >= 0; i--)
                 {
                     var groupId = componentGroups[i];
-                    var group = _groups[groupId];
+                    ref var group = ref _groups.GetByRef(groupId);
 
                     var matcher = _groupMatchers[groupId];
-                    var components = _entitiesManager.GetComponents(entityId);
+                    var components = _entitiesManager->GetComponents(entityId);
 
                     if (!matcher.Check(components)) continue;
 
-                    AddToGroup(group, entityId);
+                    AddToGroup(ref group, entityId);
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            foreach (var entityGroup in _entityGroups)
+            {
+                entityGroup.Value.Dispose();
+            }
+
+            foreach (var groupMatcher in _groupMatchers)
+            {
+                groupMatcher.Value.Dispose();
+            }
+
+            foreach (var componentGroup in _componentGroups)
+            {
+                componentGroup.Value.Dispose();
+            }
+
+            foreach (var componentGroup in _noneOfComponentGroups)
+            {
+                componentGroup.Value.Dispose();
+            }
+
+            foreach (var entitiesGroup in _groups)
+            {
+                entitiesGroup.Dispose();
+            }
+
+            _groupMatchers.Dispose();
+            _entityGroups.Dispose();
+            _matcherGroups.Dispose();
+            _componentGroups.Dispose();
+            _noneOfComponentGroups.Dispose();
+            _groups.Dispose();
         }
     }
 }

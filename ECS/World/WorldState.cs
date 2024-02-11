@@ -1,31 +1,49 @@
 ﻿using System;
-using System.Collections.Generic;
+using DesertImage.Collections;
+using DesertImage.ECS;
 
 namespace DesertImage.ECS
 {
-    [Serializable]
-    public struct WorldState
+    public unsafe struct WorldState : IDisposable
     {
-        public readonly Dictionary<int, Entity> Entities;
-        public readonly Dictionary<int, SortedSetPoolable<int>> EntityComponents;
-        public ComponentsStorageBase[] Storages;
-        public readonly ComponentsStorageBase[] SharedStorages;
-        public readonly ComponentsStorageBase[] StaticStorages;
+        public UnsafeArray<Entity> Entities;
+        public UnsafeSparseSet<UnsafeSparseSet<int>> EntityComponents;
+
+        //TODO: move byte* data here?
+        public ComponentStorage Components;
+        // public byte* SharedComponents;
+        // public byte* StaticComponents;
+
+        // public ComponentsStorageBase[] Storages;
+        // public readonly ComponentsStorageBase[] SharedStorages;
+        // public readonly ComponentsStorageBase[] StaticStorages;
 
         public WorldState
         (
-            Dictionary<int, Entity> entities,
-            Dictionary<int, SortedSetPoolable<int>> entityComponents,
-            ComponentsStorageBase[] storages,
-            ComponentsStorageBase[] sharedStorages,
-            ComponentsStorageBase[] staticStorages
-        )
+            UnsafeArray<Entity> entities,
+            UnsafeSparseSet<UnsafeSparseSet<int>> entityComponents,
+            int componentsCapacity,
+            int entitiesCapacity
+        ) : this()
         {
             Entities = entities;
             EntityComponents = entityComponents;
-            Storages = storages;
-            SharedStorages = sharedStorages;
-            StaticStorages = staticStorages;
+            Components = new ComponentStorage(componentsCapacity * entitiesCapacity, entitiesCapacity);
+        }
+
+        public void Dispose()
+        {
+            foreach (var entityComponent in EntityComponents)
+            {
+                entityComponent.Dispose();
+            }
+
+            Components.Dispose();
+            // UnsafeUtility.Free(SharedComponents, Allocator.Persistent);
+            // UnsafeUtility.Free(StaticComponents, Allocator.Persistent);
+
+            Entities.Dispose();
+            EntityComponents.Dispose();
         }
     }
 }
