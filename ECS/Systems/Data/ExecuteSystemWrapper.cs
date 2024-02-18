@@ -1,9 +1,11 @@
+using Unity.Collections.LowLevel.Unsafe;
+
 namespace DesertImage.ECS
 {
     public unsafe struct ExecuteSystemWrapper
     {
-        public void* Value;
         public Matcher Matcher;
-        public void* MethodPtr;
+        [NativeDisableUnsafePtrRestriction] public void* Value;
+        [NativeDisableUnsafePtrRestriction] public void* MethodPtr;
     }
 }

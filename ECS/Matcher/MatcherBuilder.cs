@@ -1,20 +1,21 @@
-﻿using Unity.Collections;
+﻿using DesertImage.Collections;
+using Unity.Collections;
 
 namespace DesertImage.ECS
 {
     public struct MatcherBuilder
     {
-        private static int _matcherIdCounter;
+        private static uint _matcherIdCounter;
 
-        private UnsafeList<int> _all;
-        private UnsafeList<int> _none;
-        private UnsafeList<int> _any;
+        private UnsafeList<uint> _all;
+        private UnsafeList<uint> _none;
+        private UnsafeList<uint> _any;
 
         private int _allCounter;
         private int _noneCounter;
         private int _anyCounter;
 
-        private MatcherBuilder(UnsafeList<int> all, UnsafeList<int> none, UnsafeList<int> any) : this()
+        private MatcherBuilder(UnsafeList<uint> all, UnsafeList<uint> none, UnsafeList<uint> any) : this()
         {
             _all = all;
             _none = none;
@@ -23,11 +24,12 @@ namespace DesertImage.ECS
 
         public static MatcherBuilder Create()
         {
+            //TODO:pool lists
             return new MatcherBuilder
             (
-                new UnsafeList<int>(10, Allocator.Persistent),
-                new UnsafeList<int>(10, Allocator.Persistent),
-                new UnsafeList<int>(10, Allocator.Persistent)
+                new UnsafeList<uint>(10, Allocator.Persistent, default),
+                new UnsafeList<uint>(10, Allocator.Persistent, default),
+                new UnsafeList<uint>(10, Allocator.Persistent, default)
             );
         }
 
@@ -35,9 +37,9 @@ namespace DesertImage.ECS
         {
             var matcher = new Matcher(++_matcherIdCounter, _all, _none, _any);
 
-            _all.Dispose();
-            _any.Dispose();
-            _none.Dispose();
+            // _all.Dispose();
+            // _any.Dispose();
+            // _none.Dispose();
 
             return matcher;
         }

@@ -1,18 +1,21 @@
 using System;
-using Unity.Burst;
+using DesertImage.Collections;
+using Unity.Jobs;
 
 namespace DesertImage.ECS
 {
     public struct SystemsState : IDisposable
     {
         public UnsafeList<ExecuteSystemData> ExecuteSystems;
-        public UnsafeList<FunctionPointer<SystemsTools.Destroy>> DestroySystems;
-        public UnsafeHashSet<int> SystemsHash;
+        public UnsafeHashSet<uint> SystemsHash;
+
+        public float DeltaTime;
+
+        public JobHandle Handle;
 
         public void Dispose()
         {
             ExecuteSystems.Dispose();
-            DestroySystems.Dispose();
             SystemsHash.Dispose();
         }
     }

@@ -9,7 +9,7 @@ namespace DesertImage.ECS
     public class EntityDebugView
     {
 #if UNITY_EDITOR
-        public int Id => _entity.Id;
+        public uint Id => _entity.Id;
         public object[] Components => _components;
 
         private readonly Entity _entity;

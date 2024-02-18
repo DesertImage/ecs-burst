@@ -1,4 +1,4 @@
-namespace DesertImage.ECS
+namespace DesertImage.Collections
 {
     public static class ArrayExtensions
     {

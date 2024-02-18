@@ -1,7 +1,8 @@
 using System;
+using DesertImage.ECS;
 using Unity.Collections;
 
-namespace DesertImage.ECS
+namespace DesertImage.Collections
 {
     public unsafe struct UnsafeQueue<T> : IDisposable where T : unmanaged
     {
@@ -14,6 +15,7 @@ namespace DesertImage.ECS
         public UnsafeQueue(int capacity, Allocator allocator) : this()
         {
             _data = new UnsafeArray<T>(capacity, allocator);
+            Count = 0;
         }
 
         public void Enqueue(T element)
@@ -25,7 +27,8 @@ namespace DesertImage.ECS
                     _data.Resize(Count << 1);
                 }
 
-                _data[Count++] = element;
+                _data[Count] = element;
+                Count++;
             }
             _lockIndex.Unlock();
         }
@@ -35,7 +38,8 @@ namespace DesertImage.ECS
             if (Count == 0) throw new Exception("No elements in queue");
 
             _lockIndex.Lock();
-            var element = _data[Count--];
+            var element = _data[Count - 1];
+            Count--;
             _lockIndex.Unlock();
 
             return element;

@@ -7,7 +7,7 @@
             .None<TestComponent>()
             .Build();
 
-        public void Execute(Entity entity, float deltaTime)
+        public void Execute(Entity entity, World world, float deltaTime)
         {
             ref var testValueComponent = ref entity.Get<TestValueComponent>();
             testValueComponent.Value++;

@@ -1,49 +1,77 @@
 ﻿using System;
 using DesertImage.Collections;
-using DesertImage.ECS;
+using Unity.Collections;
 
 namespace DesertImage.ECS
 {
-    public unsafe struct WorldState : IDisposable
+    public struct WorldState : IDisposable
     {
-        public UnsafeArray<Entity> Entities;
-        public UnsafeSparseSet<UnsafeSparseSet<int>> EntityComponents;
+        public uint EntityIdCounter;
+        public UnsafeSparseSet<uint> AliveEntities;
+        public UnsafeQueue<uint> EntitiesPool;
 
-        //TODO: move byte* data here?
         public ComponentStorage Components;
-        // public byte* SharedComponents;
-        // public byte* StaticComponents;
+        public UnsafeDictionary<uint, IntPtr> StaticComponents;
 
-        // public ComponentsStorageBase[] Storages;
-        // public readonly ComponentsStorageBase[] SharedStorages;
-        // public readonly ComponentsStorageBase[] StaticStorages;
+        public uint GroupIdCounter;
+        public UnsafeDictionary<uint, EntitiesGroup> Groups;
+        public UnsafeDictionary<uint, Matcher> Matchers;
+        public UnsafeDictionary<uint, uint> MatcherToGroup;
+        public UnsafeDictionary<uint, uint> GroupToMatcher;
+        public UnsafeDictionary<uint, UnsafeList<uint>> EntityToGroups;
+        public UnsafeDictionary<uint, UnsafeList<uint>> ComponentToGroups;
 
-        public WorldState
-        (
-            UnsafeArray<Entity> entities,
-            UnsafeSparseSet<UnsafeSparseSet<int>> entityComponents,
-            int componentsCapacity,
-            int entitiesCapacity
-        ) : this()
+        public WorldState(int componentsCapacity, int entitiesCapacity)
         {
-            Entities = entities;
-            EntityComponents = entityComponents;
-            Components = new ComponentStorage(componentsCapacity * entitiesCapacity, entitiesCapacity);
+            EntityIdCounter = 0;
+            AliveEntities = new UnsafeSparseSet<uint>(entitiesCapacity);
+            EntitiesPool = new UnsafeQueue<uint>(100, Allocator.Persistent);
+
+            Components = new ComponentStorage(componentsCapacity, entitiesCapacity);
+            StaticComponents = new UnsafeDictionary<uint, IntPtr>(20, Allocator.Persistent);
+
+            GroupIdCounter = 0;
+            Groups = new UnsafeDictionary<uint, EntitiesGroup>(20, Allocator.Persistent);
+
+            Matchers = new UnsafeDictionary<uint, Matcher>(20, Allocator.Persistent);
+
+            MatcherToGroup = new UnsafeDictionary<uint, uint>(20, Allocator.Persistent);
+            GroupToMatcher = new UnsafeDictionary<uint, uint>(20, Allocator.Persistent);
+
+            EntityToGroups = new UnsafeDictionary<uint, UnsafeList<uint>>(20, Allocator.Persistent);
+            ComponentToGroups = new UnsafeDictionary<uint, UnsafeList<uint>>(20, Allocator.Persistent);
         }
 
-        public void Dispose()
+        public unsafe void Dispose()
         {
-            foreach (var entityComponent in EntityComponents)
+            EntityIdCounter = 0;
+            AliveEntities.Dispose();
+            EntitiesPool.Dispose();
+
+            GroupIdCounter = 0;
+            MatcherToGroup.Dispose();
+            GroupToMatcher.Dispose();
+
+            foreach (var pair in Groups)
             {
-                entityComponent.Dispose();
+                pair.Value.Dispose();
             }
 
-            Components.Dispose();
-            // UnsafeUtility.Free(SharedComponents, Allocator.Persistent);
-            // UnsafeUtility.Free(StaticComponents, Allocator.Persistent);
+            Groups.Dispose();
 
-            Entities.Dispose();
-            EntityComponents.Dispose();
+            foreach (var pair in EntityToGroups)
+            {
+                pair.Value.Dispose();
+            }
+            EntityToGroups.Dispose();
+
+            Components.Dispose();
+
+            foreach (var pair in StaticComponents)
+            {
+                MemoryUtility.Free((void*)pair.Value);
+            }
+            StaticComponents.Dispose();
         }
     }
 }

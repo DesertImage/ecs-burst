@@ -1,14 +1,17 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.Collections;
 
-namespace DesertImage.ECS
+namespace DesertImage.Collections
 {
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(UnsafeListDebugView<>))]
     public unsafe struct UnsafeList<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
         public bool IsNull => _array.IsNull;
-        
+
         public int Count { get; private set; }
 
         private UnsafeArray<T> _array;
@@ -60,6 +63,12 @@ namespace DesertImage.ECS
             _array.ShiftLeft(index);
         }
 
+        public void Clear()
+        {
+            _array.Clear();
+            Count = 0;
+        }
+
         public bool Contains(T element)
         {
             for (var i = 0; i < _array.Length; i++)
@@ -82,6 +91,8 @@ namespace DesertImage.ECS
 
         public ref T GetByRef(int index) => ref _array.Get(index);
 
+        public T[] ToArray() => _array.ToArray();
+        
         public struct Enumerator : IEnumerator<T>
         {
             object IEnumerator.Current => Current;
@@ -116,12 +127,21 @@ namespace DesertImage.ECS
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 
-        public void Dispose() => _array.Dispose();
+        public readonly void Dispose() => _array.Dispose();
 
         public T this[int index]
         {
             get => _array[index];
             set => _array[index] = value;
         }
+    }
+
+    internal sealed class UnsafeListDebugView<T> where T : unmanaged
+    {
+        private UnsafeList<T> _data;
+
+        public UnsafeListDebugView(UnsafeList<T> array) => _data = array;
+
+        public T[] Items => _data.ToArray();
     }
 }

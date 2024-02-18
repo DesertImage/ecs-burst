@@ -1,26 +1,22 @@
 ﻿using System;
 using DesertImage.Collections;
-using DesertImage.ECS;
 using Unity.Collections;
 
 namespace DesertImage.ECS
 {
     public struct Matcher : IDisposable
     {
-        public int Id;
+        public uint Id { get; }
 
-        public UnsafeArray<int> Components => _components;
+        public UnsafeHashSet<uint> Components => _components;
 
-        public readonly UnsafeArray<int> NoneOfComponents => _noneOfComponents;
+        private readonly UnsafeHashSet<uint> _components;
 
-        private readonly UnsafeArray<int> _components;
-        private readonly UnsafeArray<int> _noneOfComponents;
+        private UnsafeList<uint> _allOf;
+        private UnsafeList<uint> _noneOf;
+        private UnsafeList<uint> _anyOf;
 
-        private UnsafeList<int> _allOf;
-        private UnsafeList<int> _noneOf;
-        private UnsafeList<int> _anyOf;
-
-        public Matcher(int id, UnsafeList<int> allOf, UnsafeList<int> noneOf, UnsafeList<int> anyOf)
+        public Matcher(uint id, UnsafeList<uint> allOf, UnsafeList<uint> noneOf, UnsafeList<uint> anyOf)
         {
             Id = id;
 
@@ -28,68 +24,62 @@ namespace DesertImage.ECS
             _noneOf = noneOf;
             _anyOf = anyOf;
 
-            _components = new UnsafeArray<int>(allOf.Count + noneOf.Count + anyOf.Count, Allocator.Persistent);
-            _noneOfComponents = new UnsafeArray<int>(_noneOf.Count, Allocator.Persistent);
+            _components = new UnsafeHashSet<uint>(allOf.Count + noneOf.Count + anyOf.Count, Allocator.Persistent);
 
             for (var i = 0; i < allOf.Count; i++)
             {
-                _components[i] = allOf[i];
+                _components.Add(allOf[i]);
             }
 
             for (var i = 0; i < noneOf.Count; i++)
             {
-                _components[i + _allOf.Count] = noneOf[i];
-                _noneOfComponents[i] = noneOf[i];
+                _components.Add(noneOf[i]);
             }
 
             for (var i = 0; i < anyOf.Count; i++)
             {
-                _components[i + _allOf.Count + noneOf.Count] = anyOf[i];
+                _components.Add(anyOf[i]);
             }
         }
 
-        public bool Check(UnsafeSparseSet<int> componentIds)
-        {
-            return HasNot(componentIds) && HasAll(componentIds) && HasAnyOf(componentIds);
-        }
+        public bool Check(Entity entity) => HasNot(entity) && HasAll(entity) && HasAnyOf(entity);
 
-        private bool HasNot(UnsafeSparseSet<int> componentIds)
+        public bool HasNot(Entity entity)
         {
             for (var i = 0; i < _noneOf.Count; i++)
             {
-                if (componentIds.Contains(_noneOf[i])) return false;
+                if (entity.Has(_noneOf[i])) return false;
             }
 
             return true;
         }
 
-        private bool HasAll(UnsafeSparseSet<int> componentIds)
+        public bool HasAll(Entity entity)
         {
             for (var i = 0; i < _allOf.Count; i++)
             {
-                if (componentIds.Contains(_allOf[i])) return false;
+                if (entity.Has(_allOf[i])) return false;
             }
 
             return true;
         }
 
-        private bool HasAnyOf(UnsafeSparseSet<int> componentIds)
+        public bool HasAnyOf(Entity entity)
         {
             if (_anyOf.Count == 0) return true;
 
             for (var i = 0; i < _anyOf.Count; i++)
             {
-                if (componentIds.Contains(_anyOf[i])) return true;
+                if (entity.Has(_anyOf[i])) return true;
             }
 
             return false;
         }
 
         //TODO: dispose all matchers
-        public void Dispose()
+        public readonly void Dispose()
         {
             Components.Dispose();
-            NoneOfComponents.Dispose();
 
             _allOf.Dispose();
             _anyOf.Dispose();

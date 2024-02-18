@@ -1,29 +1,31 @@
 using System;
+using DesertImage.Collections;
 
 namespace DesertImage.ECS
 {
     [Serializable]
     public struct EntitiesGroup : IDisposable, IEquatable<EntitiesGroup>
     {
-        public readonly int Id;
+        public readonly uint Id;
 
-        public SparseSetInt Entities;
+        public UnsafeSparseSet<uint> Entities;
 
-        public EntitiesGroup(int id)
+        public EntitiesGroup(uint id)
         {
             Id = id;
-            Entities = new SparseSetInt(ECSSettings.ComponentsDenseCapacity, ECSSettings.ComponentsSparseCapacity);
+            Entities = new UnsafeSparseSet<uint>(50, ECSSettings.ComponentsEntitiesCapacity);
         }
 
-        public void Add(int entityId) => Entities.Add(entityId);
-        public void Remove(int entityId) => Entities.Remove(entityId);
-        public bool Contains(int entityId) => Entities.Contains(entityId);
+        public void Add(uint entityId) => Entities.Add((int)entityId, entityId);
 
-        public void Dispose() => Entities.Dispose();
+        public void Remove(uint entityId) => Entities.Remove((int)entityId);
+        public bool Contains(uint entityId) => Entities.Contains((int)entityId);
+
+        public readonly void Dispose() => Entities.Dispose();
 
         public bool Equals(EntitiesGroup other) => Id == other.Id;
         public override bool Equals(object obj) => obj is EntitiesGroup other && Equals(other);
 
-        public override int GetHashCode() => Id;
+        public override int GetHashCode() => (int)Id;
     }
 }

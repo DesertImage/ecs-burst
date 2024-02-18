@@ -1,36 +1,79 @@
 ﻿using System;
+using DesertImage.Collections;
 using Unity.Collections;
 
 namespace DesertImage.ECS
 {
-    public unsafe struct Worlds
+    public unsafe partial struct Worlds
     {
-        private unsafe struct WorldWrapper
+        private static uint _idCounter;
+
+        private static bool _isInitialized;
+
+        private static void Initialize()
         {
-            public World Value;
+            if (_isInitialized) return;
+
+            _idCounter = 0;
+
+            WorldsStorage.Worlds.Data = new UnsafeArray<IntPtr>(20, Allocator.Persistent, default);
+            WorldsIds.FreeIds.Data = new UnsafeQueue<uint>(20, Allocator.Persistent);
+
+            _isInitialized = true;
         }
 
-        private static readonly UnsafeArray<WorldWrapper> _worlds = new UnsafeArray<WorldWrapper>(20, Allocator.Persistent);
-
-        private static int _idCounter = -1;
-
-        public static ref readonly World Initialize()
+        public static World Create()
         {
-            var world = new World(++_idCounter);
-
-            if (_worlds.Length <= _idCounter)
+            if (!_isInitialized)
             {
-#if DEBUG
-                throw new Exception("out of worlds capacity");
-#endif
+                Initialize();
             }
 
-            _worlds.Set(_idCounter, new WorldWrapper { Value = world });
+            var id = GetNextWorldId();
 
-            return ref _worlds.Get(_idCounter).Value;
+            WorldsCounter.Counter.Data++;
+
+            var world = MemoryUtility.Allocate(new World(id));
+
+            WorldsStorage.Worlds.Data[(int)id] = (IntPtr)world;
+
+            return *world;
         }
 
-        public static ref readonly World GetCurrent() => ref Get(0);
-        public static ref readonly World Get(int id) => ref _worlds.Get(id).Value;
+        public static World Get(uint id) => *GetPtr(id);
+        internal static World* GetPtr(uint id) => (World*)WorldsStorage.Worlds.Data[(int)id];
+
+        public static void Destroy(uint id)
+        {
+            if (WorldsCounter.Counter.Data == 0)
+            {
+#if DEBUG
+                throw new Exception("Words count is already 0");
+#endif
+                return;
+            }
+
+            MemoryUtility.Free((void*)WorldsStorage.Worlds.Data[(int)id]);
+            WorldsStorage.Worlds.Data[(int)id] = IntPtr.Zero;
+            WorldsIds.FreeIds.Data.Enqueue(id);
+
+            WorldsCounter.Counter.Data--;
+
+            if (WorldsCounter.Counter.Data > 0) return;
+
+            Dispose();
+        }
+
+        private static uint GetNextWorldId() =>
+            WorldsIds.FreeIds.Data.Count > 0 ? WorldsIds.FreeIds.Data.Dequeue() : ++_idCounter;
+
+        private static void Dispose()
+        {
+            _idCounter = 0;
+            _isInitialized = false;
+
+            WorldsStorage.Worlds.Data.Dispose();
+            WorldsIds.FreeIds.Data.Dispose();
+        }
     }
 }

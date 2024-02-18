@@ -1,13 +1,17 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using DesertImage.ECS;
 using Unity.Collections;
 
-namespace DesertImage.ECS
+namespace DesertImage.Collections
 {
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(UnsafeHashSetDebugView<>))]
     public unsafe struct UnsafeHashSet<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
-        private struct Entry
+        internal struct Entry
         {
             public int HashCode;
             public T Value;
@@ -17,9 +21,9 @@ namespace DesertImage.ECS
 
         public int Count { get; private set; }
 
-        private UnsafeArray<int> _buckets;
-        private UnsafeArray<Entry> _entries;
-        private UnsafeArray<int> _lockIndexes;
+        internal UnsafeArray<int>* _buckets;
+        internal UnsafeArray<Entry>* _entries;
+        internal UnsafeArray<int>* _lockIndexes;
 
         private int _entriesCapacity;
 
@@ -27,9 +31,9 @@ namespace DesertImage.ECS
         {
             _entriesCapacity = 5;
 
-            _buckets = new UnsafeArray<int>(capacity, allocator, -1);
-            _entries = new UnsafeArray<Entry>(capacity * _entriesCapacity, allocator, default);
-            _lockIndexes = new UnsafeArray<int>(capacity, allocator, default);
+            _buckets = MemoryUtility.Allocate(new UnsafeArray<int>(capacity, allocator, -1));
+            _entries = MemoryUtility.Allocate(new UnsafeArray<Entry>(capacity * _entriesCapacity, allocator, default));
+            _lockIndexes = MemoryUtility.Allocate(new UnsafeArray<int>(capacity, allocator, default));
 
             IsNotNull = true;
 
@@ -54,16 +58,17 @@ namespace DesertImage.ECS
 
             var bucketNumber = GetBucketNumber(key);
 
-            _lockIndexes.Get(bucketNumber).Lock();
+            _lockIndexes->Get(bucketNumber).Lock();
             {
-                var entryNumber = _buckets[bucketNumber];
+                var buckets = *_buckets;
+                var entryNumber = buckets[bucketNumber];
 
-                _entries[entryNumber] = default;
-                _buckets[bucketNumber] = -1;
+                (*_entries)[entryNumber] = default;
+                buckets[bucketNumber] = -1;
 
                 Count--;
             }
-            _lockIndexes.Get(bucketNumber).Unlock();
+            _lockIndexes->Get(bucketNumber).Unlock();
         }
 
         public bool Contains(T key)
@@ -81,33 +86,33 @@ namespace DesertImage.ECS
 
         public void Resize(int newSize)
         {
-            var oldSize = _buckets.Length;
+            var oldSize = _buckets->Length;
 
-            var bucketNew = new UnsafeArray<int>(newSize, Allocator.Persistent);
-            var entriesNew = new UnsafeArray<Entry>(newSize, Allocator.Persistent);
-            var lockIndexesNew = new UnsafeArray<int>(newSize, Allocator.Persistent);
+            var bucketNew = MemoryUtility.Allocate(new UnsafeArray<int>(newSize, Allocator.Persistent));
+            var entriesNew = MemoryUtility.Allocate(new UnsafeArray<Entry>(newSize, Allocator.Persistent));
+            var lockIndexesNew = MemoryUtility.Allocate(new UnsafeArray<int>(newSize, Allocator.Persistent));
 
             for (var i = 0; i < oldSize; i++)
             {
-                var entryNumber = _buckets[i];
+                var entryNumber = (*_buckets)[i];
 
                 if (entryNumber < 0) continue;
 
-                var entry = _entries[entryNumber];
+                var entry = (*_entries)[entryNumber];
 
                 var hashCode = entry.HashCode;
 
                 var newBucketNumber = GetBucketNumber(hashCode);
                 var newEntryNumber = GetFreeEntryIndex(newBucketNumber);
 
-                bucketNew[newBucketNumber] = newEntryNumber;
-                lockIndexesNew[newBucketNumber] = _lockIndexes[newBucketNumber];
-                _entries[newEntryNumber] = entry;
+                (*bucketNew)[newBucketNumber] = newEntryNumber;
+                (*lockIndexesNew)[newBucketNumber] = (*_lockIndexes)[newBucketNumber];
+                (*_entries)[newEntryNumber] = entry;
             }
 
-            _buckets.Dispose();
-            _entries.Dispose();
-            _lockIndexes.Dispose();
+            _buckets->Dispose();
+            _entries->Dispose();
+            _lockIndexes->Dispose();
 
             _buckets = bucketNew;
             _entries = entriesNew;
@@ -116,9 +121,13 @@ namespace DesertImage.ECS
 
         public void Dispose()
         {
-            _buckets.Dispose();
-            _entries.Dispose();
-            _lockIndexes.Dispose();
+            _buckets->Dispose();
+            _entries->Dispose();
+            _lockIndexes->Dispose();
+
+            _buckets = null;
+            _entries = null;
+            _lockIndexes = null;
         }
 
         private void Insert(T value)
@@ -127,14 +136,14 @@ namespace DesertImage.ECS
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
             var hashCode = value.GetHashCode();
-            var bucketNumber = (hashCode & int.MaxValue) % _buckets.Length;
+            var bucketNumber = (hashCode & int.MaxValue) % _buckets->Length;
 
-            _lockIndexes.Get(bucketNumber).Lock();
+            _lockIndexes->Get(bucketNumber).Lock();
             {
                 var freeEntryIndex = GetFreeEntryIndex(bucketNumber);
 
-                _buckets[bucketNumber] = freeEntryIndex;
-                _entries[freeEntryIndex] = new Entry
+                (*_buckets)[bucketNumber] = freeEntryIndex;
+                (*_entries)[freeEntryIndex] = new Entry
                 {
                     HashCode = hashCode,
                     Value = value,
@@ -142,7 +151,7 @@ namespace DesertImage.ECS
 
                 Count++;
             }
-            _lockIndexes.Get(bucketNumber).Unlock();
+            _lockIndexes->Get(bucketNumber).Unlock();
         }
 
         private int GetFreeEntryIndex(int bucketNumber)
@@ -150,15 +159,16 @@ namespace DesertImage.ECS
             var entriesNumber = bucketNumber * _entriesCapacity;
             var lastBucketEntryNumber = entriesNumber + _entriesCapacity - 1;
 
+            var entries = *_entries;
             for (var i = entriesNumber; i < lastBucketEntryNumber; i++)
             {
-                var entry = _entries[i];
+                var entry = entries[i];
 
                 if (entry.HashCode == 0) return i;
             }
 
             throw new Exception("no free entries");
-            return -1;
+            // return -1;
         }
 
         private int GetEntry(int bucketNumber, T key, int hashCode)
@@ -166,9 +176,10 @@ namespace DesertImage.ECS
             var entriesNumber = bucketNumber * _entriesCapacity;
             var lastBucketEntryNumber = entriesNumber + _entriesCapacity - 1;
 
+            var entries = *_entries;
             for (var i = entriesNumber; i < lastBucketEntryNumber; i++)
             {
-                var entry = _entries[i];
+                var entry = entries[i];
 
                 if (entry.HashCode == hashCode && key.Equals(entry.Value)) return i;
             }
@@ -176,30 +187,39 @@ namespace DesertImage.ECS
             return -1;
         }
 
-        private int GetBucketNumber(T key) => (key.GetHashCode() & int.MaxValue) % _buckets.Length;
-        private int GetBucketNumber(int hashCode) => (hashCode & int.MaxValue) % _buckets.Length;
+        private int GetBucketNumber(T key) => (key.GetHashCode() & int.MaxValue) % _buckets->Length;
+        private int GetBucketNumber(int hashCode) => (hashCode & int.MaxValue) % _buckets->Length;
 
         public struct Enumerator : IEnumerator<T>
         {
             private readonly UnsafeHashSet<T> _data;
 
-            public T Current { get; }
+            public T Current => (*_data._entries)[_counter - 1].Value;
             object IEnumerator.Current => Current;
 
             private int _counter;
+            private int _lastEntry;
 
             public Enumerator(UnsafeHashSet<T> data) : this()
             {
                 _data = data;
-                _counter = -1;
+                _counter = 0;
             }
 
             public bool MoveNext()
             {
-                throw new NotImplementedException();
+                var foundNext = false;
 
-                ++_counter;
-                return _counter < _data.Count;
+                var entries = *_data._entries;
+                for (var i = _counter; i < entries.Length; i++)
+                {
+                    if (entries[i].HashCode == 0) continue;
+                    foundNext = true;
+                    _counter = i + 1;
+                    break;
+                }
+
+                return foundNext && _counter - 1 < entries.Length;
             }
 
             public void Reset() => _counter = 0;
@@ -213,5 +233,15 @@ namespace DesertImage.ECS
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+    }
+
+    internal sealed unsafe class UnsafeHashSetDebugView<T> where T : unmanaged
+    {
+        private readonly UnsafeHashSet<T> _data;
+
+        public UnsafeHashSetDebugView(UnsafeHashSet<T> array) => _data = array;
+
+        public int[] Buckets => _data._buckets->ToArray();
+        public UnsafeHashSet<T>.Entry[] Entries => _data._entries->ToArray();
     }
 }

@@ -1,18 +1,21 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
-namespace DesertImage.ECS
+namespace DesertImage.Collections
 {
+    [DebuggerDisplay("Length = {Length}")]
+    [DebuggerTypeProxy(typeof(UnsafeArrayDebugView<>))]
     public unsafe struct UnsafeArray<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
         public bool IsNull => Data == null;
 
         public int Length { get; private set; }
 
-        internal void* Data;
+        [NativeDisableUnsafePtrRestriction] internal void* Data;
 
         private readonly long _elementSize;
         private readonly Allocator _allocator;
@@ -23,9 +26,10 @@ namespace DesertImage.ECS
 
             _elementSize = UnsafeUtility.SizeOf<T>();
             Data = UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
+
             _allocator = allocator;
         }
-        
+
         public UnsafeArray(int length, Allocator allocator, T defaultValue) : this()
         {
             Length = length;
@@ -33,18 +37,14 @@ namespace DesertImage.ECS
             _elementSize = UnsafeUtility.SizeOf<T>();
             Data = UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
             _allocator = allocator;
-            
+
             for (var i = 0; i < length; i++)
             {
                 UnsafeUtility.CopyStructureToPtr(ref defaultValue, GetIndexPointer(i));
             }
         }
 
-        public void Dispose()
-        {
-            UnsafeUtility.Free(Data, _allocator);
-            Data = null;
-        }
+        public readonly void Dispose() => UnsafeUtility.Free(Data, _allocator);
 
         public UnsafeArray<T> Resize(int length)
         {
@@ -69,9 +69,26 @@ namespace DesertImage.ECS
             return target;
         }
 
+        public void Clear()
+        {
+            UnsafeUtility.MemClear(Data, Length * UnsafeUtility.SizeOf(typeof(T)));
+        }
+
         public void CopyTo(UnsafeArray<T> target)
         {
             UnsafeUtility.MemCpy(target.Data, Data, Length * _elementSize);
+        }
+
+        public T[] ToArray()
+        {
+            var array = new T[Length];
+
+            for (var i = 0; i < Length; i++)
+            {
+                array[i] = this[i];
+            }
+
+            return array;
         }
 
         private readonly void* GetIndexPointer(int index) => (void*)((IntPtr)Data + (int)(_elementSize * index));
@@ -82,7 +99,8 @@ namespace DesertImage.ECS
             set => UnsafeUtility.CopyStructureToPtr(ref value, GetIndexPointer(index));
         }
 
-        public readonly void Set(int index, T value) => UnsafeUtility.CopyStructureToPtr(ref value, GetIndexPointer(index));
+        public readonly void Set(int index, T value) =>
+            UnsafeUtility.CopyStructureToPtr(ref value, GetIndexPointer(index));
 
         public readonly ref T Get(int index) => ref *(T*)GetIndexPointer(index);
 
@@ -117,5 +135,14 @@ namespace DesertImage.ECS
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+    }
+
+    internal sealed class UnsafeArrayDebugView<T> where T : unmanaged
+    {
+        private UnsafeArray<T> _data;
+
+        public UnsafeArrayDebugView(UnsafeArray<T> array) => _data = array;
+
+        public T[] Items => _data.ToArray();
     }
 }

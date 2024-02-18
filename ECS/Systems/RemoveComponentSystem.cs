@@ -4,6 +4,6 @@
     {
         public Matcher Matcher => MatcherBuilder.Create().With<T>().Build();
 
-        public void Execute(Entity entity, float deltaTime) => entity.Remove<T>();
+        public void Execute(Entity entity, World world, float deltaTime) => entity.Remove<T>();
     }
 }

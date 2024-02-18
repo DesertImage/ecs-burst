@@ -2,6 +2,6 @@ namespace DesertImage.ECS
 {
     public interface IExecuteSystem : IMatchSystem
     {
-        void Execute(Entity entity, float deltaTime);
+        void Execute(Entity entity, World world, float deltaTime);
     }
 }

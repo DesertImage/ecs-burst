@@ -1,10 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using NUnit.Framework;
+using DesertImage.ECS;
 using Unity.Collections;
 
-namespace DesertImage.ECS
+namespace DesertImage.Collections
 {
     public struct Pair<TKey, TValue> where TKey : unmanaged where TValue : unmanaged
     {
@@ -12,7 +12,7 @@ namespace DesertImage.ECS
         public TValue Value;
     }
 
-    public unsafe struct UnsafeDictionary<TKey, TValue> : IDisposable, IEnumerable<Pair<TKey, TValue>>
+    public struct UnsafeDictionary<TKey, TValue> : IDisposable, IEnumerable<Pair<TKey, TValue>>
         where TKey : unmanaged where TValue : unmanaged
     {
         internal struct Entry
@@ -104,6 +104,16 @@ namespace DesertImage.ECS
             return true;
         }
 
+        public ref TValue GetByRef(TKey key)
+        {
+            var hashCode = key.GetHashCode();
+
+            var bucketNumber = GetBucketNumber(hashCode);
+            var entryNumber = GetEntry(bucketNumber, key, hashCode);
+
+            return ref _entries.Get(entryNumber).Value;
+        }
+
         public void Resize(int newSize)
         {
             var oldSize = _buckets.Length;
@@ -177,6 +187,27 @@ namespace DesertImage.ECS
             _lockIndexes.Get(bucketNumber).Unlock();
         }
 
+        private void Replace(TKey key, TValue value)
+        {
+#if DEBUG
+            if (!IsNotNull) throw new Exception("Dictionary is null");
+#endif
+
+            var hashCode = key.GetHashCode();
+            var bucketNumber = (hashCode & int.MaxValue) % _buckets.Length;
+
+            _lockIndexes.Get(bucketNumber).Lock();
+            {
+                var entryNumber = GetEntry(bucketNumber, key, hashCode);
+
+                if (entryNumber == -1) throw new NullReferenceException();
+
+                ref var entry = ref _entries.Get(entryNumber);
+                entry.Value = value;
+            }
+            _lockIndexes.Get(bucketNumber).Unlock();
+        }
+
         private int GetFreeEntryIndex(int bucketNumber)
         {
             var entriesNumber = bucketNumber * _entriesCapacity;
@@ -212,7 +243,11 @@ namespace DesertImage.ECS
         private int GetBucketNumber(TKey key) => (key.GetHashCode() & int.MaxValue) % _buckets.Length;
         private int GetBucketNumber(int hashCode) => (hashCode & int.MaxValue) % _buckets.Length;
 
-        public TValue this[TKey key] => TryGetValue(key, out var value) ? value : default;
+        public TValue this[TKey key]
+        {
+            get => TryGetValue(key, out var value) ? value : default;
+            set => Replace(key, value);
+        }
 
         public struct Enumerator : IEnumerator<Pair<TKey, TValue>>
         {
@@ -247,7 +282,7 @@ namespace DesertImage.ECS
             {
                 ++_counter;
 
-                var entry = GetNextEntry(_lastEntryIndex, out _lastEntryIndex);
+                var entry = GetNextEntry(_lastEntryIndex + 1, out _lastEntryIndex);
 
                 return _counter < _dictionary.Count && !entry.IsNull;
             }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public class EntityWrapper : MonoBehaviour, IPoolable
+    public unsafe class EntityWrapper : MonoBehaviour, IPoolable
     {
         public Entity Entity { get; private set; }
 
@@ -10,7 +10,7 @@ namespace DesertImage.ECS
 
         public void OnCreate()
         {
-            Entity = Worlds.GetCurrent().GetNewEntity();
+            Entity = Entities.GetNew(Worlds.Get(0));
 
             _entityLinkables ??= GetComponents<IEntityLinkable>();
             foreach (var linkable in _entityLinkables)
@@ -19,11 +19,7 @@ namespace DesertImage.ECS
             }
         }
 
-        public void ReturnToPool()
-        {
-            Entity = default;
-            Worlds.GetCurrent().DestroyEntity(Entity.Id);
-        }
+        public void ReturnToPool() => Entity.Destroy();
 
         public static explicit operator Entity(EntityWrapper wrapper) => wrapper.Entity;
     }

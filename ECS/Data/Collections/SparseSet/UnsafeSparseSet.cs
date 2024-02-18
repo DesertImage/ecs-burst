@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using DesertImage.ECS;
 using Unity.Collections;
 
 namespace DesertImage.Collections
@@ -9,53 +8,46 @@ namespace DesertImage.Collections
     public struct UnsafeSparseSet<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
         public bool IsNotNull { get; private set; }
-        
-        public int Count
-        {
-            get => _denseCount;
-            private set => _denseCount = value;
-        }
+
+        public int Count { get; private set; }
 
         private UnsafeArray<T> _dense;
         private UnsafeArray<int> _sparse;
         private UnsafeArray<int> _recycled;
 
         private int _recycledCount;
-        private int _denseCount;
 
-        public ref readonly T this[int index] => ref _dense.Get(index);
+        public ref readonly T this[int index] => ref _dense.Get(_sparse[index]);
 
         public UnsafeSparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity = 100) : this()
         {
-            _dense = new UnsafeArray<T>(denseCapacity, Allocator.Persistent);
-            _recycled = new UnsafeArray<int>(recycledCapacity, Allocator.Persistent);
-
-            _sparse = new UnsafeArray<int>(sparseCapacity, Allocator.Persistent);
-            for (var i = 0; i < _sparse.Length; i++)
-            {
-                _sparse[i] = -1;
-            }
+            _dense = new UnsafeArray<T>(denseCapacity, Allocator.Persistent, default);
+            _sparse = new UnsafeArray<int>(sparseCapacity, Allocator.Persistent, -1);
+            _recycled = new UnsafeArray<int>(recycledCapacity, Allocator.Persistent, default);
 
             IsNotNull = true;
         }
-        
-        public UnsafeSparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity, T defaultValue) : this()
-        {
-            _dense = new UnsafeArray<T>(denseCapacity, Allocator.Persistent);
-            for (var i = 0; i < _dense.Length; i++)
-            {
-                _dense[i] = defaultValue;
-            }
-            
-            _recycled = new UnsafeArray<int>(recycledCapacity, Allocator.Persistent);
 
-            _sparse = new UnsafeArray<int>(sparseCapacity, Allocator.Persistent);
-            for (var i = 0; i < _sparse.Length; i++)
-            {
-                _sparse[i] = -1;
-            }
+        public UnsafeSparseSet(int capacity)
+        {
+            _dense = new UnsafeArray<T>(capacity, Allocator.Persistent, default);
+            _sparse = new UnsafeArray<int>(capacity, Allocator.Persistent, -1);
+            _recycled = new UnsafeArray<int>(capacity, Allocator.Persistent, default);
 
             IsNotNull = true;
+            Count = 0;
+            _recycledCount = 0;
+        }
+
+        public UnsafeSparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity, T defaultValue)
+        {
+            _dense = new UnsafeArray<T>(denseCapacity, Allocator.Persistent, defaultValue);
+            _sparse = new UnsafeArray<int>(sparseCapacity, Allocator.Persistent, -1);
+            _recycled = new UnsafeArray<int>(recycledCapacity, Allocator.Persistent);
+
+            IsNotNull = true;
+            Count = 0;
+            _recycledCount = 0;
         }
 
         public void Add(int index, in T value)
@@ -66,19 +58,19 @@ namespace DesertImage.Collections
                 return;
             }
 
-            var targetIndex = _recycledCount > 0 ? _recycled[--_recycledCount] : _denseCount;
+            var targetIndex = _recycledCount > 0 ? _recycled[--_recycledCount] : Count;
 
             if (index >= _sparse.Length)
             {
                 //TODO: resize
-                throw new Exception("Array need to be resized");
+                throw new Exception($"Array need to be resized. Count: {Count}");
                 // Array.Resize(ref _sparse, _sparse.Length << 1);
             }
 
             _sparse[index] = targetIndex;
             _dense[targetIndex] = value;
 
-            _denseCount++;
+            Count++;
         }
 
         public void Remove(int index)
@@ -88,7 +80,7 @@ namespace DesertImage.Collections
             _dense[_sparse[index]] = default;
             _sparse[index] = -1;
 
-            _denseCount--;
+            Count--;
 
             AddRecycled(oldSparse);
         }
@@ -98,7 +90,7 @@ namespace DesertImage.Collections
         public void Clear()
         {
             _recycledCount = 0;
-            _denseCount = 0;
+            Count = 0;
 
             for (var i = 0; i < _dense.Length; i++)
             {
@@ -124,7 +116,7 @@ namespace DesertImage.Collections
 
         public bool Contains(int index) => _sparse.Length > index && _sparse[index] != -1;
 
-        public void Dispose()
+        public readonly void Dispose()
         {
             _dense.Dispose();
             _sparse.Dispose();
@@ -135,7 +127,7 @@ namespace DesertImage.Collections
         {
             object IEnumerator.Current => Current;
 
-            public T Current => _sparseSet.Get(_index);
+            public T Current => _sparseSet._dense[_index];
 
             private readonly UnsafeSparseSet<T> _sparseSet;
             private int _index;
@@ -150,7 +142,7 @@ namespace DesertImage.Collections
             public bool MoveNext()
             {
                 ++_index;
-                return _index < _sparseSet._denseCount;
+                return _index < _sparseSet.Count;
             }
 
             public void Reset() => _index = -1;

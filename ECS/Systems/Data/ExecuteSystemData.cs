@@ -1,7 +1,10 @@
+using Unity.Collections.LowLevel.Unsafe;
+
 namespace DesertImage.ECS
 {
     public unsafe struct ExecuteSystemData
     {
-        public ExecuteSystemWrapper* Wrapper;
+        public uint Id;
+        [NativeDisableUnsafePtrRestriction] public ExecuteSystemWrapper* Wrapper;
     }
 }

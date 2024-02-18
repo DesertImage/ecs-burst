@@ -8,7 +8,7 @@ namespace DesertImage.ECS
 
         protected virtual void Awake()
         {
-            World = Worlds.Initialize();
+            World = Worlds.Create();
             Initialize();
         }
 
@@ -21,16 +21,15 @@ namespace DesertImage.ECS
         protected virtual void OnDestroy() => World.Dispose();
 
         private void Update() => World.Tick(Time.deltaTime);
-        private void FixedUpdate() => World.PhysicTick(Time.fixedDeltaTime);
+        // private void FixedUpdate() => World.PhysicTick(Time.fixedDeltaTime);
 
         private void InitComponents()
         {
             var components = GetComponents<IEntityLinkable>();
-            var entity = World.SharedEntity;
 
             foreach (var componentWrapper in components)
             {
-                componentWrapper.Link(entity);
+                // componentWrapper.Link(entity);
             }
         }
         

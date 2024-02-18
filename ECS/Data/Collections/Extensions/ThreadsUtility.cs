@@ -1,45 +1,70 @@
+using System.Threading;
+using UnityEngine;
+
 namespace DesertImage.ECS
 {
     public static class ThreadsUtility
     {
-        public static unsafe void LockIndex(ref int lockIndex)
+        public static void LockIndex(ref int lockIndex)
         {
-            while (0 != System.Threading.Interlocked.CompareExchange(ref lockIndex, 1, 0))
+            while (0 != Interlocked.CompareExchange(ref lockIndex, 1, 0))
             {
                 Unity.Burst.Intrinsics.Common.Pause();
             }
 
-            System.Threading.Interlocked.MemoryBarrier();
+            Interlocked.MemoryBarrier();
         }
 
-        public static unsafe void Lock(this ref int lockIndex)
+        public static void Lock(this ref int lockIndex)
         {
-            while (0 != System.Threading.Interlocked.CompareExchange(ref lockIndex, 1, 0))
+#if DEBUG
+            var triesCount = 0;
+#endif
+
+            while (0 != Interlocked.CompareExchange(ref lockIndex, 1, 0))
+            {
+                Unity.Burst.Intrinsics.Common.Pause();
+#if DEBUG
+                triesCount++;
+                if (triesCount >= 100000000)
+                {
+                    Debug.LogError($"Infinite lock {Thread.CurrentThread}");
+                    break;
+                }
+#endif
+            }
+
+            Interlocked.MemoryBarrier();
+        }
+
+        public static void UnlockIndex(ref int lockIndex)
+        {
+            Interlocked.MemoryBarrier();
+
+            while (1 != Interlocked.CompareExchange(ref lockIndex, 0, 1))
             {
                 Unity.Burst.Intrinsics.Common.Pause();
             }
-
-            System.Threading.Interlocked.MemoryBarrier();
         }
 
-        public static unsafe void UnlockIndex(ref int lockIndex)
+        public static void Unlock(this ref int lockIndex)
         {
-            System.Threading.Interlocked.MemoryBarrier();
+            Interlocked.MemoryBarrier();
 
-            while (1 != System.Threading.Interlocked.CompareExchange(ref lockIndex, 0, 1))
+#if DEBUG
+            var triesCount = 0;
+#endif
+            while (1 != Interlocked.CompareExchange(ref lockIndex, 0, 1))
             {
                 Unity.Burst.Intrinsics.Common.Pause();
-            }
-
-        }
-
-        public static unsafe void Unlock(this ref int lockIndex)
-        {
-            System.Threading.Interlocked.MemoryBarrier();
-
-            while (1 != System.Threading.Interlocked.CompareExchange(ref lockIndex, 0, 1))
-            {
-                Unity.Burst.Intrinsics.Common.Pause();
+#if DEBUG
+                triesCount++;
+                if (triesCount >= 100000000)
+                {
+                    Debug.LogError($"Infinite unlock {Thread.CurrentThread}");
+                    break;
+                }
+#endif
             }
         }
     }

@@ -5,7 +5,7 @@ namespace DesertImage.ECS
     public static class ComponentsDebug
     {
 #if UNITY_EDITOR
-        public static Dictionary<int, object[]> Components = new Dictionary<int, object[]>();
+        public static Dictionary<uint, object[]> Components = new Dictionary<uint, object[]>();
 #endif
     }
 }

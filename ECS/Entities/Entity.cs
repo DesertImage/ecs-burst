@@ -7,13 +7,16 @@ namespace DesertImage.ECS
     [DebuggerTypeProxy(typeof(EntityDebugView))]
     public struct Entity
     {
-        public readonly int Id;
-        public bool IsAlive;
+        public readonly uint Id;
+        public readonly uint WorldId;
+        
+        internal byte IsAliveFlag;
 
-        public Entity(int id)
+        public Entity(uint id, uint worldId)
         {
             Id = id;
-            IsAlive = true;
+            WorldId = worldId;
+            IsAliveFlag = 1;
         }
     }
 }
