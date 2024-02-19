@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEngine;
 
 namespace DesertImage.ECS.Tests
 {
@@ -10,7 +11,7 @@ namespace DesertImage.ECS.Tests
             var world = Worlds.Create();
 
             var entity = world.GetNewEntity();
-            
+
             var firstResult = entity.Has<TestComponent>();
 
             entity.Replace(new TestComponent());
@@ -54,7 +55,7 @@ namespace DesertImage.ECS.Tests
             Assert.AreNotEqual(5, firstResult);
             Assert.AreEqual(5, secondResult);
         }
-        
+
         [Test]
         public void CheckComponentsAfterPool()
         {
@@ -67,7 +68,7 @@ namespace DesertImage.ECS.Tests
             entity.Destroy();
 
             entity = world.GetNewEntity();
-            
+
             var result = entity.Has<TestComponent>();
 
             world.Dispose();
@@ -103,6 +104,40 @@ namespace DesertImage.ECS.Tests
 
             Assert.IsTrue(firstResult);
             Assert.IsTrue(secondResult);
+        }
+
+        [Test]
+        public void CheckObjectReference()
+        {
+            var world = Worlds.Create();
+
+            var entity = world.GetNewEntity();
+
+            var gameObject = new GameObject("test");
+            var rigidbody = gameObject.AddComponent<Rigidbody>();
+
+            entity.Replace
+            (
+                new TestReferenceComponent { Rigidbody = rigidbody }
+            );
+
+            bool firstResult = entity.Get<TestReferenceComponent>().Rigidbody.Value;
+
+            ref var component = ref entity.Get<TestReferenceComponent>();
+            component.Rigidbody = default;
+
+            bool secondResult = entity.Get<TestReferenceComponent>().Rigidbody.Value;
+
+            component.Rigidbody = rigidbody;
+            
+            bool thirdResult = entity.Get<TestReferenceComponent>().Rigidbody.Value;
+
+            Object.DestroyImmediate(gameObject);
+            world.Dispose();
+
+            Assert.IsTrue(firstResult);
+            Assert.IsFalse(secondResult);
+            Assert.IsTrue(thirdResult);
         }
     }
 }

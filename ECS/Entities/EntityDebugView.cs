@@ -13,7 +13,7 @@ namespace DesertImage.ECS
         public object[] Components => _components;
 
         private readonly Entity _entity;
-        private object[] _components;
+        private readonly object[] _components;
 
         public EntityDebugView(Entity entity)
         {
