@@ -5,25 +5,25 @@ using DesertImage.ECS;
 
 namespace DesertImage.ECS
 {
+    [DebuggerDisplay("Id: {Id}")]
     [DebuggerDisplay("{Components}")]
     public class EntityDebugView
     {
 #if UNITY_EDITOR
         public uint Id => _entity.Id;
-        public object[] Components => _components;
+        public object[] Components { get; }
 
         private readonly Entity _entity;
-        private readonly object[] _components;
 
         public EntityDebugView(Entity entity)
         {
             _entity = entity;
 
-            _components = ComponentsDebug.Components.TryGetValue(entity.Id, out var components)
+            Components = ComponentsDebug.Components.TryGetValue(entity.Id, out var components)
                 ? components
                 : Array.Empty<object>();
 
-            _components = _components.Where(x => x != null).ToArray();
+            Components = Components.Where(x => x != null).ToArray();
         }
 #endif
     }

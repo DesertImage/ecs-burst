@@ -62,15 +62,18 @@ namespace DesertImage.Collections
 
             if (index >= _sparse.Length)
             {
-                //TODO: resize
-                throw new Exception($"Array need to be resized. Count: {Count}");
-                // Array.Resize(ref _sparse, _sparse.Length << 1);
+                _sparse.Resize(_sparse.Length << 1);
             }
 
             _sparse[index] = targetIndex;
             _dense[targetIndex] = value;
 
             Count++;
+
+            if (Count >= _dense.Length)
+            {
+                _dense.Resize(Count << 1);
+            }
         }
 
         public void Remove(int index)

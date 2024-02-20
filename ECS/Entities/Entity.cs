@@ -8,11 +8,11 @@ namespace DesertImage.ECS
     public struct Entity
     {
         public readonly uint Id;
-        public readonly uint WorldId;
+        public readonly ushort WorldId;
         
         internal byte IsAliveFlag;
 
-        public Entity(uint id, uint worldId)
+        public Entity(uint id, ushort worldId)
         {
             Id = id;
             WorldId = worldId;

@@ -1,4 +1,6 @@
-﻿namespace DesertImage.ECS
+﻿using UnityEngine;
+
+namespace DesertImage.ECS
 {
     public struct TestValueSystem : IExecuteSystem
     {
@@ -11,6 +13,8 @@
         {
             ref var testValueComponent = ref entity.Get<TestValueComponent>();
             testValueComponent.Value++;
+
+            Debug.Log($"EXECUTE {testValueComponent.Value}");
         }
     }
 }

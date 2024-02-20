@@ -13,13 +13,13 @@ namespace DesertImage.ECS
         public ComponentStorage Components;
         public UnsafeDictionary<uint, IntPtr> StaticComponents;
 
-        public uint GroupIdCounter;
-        public UnsafeDictionary<uint, EntitiesGroup> Groups;
-        public UnsafeDictionary<uint, Matcher> Matchers;
-        public UnsafeDictionary<uint, uint> MatcherToGroup;
-        public UnsafeDictionary<uint, uint> GroupToMatcher;
-        public UnsafeDictionary<uint, UnsafeList<uint>> EntityToGroups;
-        public UnsafeDictionary<uint, UnsafeList<uint>> ComponentToGroups;
+        public ushort GroupIdCounter;
+        public UnsafeDictionary<ushort, EntitiesGroup> Groups;
+        public UnsafeDictionary<ushort, Matcher> Matchers;
+        public UnsafeDictionary<ushort, ushort> MatcherToGroup;
+        public UnsafeDictionary<ushort, ushort> GroupToMatcher;
+        public UnsafeDictionary<uint, UnsafeList<ushort>> EntityToGroups;
+        public UnsafeDictionary<uint, UnsafeList<ushort>> ComponentToGroups;
 
         public WorldState(int componentsCapacity, int entitiesCapacity)
         {
@@ -31,15 +31,15 @@ namespace DesertImage.ECS
             StaticComponents = new UnsafeDictionary<uint, IntPtr>(20, Allocator.Persistent);
 
             GroupIdCounter = 0;
-            Groups = new UnsafeDictionary<uint, EntitiesGroup>(20, Allocator.Persistent);
+            Groups = new UnsafeDictionary<ushort, EntitiesGroup>(20, Allocator.Persistent);
 
-            Matchers = new UnsafeDictionary<uint, Matcher>(20, Allocator.Persistent);
+            Matchers = new UnsafeDictionary<ushort, Matcher>(20, Allocator.Persistent);
 
-            MatcherToGroup = new UnsafeDictionary<uint, uint>(20, Allocator.Persistent);
-            GroupToMatcher = new UnsafeDictionary<uint, uint>(20, Allocator.Persistent);
+            MatcherToGroup = new UnsafeDictionary<ushort, ushort>(20, Allocator.Persistent);
+            GroupToMatcher = new UnsafeDictionary<ushort, ushort>(20, Allocator.Persistent);
 
-            EntityToGroups = new UnsafeDictionary<uint, UnsafeList<uint>>(20, Allocator.Persistent);
-            ComponentToGroups = new UnsafeDictionary<uint, UnsafeList<uint>>(20, Allocator.Persistent);
+            EntityToGroups = new UnsafeDictionary<uint, UnsafeList<ushort>>(entitiesCapacity, Allocator.Persistent);
+            ComponentToGroups = new UnsafeDictionary<uint, UnsafeList<ushort>>(20, Allocator.Persistent);
         }
 
         public unsafe void Dispose()

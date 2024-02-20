@@ -4,7 +4,7 @@ namespace DesertImage.ECS
 {
     public struct ObjectReference<T> where T : Object
     {
-        private uint Id;
+        public uint Id;
         public T Value => ObjectsReferenceRegistry.GetStorage().Get<T>(ref Id, null);
 
         private ObjectReference(T obj)

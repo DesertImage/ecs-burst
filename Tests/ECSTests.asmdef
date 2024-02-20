@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "ecs",
         "desertimage.events",
-        "Unity.Collections"
+        "Unity.Collections",
+        "DesertImage.ECS"
     ],
     "includePlatforms": [
         "Editor"

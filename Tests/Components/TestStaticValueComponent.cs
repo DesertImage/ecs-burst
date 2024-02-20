@@ -1,6 +1,6 @@
 namespace DesertImage.ECS
 {
-    public struct TestStaticValueComponent : IStaticComponent
+    public struct TestStaticValueComponent
     {
         public int Value;
     }

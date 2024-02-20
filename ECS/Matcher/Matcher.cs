@@ -4,19 +4,19 @@ using Unity.Collections;
 
 namespace DesertImage.ECS
 {
-    public struct Matcher : IDisposable
+    public readonly struct Matcher : IDisposable
     {
-        public uint Id { get; }
+        public ushort Id { get; }
 
         public UnsafeHashSet<uint> Components => _components;
 
         private readonly UnsafeHashSet<uint> _components;
 
-        private UnsafeList<uint> _allOf;
-        private UnsafeList<uint> _noneOf;
-        private UnsafeList<uint> _anyOf;
+        private readonly UnsafeList<uint> _allOf;
+        private readonly UnsafeList<uint> _noneOf;
+        private readonly UnsafeList<uint> _anyOf;
 
-        public Matcher(uint id, UnsafeList<uint> allOf, UnsafeList<uint> noneOf, UnsafeList<uint> anyOf)
+        public Matcher(ushort id, UnsafeList<uint> allOf, UnsafeList<uint> noneOf, UnsafeList<uint> anyOf)
         {
             Id = id;
 
@@ -44,7 +44,7 @@ namespace DesertImage.ECS
 
         public bool Check(Entity entity) => HasNot(entity) && HasAll(entity) && HasAnyOf(entity);
 
-        public bool HasNot(Entity entity)
+        public bool HasNot(in Entity entity)
         {
             for (var i = 0; i < _noneOf.Count; i++)
             {
@@ -54,7 +54,7 @@ namespace DesertImage.ECS
             return true;
         }
 
-        public bool HasAll(Entity entity)
+        public bool HasAll(in Entity entity)
         {
             for (var i = 0; i < _allOf.Count; i++)
             {
@@ -64,7 +64,7 @@ namespace DesertImage.ECS
             return true;
         }
 
-        public bool HasAnyOf(Entity entity)
+        public bool HasAnyOf(in Entity entity)
         {
             if (_anyOf.Count == 0) return true;
 
@@ -76,8 +76,7 @@ namespace DesertImage.ECS
             return false;
         }
 
-        //TODO: dispose all matchers
-        public readonly void Dispose()
+        public void Dispose()
         {
             Components.Dispose();
 

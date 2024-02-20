@@ -1,11 +1,7 @@
 {
-    "name": "ecs",
+    "name": "DesertImage.ECS",
     "rootNamespace": "",
     "references": [
-        "desertimage.events",
-        "LeanTween",
-        "UniRx",
-        "Unity.Collections",
         "Unity.Burst"
     ],
     "includePlatforms": [],

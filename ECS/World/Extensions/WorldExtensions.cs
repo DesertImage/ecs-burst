@@ -29,7 +29,7 @@ namespace DesertImage.ECS
             return Groups.GetGroup(matcher, world);
         }
 
-        public static World GetWorldWithThisId(this uint id)
+        public static World GetWorldWithThisId(this ushort id)
         {
             return Worlds.Get(id);
         }

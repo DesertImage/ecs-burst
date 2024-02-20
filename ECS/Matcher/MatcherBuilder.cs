@@ -5,17 +5,13 @@ namespace DesertImage.ECS
 {
     public struct MatcherBuilder
     {
-        private static uint _matcherIdCounter;
+        private static ushort _matcherIdCounter;
 
         private UnsafeList<uint> _all;
         private UnsafeList<uint> _none;
         private UnsafeList<uint> _any;
 
-        private int _allCounter;
-        private int _noneCounter;
-        private int _anyCounter;
-
-        private MatcherBuilder(UnsafeList<uint> all, UnsafeList<uint> none, UnsafeList<uint> any) : this()
+        private MatcherBuilder(UnsafeList<uint> all, UnsafeList<uint> none, UnsafeList<uint> any)
         {
             _all = all;
             _none = none;
@@ -36,10 +32,6 @@ namespace DesertImage.ECS
         public Matcher Build()
         {
             var matcher = new Matcher(++_matcherIdCounter, _all, _none, _any);
-
-            // _all.Dispose();
-            // _any.Dispose();
-            // _none.Dispose();
 
             return matcher;
         }

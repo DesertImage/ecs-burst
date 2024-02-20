@@ -6,7 +6,7 @@ namespace DesertImage.ECS
 {
     public unsafe partial struct Worlds
     {
-        private static uint _idCounter;
+        private static byte _idCounter;
 
         private static bool _isInitialized;
 
@@ -17,7 +17,7 @@ namespace DesertImage.ECS
             _idCounter = 0;
 
             WorldsStorage.Worlds.Data = new UnsafeArray<IntPtr>(20, Allocator.Persistent, default);
-            WorldsIds.FreeIds.Data = new UnsafeQueue<uint>(20, Allocator.Persistent);
+            WorldsIds.FreeIds.Data = new UnsafeQueue<byte>(20, Allocator.Persistent);
 
             _isInitialized = true;
         }
@@ -35,15 +35,15 @@ namespace DesertImage.ECS
 
             var world = MemoryUtility.Allocate(new World(id));
 
-            WorldsStorage.Worlds.Data[(int)id] = (IntPtr)world;
+            WorldsStorage.Worlds.Data[id] = (IntPtr)world;
 
             return *world;
         }
 
-        public static World Get(uint id) => *GetPtr(id);
-        internal static World* GetPtr(uint id) => (World*)WorldsStorage.Worlds.Data[(int)id];
+        public static World Get(ushort id) => *GetPtr(id);
+        internal static World* GetPtr(ushort id) => (World*)WorldsStorage.Worlds.Data[id];
 
-        public static void Destroy(uint id)
+        public static void Destroy(byte id)
         {
             if (WorldsCounter.Counter.Data == 0)
             {
@@ -53,8 +53,8 @@ namespace DesertImage.ECS
                 return;
             }
 
-            MemoryUtility.Free((void*)WorldsStorage.Worlds.Data[(int)id]);
-            WorldsStorage.Worlds.Data[(int)id] = IntPtr.Zero;
+            MemoryUtility.Free((void*)WorldsStorage.Worlds.Data[id]);
+            WorldsStorage.Worlds.Data[id] = IntPtr.Zero;
             WorldsIds.FreeIds.Data.Enqueue(id);
 
             WorldsCounter.Counter.Data--;
@@ -64,7 +64,7 @@ namespace DesertImage.ECS
             Dispose();
         }
 
-        private static uint GetNextWorldId() =>
+        private static byte GetNextWorldId() =>
             WorldsIds.FreeIds.Data.Count > 0 ? WorldsIds.FreeIds.Data.Dequeue() : ++_idCounter;
 
         private static void Dispose()

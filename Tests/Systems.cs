@@ -5,7 +5,7 @@ namespace DesertImage.ECS.Tests
     public class Systems
     {
         [Test]
-        public void CheckSystemExecute()
+        public void SystemExecute()
         {
             var world = Worlds.Create();
 

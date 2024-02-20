@@ -28,7 +28,7 @@ namespace DesertImage.Collections
         public int Count { get; private set; }
 
         internal UnsafeArray<int> _buckets;
-        internal UnsafeArray<Entry> _entries;
+        internal UnsafeArray<UnsafeArray<Entry>> _entries;
         internal UnsafeArray<int> _lockIndexes;
 
         private int _entriesCapacity;
@@ -38,7 +38,7 @@ namespace DesertImage.Collections
             _entriesCapacity = 5;
 
             _buckets = new UnsafeArray<int>(capacity, allocator, -1);
-            _entries = new UnsafeArray<Entry>(capacity * _entriesCapacity, allocator, default);
+            _entries = new UnsafeArray<UnsafeArray<Entry>>(capacity * _entriesCapacity, allocator, default);
             _lockIndexes = new UnsafeArray<int>(capacity, allocator, 0);
 
             IsNotNull = true;
@@ -82,7 +82,7 @@ namespace DesertImage.Collections
 
             var hashCode = key.GetHashCode();
             var bucketNumber = GetBucketNumber(hashCode);
-            return GetEntry(bucketNumber, key, hashCode) >= 0;
+            return GetEntry(bucketNumber, hashCode) >= 0;
         }
 
         public bool TryGetValue(TKey key, out TValue value)
@@ -97,9 +97,9 @@ namespace DesertImage.Collections
             var hashCode = key.GetHashCode();
 
             var bucketNumber = GetBucketNumber(hashCode);
-            var entry = GetEntry(bucketNumber, key, hashCode);
+            var entryNumber = GetEntry(bucketNumber, hashCode);
 
-            value = _entries[entry].Value;
+            value = _entries[bucketNumber][entryNumber].Value;
 
             return true;
         }
@@ -109,48 +109,17 @@ namespace DesertImage.Collections
             var hashCode = key.GetHashCode();
 
             var bucketNumber = GetBucketNumber(hashCode);
-            var entryNumber = GetEntry(bucketNumber, key, hashCode);
+            var entryNumber = GetEntry(bucketNumber, hashCode);
 
-            return ref _entries.Get(entryNumber).Value;
+            return ref _entries.Get(bucketNumber).Get(entryNumber).Value;
         }
 
-        public void Resize(int newSize)
+        public void ResizeEntriesCapacity(int newCapacity)
         {
-            var oldSize = _buckets.Length;
-
-            var bucketNew = new UnsafeArray<int>(newSize, Allocator.Persistent, default);
-            var entriesNew = new UnsafeArray<Entry>(newSize * _entriesCapacity, Allocator.Persistent, default);
-            var lockIndexesNew = new UnsafeArray<int>(newSize, Allocator.Persistent, default);
-
-            for (var i = 0; i < oldSize; i++)
-            {
-                var entryNumber = _buckets[i];
-
-                if (entryNumber < 0) continue;
-
-                var entry = _entries[entryNumber];
-
-                var hashCode = entry.HashCode;
-
-                var newBucketNumber = GetBucketNumber(hashCode);
-                var newEntryNumber = GetFreeEntryIndex(newBucketNumber);
-
-                bucketNew[newBucketNumber] = newEntryNumber;
-                lockIndexesNew[newBucketNumber] = _lockIndexes[newBucketNumber];
-                _entries[newEntryNumber] = entry;
-            }
-
-            _buckets.Dispose();
-            _entries.Dispose();
-            _lockIndexes.Dispose();
-
-            _buckets = bucketNew;
-            _entries = entriesNew;
-            _lockIndexes = lockIndexesNew;
-
             for (var i = 0; i < _entries.Length; i++)
             {
-                if (_entries[i].HashCode != 0) return;
+                var bucketEntries = _entries[i];
+                bucketEntries.Resize(newCapacity);
             }
         }
 
@@ -175,7 +144,9 @@ namespace DesertImage.Collections
                 var freeEntryIndex = GetFreeEntryIndex(bucketNumber);
 
                 _buckets[bucketNumber] = freeEntryIndex;
-                _entries[freeEntryIndex] = new Entry
+                
+                ref var entry = ref _entries.Get(bucketNumber).Get(freeEntryIndex);
+                entry = new Entry
                 {
                     HashCode = hashCode,
                     Key = key,
@@ -198,11 +169,11 @@ namespace DesertImage.Collections
 
             _lockIndexes.Get(bucketNumber).Lock();
             {
-                var entryNumber = GetEntry(bucketNumber, key, hashCode);
+                var entryNumber = GetEntry(bucketNumber, hashCode);
 
                 if (entryNumber == -1) throw new NullReferenceException();
 
-                ref var entry = ref _entries.Get(entryNumber);
+                ref var entry = ref _entries.Get(bucketNumber).Get(entryNumber);
                 entry.Value = value;
             }
             _lockIndexes.Get(bucketNumber).Unlock();
@@ -210,38 +181,50 @@ namespace DesertImage.Collections
 
         private int GetFreeEntryIndex(int bucketNumber)
         {
-            var entriesNumber = bucketNumber * _entriesCapacity;
-            var lastBucketEntryNumber = entriesNumber + _entriesCapacity - 1;
-
-            for (var i = entriesNumber; i < lastBucketEntryNumber; i++)
-            {
-                var entry = _entries[i];
-
-                if (entry.HashCode == 0) return i;
-            }
-
-#if DEBUG
-            throw new Exception("no free entries");
-#endif
-            return -1;
+            return GetFreeEntryIndex(bucketNumber, _entriesCapacity);
         }
 
-        private int GetEntry(int bucketNumber, TKey key, int hashCode)
+        private int GetFreeEntryIndex(int bucketNumber, int entriesCapacity)
+        {
+            while (true)
+            {
+                var entriesNumber = bucketNumber * entriesCapacity;
+                var lastBucketEntryNumber = entriesNumber + entriesCapacity - 1;
+
+                for (var i = entriesNumber; i < lastBucketEntryNumber; i++)
+                {
+                    var bucketEntries = _entries[i];
+                    for (var j = 0; j < bucketEntries.Length; j++)
+                    {
+                        if (bucketEntries[j].HashCode == 0) return i;
+                    }
+                }
+
+                ResizeEntriesCapacity(entriesCapacity << 1);
+            }
+        }
+
+        private int GetEntry(int bucketNumber, int hashCode)
         {
             var entriesNumber = bucketNumber * _entriesCapacity;
             var lastBucketEntryNumber = entriesNumber + _entriesCapacity - 1;
 
             for (var i = entriesNumber; i < lastBucketEntryNumber; i++)
             {
-                var entry = _entries[i];
-                if (entry.HashCode == hashCode && key.Equals(entry.Key)) return i;
+                var bucketEntries = _entries[i];
+                foreach (var entry in bucketEntries)
+                {
+                    if (entry.HashCode == hashCode) return i;
+                }
             }
 
             return -1;
         }
 
         private int GetBucketNumber(TKey key) => (key.GetHashCode() & int.MaxValue) % _buckets.Length;
-        private int GetBucketNumber(int hashCode) => (hashCode & int.MaxValue) % _buckets.Length;
+        private int GetBucketNumber(int hashCode) => GetBucketNumber(hashCode, _buckets.Length);
+        private int GetBucketNumber(int hashCode, int bucketLength) => (hashCode & int.MaxValue) % _buckets.Length;
+
 
         public TValue this[TKey key]
         {
@@ -299,13 +282,17 @@ namespace DesertImage.Collections
 
                 for (var i = startIndex; i < _dictionary._entries.Length; i++)
                 {
-                    var entry = _dictionary._entries[i];
+                    var bucketEntries = _dictionary._entries[i];
+                    for (var j = 0; j < bucketEntries.Length; j++)
+                    {
+                        var entry = bucketEntries[j];
 
-                    if (entry.HashCode == 0) continue;
+                        if (entry.HashCode == 0) continue;
 
-                    entryIndex = i;
+                        entryIndex = i;
 
-                    return entry;
+                        return entry;
+                    }
                 }
 
                 return default;

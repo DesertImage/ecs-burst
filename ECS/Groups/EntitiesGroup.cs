@@ -6,11 +6,11 @@ namespace DesertImage.ECS
     [Serializable]
     public struct EntitiesGroup : IDisposable, IEquatable<EntitiesGroup>
     {
-        public readonly uint Id;
+        public readonly ushort Id;
 
         public UnsafeSparseSet<uint> Entities;
 
-        public EntitiesGroup(uint id)
+        public EntitiesGroup(ushort id)
         {
             Id = id;
             Entities = new UnsafeSparseSet<uint>(50, ECSSettings.ComponentsEntitiesCapacity);
@@ -26,6 +26,6 @@ namespace DesertImage.ECS
         public bool Equals(EntitiesGroup other) => Id == other.Id;
         public override bool Equals(object obj) => obj is EntitiesGroup other && Equals(other);
 
-        public override int GetHashCode() => (int)Id;
+        public override int GetHashCode() => Id;
     }
 }

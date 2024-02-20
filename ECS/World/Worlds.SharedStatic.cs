@@ -8,8 +8,8 @@ namespace DesertImage.ECS
     {
         private partial struct WorldsIds
         {
-            public static readonly SharedStatic<UnsafeQueue<uint>> FreeIds =
-                SharedStatic<UnsafeQueue<uint>>.GetOrCreate<WorldsIds>();
+            public static readonly SharedStatic<UnsafeQueue<byte>> FreeIds =
+                SharedStatic<UnsafeQueue<byte>>.GetOrCreate<WorldsIds>();
         }
 
         public struct WorldsStorage

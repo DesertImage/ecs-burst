@@ -15,7 +15,6 @@ namespace DesertImage.Collections
         public int Count { get; private set; }
 
         private UnsafeArray<T> _array;
-
         private int _capacity;
 
         public UnsafeList(int capacity, Allocator allocator) : this()

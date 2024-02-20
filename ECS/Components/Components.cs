@@ -4,7 +4,7 @@ namespace DesertImage.ECS
 {
     public static unsafe class Components
     {
-        public static void Remove<T>(Entity entity, WorldState* state) where T : unmanaged
+        public static void Remove<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
             if (!Has<T>(entity, state))
             {
@@ -18,29 +18,29 @@ namespace DesertImage.ECS
             state->Components.Clear<T>(entity.Id);
         }
 
-        public static void Replace<T>(Entity entity, WorldState* state) where T : unmanaged
+        public static void Replace<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
             Replace(entity, state, new T());
         }
 
-        public static void Replace<T>(Entity entity, WorldState* state, T component) where T : unmanaged
+        public static void Replace<T>(in Entity entity, WorldState* state, T component) where T : unmanaged
         {
             Entities.ThrowIfNotAlive(entity);
             state->Components.Write(entity.Id, component);
         }
 
-        public static bool Has<T>(Entity entity, WorldState* state) where T : unmanaged
+        public static bool Has<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
             Entities.ThrowIfNotAlive(entity);
             return state->Components.Contains<T>(entity.Id);
         }
 
-        public static bool Has(Entity entity, WorldState* state, uint componentId)
+        public static bool Has(in Entity entity, WorldState* state, uint componentId)
         {
             return state->Components.Contains(entity.Id, componentId);
         }
 
-        public static ref T Get<T>(Entity entity, WorldState* state) where T : unmanaged
+        public static ref T Get<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
             Entities.ThrowIfNotAlive(entity);
 
@@ -48,7 +48,7 @@ namespace DesertImage.ECS
             return ref state->Components.Read<T>(componentId, entity.Id);
         }
 
-        public static void ReplaceStatic<T>(Entity entity, WorldState* state, T component) where T : unmanaged
+        public static void ReplaceStatic<T>(in Entity entity, WorldState* state, T component) where T : unmanaged
         {
             Entities.ThrowIfNotAlive(entity);
 
@@ -66,7 +66,7 @@ namespace DesertImage.ECS
             }
         }
 
-        public static ref T GetStatic<T>(Entity entity, WorldState* state) where T : unmanaged
+        public static ref T GetStatic<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
             Entities.ThrowIfNotAlive(entity);
 
@@ -74,7 +74,7 @@ namespace DesertImage.ECS
             return ref *(T*)state->StaticComponents[componentId];
         }
 
-        public static void OnEntityDestroyed(Entity entity, WorldState* state)
+        public static void OnEntityDestroyed(in Entity entity, WorldState* state)
         {
             state->Components.ClearEntityComponents(entity.Id);
         }

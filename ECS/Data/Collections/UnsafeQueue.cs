@@ -9,7 +9,6 @@ namespace DesertImage.Collections
         public int Count { get; private set; }
 
         private UnsafeArray<T> _data;
-
         private int _lockIndex;
 
         public UnsafeQueue(int capacity, Allocator allocator) : this()

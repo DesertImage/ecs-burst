@@ -21,7 +21,7 @@ namespace DesertImage.ECS
             IsNotNull = true;
         }
 
-        public T Get<T>(ref uint id, Object obj) where T : Object
+        public readonly T Get<T>(ref uint id, Object obj) where T : Object
         {
             if (id != 0) return (T)_objects[id - 1];
 

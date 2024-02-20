@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public unsafe class EntityWrapper : MonoBehaviour, IPoolable
+    public unsafe class EntityWrapper : MonoBehaviour
     {
         public Entity Entity { get; private set; }
 

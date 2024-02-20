@@ -5,14 +5,14 @@ namespace DesertImage.ECS
 {
     public unsafe struct World
     {
-        public uint Id;
+        public byte Id;
 
         [NativeDisableUnsafePtrRestriction] public readonly WorldState* State;
         [NativeDisableUnsafePtrRestriction] public readonly SystemsState* SystemsState;
 
         private static uint _entityIdCounter;
 
-        public World(uint id)
+        public World(byte id)
         {
             Id = id;
 

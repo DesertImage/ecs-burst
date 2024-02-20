@@ -3,11 +3,13 @@ using System.Reflection;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
+using UnityEngine;
 
 namespace DesertImage.ECS
 {
     public static unsafe class Systems
     {
+        [BurstCompile]
         private struct ExecuteSystemJob : IJob
         {
             public ExecuteSystemData SystemData;
@@ -38,12 +40,12 @@ namespace DesertImage.ECS
                 return;
             }
 
-            var isAwake = typeof(IAwake).IsAssignableFrom(systemType);
-            if (isAwake)
+            var isInit = typeof(IInitSystem).IsAssignableFrom(systemType);
+            if (isInit)
             {
                 var methodInfo = typeof(Systems).GetMethod
                 (
-                    nameof(AddAwake),
+                    nameof(AddInit),
                     BindingFlags.Static | BindingFlags.NonPublic
                 );
 
@@ -60,10 +62,10 @@ namespace DesertImage.ECS
             {
                 var wrapper = new ExecuteSystemWrapper
                 {
-                    Value = MemoryTools.Allocate(default(T)),
+                    Value = MemoryUtility.Allocate(default(T)),
                 };
 
-                var wrapperPtr = (ExecuteSystemWrapper*)MemoryTools.Allocate(wrapper);
+                var wrapperPtr = MemoryUtility.Allocate(wrapper);
 
                 var methodInfo = typeof(Systems).GetMethod
                 (
@@ -136,7 +138,7 @@ namespace DesertImage.ECS
             systemsState->Handle.Complete();
         }
 
-        private static void AddAwake<T>(T instance) where T : unmanaged, IAwake => instance.OnAwake();
+        private static void AddInit<T>(T instance) where T : unmanaged, IInitSystem => instance.Initialize();
 
         private static void AddExecute<T>(IntPtr statePtr, IntPtr wrapperPtr) where T : unmanaged, IExecuteSystem
         {

@@ -7,16 +7,10 @@ namespace DesertImage.ECS
 {
     public unsafe struct ComponentStorage : IDisposable
     {
-        private struct ComponentData<T>
-        {
-            public T Data;
-            public bool IsNotNull;
-        }
-
         private byte* _data;
         private UnsafeArray<int> _offsets;
         private UnsafeArray<int> _sizes;
-        private Collections.UnsafeHashSet<uint> _hashes;
+        private UnsafeHashSet<uint> _hashes;
         private UnsafeArray<UnsafeArray<bool>> _entityComponents;
         private UnsafeArray<int> _lockIndexes;
 
@@ -31,7 +25,6 @@ namespace DesertImage.ECS
         {
             _allocator = Allocator.Persistent;
 
-            // var size = UnsafeUtility.SizeOf<ComponentData<>>()
             //TODO: fix size
             _data = (byte*)UnsafeUtility.Malloc(componentsCapacity, 0, _allocator);
             UnsafeUtility.MemClear(_data, componentsCapacity);
@@ -112,7 +105,7 @@ namespace DesertImage.ECS
 
         public void Clear<T>(uint entityId) where T : unmanaged => Clear(entityId, ComponentTools.GetComponentId<T>());
 
-        public void Clear(uint entityId, uint componentId)
+        private void Clear(uint entityId, uint componentId)
         {
             var componentIndex = (int)componentId;
 
