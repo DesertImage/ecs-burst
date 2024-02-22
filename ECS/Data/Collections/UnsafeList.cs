@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using DesertImage.ECS;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.Collections
 {
@@ -10,22 +12,30 @@ namespace DesertImage.Collections
     [DebuggerTypeProxy(typeof(UnsafeListDebugView<>))]
     public unsafe struct UnsafeList<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
-        public bool IsNull => _array.IsNull;
+        public bool IsNotNull { get; private set; }
 
         public int Count { get; private set; }
 
-        private UnsafeArray<T> _array;
+        private T* _data;
         private int _capacity;
+        private long _size;
+        private Allocator _allocator;
 
-        public UnsafeList(int capacity, Allocator allocator) : this()
+        public UnsafeList(int capacity, Allocator allocator)
         {
-            _array = new UnsafeArray<T>(capacity, allocator);
+            _size = capacity * UnsafeUtility.SizeOf<T>();
+
+            _data = MemoryUtility.AllocateClear<T>(_size, allocator);
             _capacity = capacity;
+
+            IsNotNull = true;
+            Count = 0;
+            _allocator = allocator;
         }
 
         public UnsafeList(int capacity, Allocator allocator, T defaultValue) : this()
         {
-            _array = new UnsafeArray<T>(capacity, allocator, defaultValue);
+            _data = MemoryUtility.AllocateClear(capacity * UnsafeUtility.SizeOf<T>(), defaultValue, allocator);
             _capacity = capacity;
         }
 
@@ -33,12 +43,13 @@ namespace DesertImage.Collections
         {
             if (Count >= _capacity)
             {
+                var oldCapacity = _capacity;
                 _capacity <<= 1;
-
-                _array.Resize(_capacity);
+                _size = _capacity * UnsafeUtility.SizeOf<T>();
+                MemoryUtility.Resize(ref _data, oldCapacity, _capacity, _allocator);
             }
 
-            _array[Count] = element;
+            _data[Count] = element;
 
             Count++;
         }
@@ -58,21 +69,21 @@ namespace DesertImage.Collections
 
         public void RemoveAt(int index)
         {
-            _array[index] = default;
-            _array.ShiftLeft(index);
+            _data[index] = default;
+            MemoryUtility.ShiftLeft(ref _data, index, _capacity);
         }
 
         public void Clear()
         {
-            _array.Clear();
+            MemoryUtility.Clear(ref _data, _capacity);
             Count = 0;
         }
 
         public bool Contains(T element)
         {
-            for (var i = 0; i < _array.Length; i++)
+            for (var i = 0; i < _capacity; i++)
             {
-                if (element.Equals(_array[i])) return true;
+                if (element.Equals(_data[i])) return true;
             }
 
             return false;
@@ -80,18 +91,28 @@ namespace DesertImage.Collections
 
         public int IndexOf(T element)
         {
-            for (var i = 0; i < _array.Length; i++)
+            for (var i = 0; i < _capacity; i++)
             {
-                if (element.Equals(_array[i])) return i;
+                if (element.Equals(_data[i])) return i;
             }
 
             return -1;
         }
 
-        public ref T GetByRef(int index) => ref _array.Get(index);
+        public ref T GetByRef(int index) => ref _data[index];
 
-        public T[] ToArray() => _array.ToArray();
-        
+        public T[] ToArray()
+        {
+            var array = new T[_capacity];
+
+            for (var i = 0; i < _capacity; i++)
+            {
+                array[i] = _data[i];
+            }
+
+            return array;
+        }
+
         public struct Enumerator : IEnumerator<T>
         {
             object IEnumerator.Current => Current;
@@ -126,12 +147,12 @@ namespace DesertImage.Collections
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 
-        public readonly void Dispose() => _array.Dispose();
+        public readonly void Dispose() => MemoryUtility.Free(_data, _allocator);
 
         public T this[int index]
         {
-            get => _array[index];
-            set => _array[index] = value;
+            get => _data[index];
+            set => _data[index] = value;
         }
     }
 

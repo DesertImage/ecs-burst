@@ -11,7 +11,6 @@ namespace DesertImage.ECS
             var id = pool.Count > 0 ? pool.Dequeue() : ++state->EntityIdCounter;
 
             state->AliveEntities.Add((int)id, id);
-
             Groups.OnEntityCreated(id, state);
 
             return new Entity(id, world.Id);
@@ -22,9 +21,6 @@ namespace DesertImage.ECS
             ThrowIfNotAlive(entity);
 
             var entityId = entity.Id;
-
-            // state->AliveEntities.Get((int)entity.Id)
-            // entity.IsAliveFlag = 0;
 
             Groups.OnEntityDestroyed(entityId, state);
             Components.OnEntityDestroyed(entity, state);

@@ -1,9 +1,9 @@
 using NUnit.Framework;
 using UnityEngine;
 
-namespace DesertImage.ECS.Tests
+namespace DesertImage.ECS
 {
-    public class ObjectReference
+    public class ObjectReferenceTests
     {
         [Test]
         public void AssignAndNull()
@@ -39,30 +39,30 @@ namespace DesertImage.ECS.Tests
             Assert.IsTrue(thirdResult);
         }
 
-        // [Test]
-        // public void UpdateFromSystem()
-        // {
-        //     var world = Worlds.Create();
-        //
-        //     world.Add<TestObjectReferenceSystem>();
-        //
-        //     var obj = new GameObject();
-        //     var rigidbody = obj.AddComponent<Rigidbody>();
-        //
-        //     var entity = world.GetNewEntity();
-        //     entity.Replace(new TestReferenceComponent { Rigidbody = rigidbody });
-        //
-        //     var firstResult = entity.Get<TestReferenceComponent>().Rigidbody.Value.mass;
-        //     
-        //     world.Tick(.1f);
-        //     
-        //     var secondResult = entity.Get<TestReferenceComponent>().Rigidbody.Value.mass;
-        //
-        //     Object.DestroyImmediate(obj);
-        //     world.Dispose();
-        //
-        //     Assert.AreEqual(1, firstResult);
-        //     Assert.AreEqual(1234, secondResult);
-        // }
+        [Test]
+        public void UpdateFromSystem()
+        {
+            var world = Worlds.Create();
+
+            world.Add<TestObjectReferenceSystem>(ExecutionType.EarlyMainThread);
+
+            var obj = new GameObject();
+            var rigidbody = obj.AddComponent<Rigidbody>();
+
+            var entity = world.GetNewEntity();
+            entity.Replace(new TestReferenceComponent { Rigidbody = rigidbody });
+
+            var firstResult = entity.Get<TestReferenceComponent>().Rigidbody.Value.mass;
+
+            world.Tick(.1f);
+
+            var secondResult = entity.Get<TestReferenceComponent>().Rigidbody.Value.mass;
+
+            Object.DestroyImmediate(obj);
+            world.Dispose();
+
+            Assert.AreEqual(1, firstResult);
+            Assert.AreEqual(1234, secondResult);
+        }
     }
 }

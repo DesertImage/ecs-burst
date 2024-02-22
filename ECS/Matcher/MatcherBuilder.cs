@@ -23,9 +23,9 @@ namespace DesertImage.ECS
             //TODO:pool lists
             return new MatcherBuilder
             (
-                new UnsafeList<uint>(10, Allocator.Persistent, default),
-                new UnsafeList<uint>(10, Allocator.Persistent, default),
-                new UnsafeList<uint>(10, Allocator.Persistent, default)
+                new UnsafeList<uint>(10, Allocator.Persistent),
+                new UnsafeList<uint>(10, Allocator.Persistent),
+                new UnsafeList<uint>(10, Allocator.Persistent)
             );
         }
 

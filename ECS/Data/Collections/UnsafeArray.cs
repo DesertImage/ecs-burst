@@ -15,7 +15,7 @@ namespace DesertImage.Collections
 
         public int Length { get; private set; }
 
-        [NativeDisableUnsafePtrRestriction] internal void* Data;
+        [NativeDisableUnsafePtrRestriction] internal T* Data;
 
         private readonly long _elementSize;
         private readonly Allocator _allocator;
@@ -25,9 +25,24 @@ namespace DesertImage.Collections
             Length = length;
 
             _elementSize = UnsafeUtility.SizeOf<T>();
-            Data = UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
+            Data = (T*)UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
 
             _allocator = allocator;
+        }
+
+        public UnsafeArray(int length, bool clearMemory, Allocator allocator) : this()
+        {
+            Length = length;
+
+            _elementSize = UnsafeUtility.SizeOf<T>();
+            var fullSize = length * _elementSize;
+
+            Data = (T*)UnsafeUtility.Malloc(fullSize, 0, allocator);
+            _allocator = allocator;
+
+            if (!clearMemory) return;
+
+            UnsafeUtility.MemClear(Data, fullSize);
         }
 
         public UnsafeArray(int length, Allocator allocator, T defaultValue) : this()
@@ -35,24 +50,28 @@ namespace DesertImage.Collections
             Length = length;
 
             _elementSize = UnsafeUtility.SizeOf<T>();
-            Data = UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
+            Data = (T*)UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
             _allocator = allocator;
 
             for (var i = 0; i < length; i++)
             {
-                UnsafeUtility.CopyStructureToPtr(ref defaultValue, GetIndexPointer(i));
+                Data[i] = defaultValue;
             }
         }
 
-        public readonly void Dispose() => UnsafeUtility.Free(Data, _allocator);
-
-        public UnsafeArray<T> Resize(int length)
+        public UnsafeArray<T> Resize(int length, bool clear = true)
         {
 #if DEBUG
             if (length < Length) throw new Exception("new length is less then original");
 #endif
             var oldData = Data;
-            Data = (byte*)UnsafeUtility.Malloc(length * _elementSize, 0, _allocator);
+            var fullSize = length * _elementSize;
+            Data = (T*)UnsafeUtility.Malloc(fullSize, 0, _allocator);
+
+            if (clear)
+            {
+                UnsafeUtility.MemClear(Data, fullSize);
+            }
 
             UnsafeUtility.MemCpy(Data, oldData, Length * _elementSize);
             UnsafeUtility.Free(oldData, _allocator);
@@ -64,7 +83,7 @@ namespace DesertImage.Collections
 
         public UnsafeArray<T> ResizeToNew(int newSize)
         {
-            var target = new UnsafeArray<T>(newSize, _allocator);
+            var target = new UnsafeArray<T>(newSize, true, _allocator);
             CopyTo(target);
             return target;
         }
@@ -79,6 +98,8 @@ namespace DesertImage.Collections
             UnsafeUtility.MemCpy(target.Data, Data, Length * _elementSize);
         }
 
+        public readonly void Dispose() => UnsafeUtility.Free(Data, _allocator);
+
         public T[] ToArray()
         {
             var array = new T[Length];
@@ -91,18 +112,13 @@ namespace DesertImage.Collections
             return array;
         }
 
-        private readonly void* GetIndexPointer(int index) => (void*)((IntPtr)Data + (int)(_elementSize * index));
-
         public T this[int index]
         {
-            get => *(T*)GetIndexPointer(index);
-            set => UnsafeUtility.CopyStructureToPtr(ref value, GetIndexPointer(index));
+            get => Data[index];
+            set => Data[index] = value;
         }
 
-        public readonly void Set(int index, T value) =>
-            UnsafeUtility.CopyStructureToPtr(ref value, GetIndexPointer(index));
-
-        public readonly ref T Get(int index) => ref *(T*)GetIndexPointer(index);
+        public readonly ref T Get(int index) => ref Data[index];
 
         public struct Enumerator : IEnumerator<T>
         {

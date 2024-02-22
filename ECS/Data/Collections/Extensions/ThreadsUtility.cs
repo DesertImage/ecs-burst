@@ -1,5 +1,4 @@
 using System.Threading;
-using UnityEngine;
 
 namespace DesertImage.ECS
 {
@@ -15,9 +14,9 @@ namespace DesertImage.ECS
                 Unity.Burst.Intrinsics.Common.Pause();
 #if DEBUG
                 triesCount++;
-                if (triesCount >= 10000000000)
+                if (triesCount >= 1000000000)
                 {
-                    Debug.LogError($"Infinite lock");
+                    // Debug.LogError($"Infinite lock");
                     break;
                 }
 #endif
@@ -38,9 +37,9 @@ namespace DesertImage.ECS
                 Unity.Burst.Intrinsics.Common.Pause();
 #if DEBUG
                 triesCount++;
-                if (triesCount >= 10000000000)
+                if (triesCount >= 1000000000)
                 {
-                    Debug.LogError($"Infinite unlock");
+                    // Debug.LogError($"Infinite unlock");
                     break;
                 }
 #endif

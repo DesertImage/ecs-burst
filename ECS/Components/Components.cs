@@ -1,4 +1,5 @@
 using System;
+using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.ECS
 {
@@ -54,14 +55,14 @@ namespace DesertImage.ECS
 
             var componentId = ComponentTools.GetComponentId<T>();
 
-            var componentPTr = (IntPtr)MemoryUtility.Allocate(component);
-
             if (state->StaticComponents.Contains(componentId))
             {
-                state->StaticComponents[componentId] = componentPTr;
+                var ptr = state->StaticComponents[componentId];
+                UnsafeUtility.CopyStructureToPtr(ref component, (void*)ptr);
             }
             else
             {
+                var componentPTr = (IntPtr)MemoryUtility.Allocate(component);
                 state->StaticComponents.Add(componentId, componentPTr);
             }
         }

@@ -2,7 +2,7 @@ using NUnit.Framework;
 
 namespace DesertImage.ECS.Tests
 {
-    public class Systems
+    public class SystemsTests
     {
         [Test]
         public void SystemExecute()

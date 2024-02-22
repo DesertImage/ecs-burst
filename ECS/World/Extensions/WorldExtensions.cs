@@ -7,7 +7,11 @@ namespace DesertImage.ECS
             return Entities.GetNew(world);
         }
 
-        public static void Add<T>(this World world) where T : unmanaged, ISystem => Systems.Add<T>(world.SystemsState);
+        public static void Add<T>(this World world, ExecutionType type = ExecutionType.MultiThread)
+            where T : unmanaged, ISystem
+        {
+            Systems.Add<T>(world.SystemsState, type);
+        }
 
         public static void Remove<T>(this World world) where T : unmanaged, ISystem
         {

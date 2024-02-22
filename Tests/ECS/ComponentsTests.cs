@@ -1,11 +1,11 @@
 using NUnit.Framework;
 
-namespace DesertImage.ECS.Tests
+namespace DesertImage.ECS
 {
-    public class Components
+    public class ComponentsTests
     {
         [Test]
-        public void CheckAddRemove()
+        public void AddRemove()
         {
             var world = Worlds.Create();
 
@@ -29,7 +29,7 @@ namespace DesertImage.ECS.Tests
         }
 
         [Test]
-        public void CheckChangeValue()
+        public void ChangeValue()
         {
             var world = Worlds.Create();
 
@@ -56,7 +56,7 @@ namespace DesertImage.ECS.Tests
         }
 
         [Test]
-        public void CheckComponentsAfterPool()
+        public void ComponentsAfterPool()
         {
             var world = Worlds.Create();
 
@@ -76,7 +76,7 @@ namespace DesertImage.ECS.Tests
         }
 
         [Test]
-        public void CheckStatic()
+        public void Static()
         {
             var world = Worlds.Create();
 
@@ -99,10 +99,18 @@ namespace DesertImage.ECS.Tests
 
             var secondResult = firstValue == secondValue;
 
+            firstEntity.ReplaceStatic(new TestStaticValueComponent { Value = 10 });
+
+            firstValue = firstEntity.GetStatic<TestStaticValueComponent>().Value;
+            secondValue = secondEntity.GetStatic<TestStaticValueComponent>().Value;
+            
+            var thirdResult = firstValue == secondValue;
+
             world.Dispose();
 
             Assert.IsTrue(firstResult);
             Assert.IsTrue(secondResult);
+            Assert.IsTrue(thirdResult);
         }
     }
 }

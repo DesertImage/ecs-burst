@@ -14,15 +14,17 @@ namespace DesertImage.ECS
         public UnsafeDictionary<uint, IntPtr> StaticComponents;
 
         public ushort GroupIdCounter;
-        public UnsafeDictionary<ushort, EntitiesGroup> Groups;
-        public UnsafeDictionary<ushort, Matcher> Matchers;
+        public UnsafeUshortSparseSet<EntitiesGroup> Groups;
+        public UnsafeUshortSparseSet<Matcher> Matchers;
         public UnsafeDictionary<ushort, ushort> MatcherToGroup;
-        public UnsafeDictionary<ushort, ushort> GroupToMatcher;
-        public UnsafeDictionary<uint, UnsafeList<ushort>> EntityToGroups;
-        public UnsafeDictionary<uint, UnsafeList<ushort>> ComponentToGroups;
+        public UnsafeUshortSparseSet<ushort> GroupToMatcher;
+        public UnsafeUintSparseSet<UnsafeList<ushort>> EntityToGroups;
+        public UnsafeUintSparseSet<UnsafeList<ushort>> ComponentToGroups;
 
         public WorldState(int componentsCapacity, int entitiesCapacity)
         {
+            const int groupsCapacity = 20;
+
             EntityIdCounter = 0;
             AliveEntities = new UnsafeSparseSet<uint>(entitiesCapacity);
             EntitiesPool = new UnsafeQueue<uint>(100, Allocator.Persistent);
@@ -31,15 +33,15 @@ namespace DesertImage.ECS
             StaticComponents = new UnsafeDictionary<uint, IntPtr>(20, Allocator.Persistent);
 
             GroupIdCounter = 0;
-            Groups = new UnsafeDictionary<ushort, EntitiesGroup>(20, Allocator.Persistent);
+            Groups = new UnsafeUshortSparseSet<EntitiesGroup>(groupsCapacity);
 
-            Matchers = new UnsafeDictionary<ushort, Matcher>(20, Allocator.Persistent);
+            Matchers = new UnsafeUshortSparseSet<Matcher>(groupsCapacity);
 
-            MatcherToGroup = new UnsafeDictionary<ushort, ushort>(20, Allocator.Persistent);
-            GroupToMatcher = new UnsafeDictionary<ushort, ushort>(20, Allocator.Persistent);
+            MatcherToGroup = new UnsafeDictionary<ushort, ushort>(groupsCapacity, Allocator.Persistent);
+            GroupToMatcher = new UnsafeUshortSparseSet<ushort>(groupsCapacity);
 
-            EntityToGroups = new UnsafeDictionary<uint, UnsafeList<ushort>>(entitiesCapacity, Allocator.Persistent);
-            ComponentToGroups = new UnsafeDictionary<uint, UnsafeList<ushort>>(20, Allocator.Persistent);
+            EntityToGroups = new UnsafeUintSparseSet<UnsafeList<ushort>>(entitiesCapacity);
+            ComponentToGroups = new UnsafeUintSparseSet<UnsafeList<ushort>>(componentsCapacity);
         }
 
         public unsafe void Dispose()
@@ -52,25 +54,28 @@ namespace DesertImage.ECS
             MatcherToGroup.Dispose();
             GroupToMatcher.Dispose();
 
-            foreach (var pair in Groups)
+            foreach (var value in Groups)
             {
-                pair.Value.Dispose();
+                value.Dispose();
             }
 
             Groups.Dispose();
 
-            foreach (var pair in EntityToGroups)
+            foreach (var value in EntityToGroups)
             {
-                pair.Value.Dispose();
+                value.Dispose();
             }
+
             EntityToGroups.Dispose();
 
             Components.Dispose();
 
             foreach (var pair in StaticComponents)
             {
+                if (pair.Key == 0) continue;
                 MemoryUtility.Free((void*)pair.Value);
             }
+
             StaticComponents.Dispose();
         }
     }

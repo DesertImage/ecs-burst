@@ -4,10 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "ecs",
-        "desertimage.events",
-        "Unity.Collections",
-        "DesertImage.ECS"
+        "DesertImage.ECS",
+        "Unity.Collections"
     ],
     "includePlatforms": [
         "Editor"

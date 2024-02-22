@@ -6,7 +6,9 @@ namespace DesertImage.ECS
 {
     public struct SystemsState : IDisposable
     {
-        public UnsafeList<ExecuteSystemData> ExecuteSystems;
+        public UnsafeList<ExecuteSystemData> EarlyMainThreadSystems;
+        public UnsafeList<ExecuteSystemData> LateMainThreadSystems;
+        public UnsafeList<ExecuteSystemData> MultiThreadSystems;
         public UnsafeHashSet<uint> SystemsHash;
 
         public float DeltaTime;
@@ -15,7 +17,10 @@ namespace DesertImage.ECS
 
         public void Dispose()
         {
-            ExecuteSystems.Dispose();
+            EarlyMainThreadSystems.Dispose();
+            LateMainThreadSystems.Dispose();
+            MultiThreadSystems.Dispose();
+
             SystemsHash.Dispose();
         }
     }

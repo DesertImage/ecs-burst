@@ -1,3 +1,4 @@
+using System;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
@@ -10,15 +11,12 @@ namespace DesertImage.ECS
             public static int Size;
         }
 
-        public static ref T Read<T>(byte* data, int offset, uint index) where T : unmanaged
+        public static void ShiftLeft<T>(ref T* array, int startIndex, int length) where T : unmanaged
         {
-            return ref Read<T>(data, offset, index, UnsafeUtility.SizeOf<T>());
-        }
-
-        public static ref T Read<T>(byte* data, int offset, uint index, long elementSize) where T : unmanaged
-        {
-            var indexOffset = index * elementSize;
-            return ref *(T*)(data + offset + indexOffset);
+            for (var i = startIndex; i < length - 1; i++)
+            {
+                array[i] = array[i + 1];
+            }
         }
 
         public static bool IsNull(byte* data, int offset, uint index, long elementSize)
@@ -27,74 +25,84 @@ namespace DesertImage.ECS
             return data + offset + indexOffset == null;
         }
 
-        public static ref T Read<T>(T* data, uint index) where T : unmanaged
-        {
-            var indexOffset = index * UnsafeUtility.SizeOf<T>();
-            return ref *(data + indexOffset);
-        }
-
-        public static ref T Read<T>(T* data, uint index, long elementSize) where T : unmanaged
-        {
-            var indexOffset = index * elementSize;
-            return ref *(data + indexOffset);
-        }
-
-        public static void Write<T>(byte* data, int offset, uint index, T instance) where T : struct
-        {
-            Write(data, offset, index, instance, UnsafeUtility.SizeOf<T>());
-        }
-
-        public static void Write<T>(byte* data, int offset, uint index, T instance, long elementSize)
-            where T : struct
-        {
-            var indexOffset = index * elementSize;
-            UnsafeUtility.CopyStructureToPtr(ref instance, data + offset + indexOffset);
-        }
-
-        public static void Write<T>(T* data, int offset, uint index, T instance, long elementSize)
-            where T : unmanaged
-        {
-            var indexOffset = index * elementSize;
-            UnsafeUtility.CopyStructureToPtr(ref instance, data + offset + indexOffset);
-        }
-
-        public static void Write<T>(T* data, uint index, T value) where T : unmanaged
-        {
-            Write(data, index, value, UnsafeUtility.SizeOf<T>());
-        }
-
-        public static void Write<T>(T* data, uint index, T value, long elementSize) where T : unmanaged
-        {
-            var indexOffset = index * elementSize;
-            UnsafeUtility.CopyStructureToPtr(ref value, data + indexOffset);
-        }
-
-        public static int GetSize<T>() where T : struct
-        {
-            return UnsafeUtility.SizeOf<T>();
-
-            var size = MemoryCache<T>.Size;
-
-            if (size > 0) return size;
-
-            size = UnsafeUtility.SizeOf<T>();
-
-            MemoryCache<T>.Size = size;
-
-            return size;
-        }
-
         public static T* Allocate<T>() where T : unmanaged
         {
-            return (T*)UnsafeUtility.Malloc(GetSize<T>(), 0, Allocator.Persistent);
+            return (T*)UnsafeUtility.Malloc(SizeOf<T>(), 0, Allocator.Persistent);
+        }
+
+        public static T* AllocateClear<T>(long size, Allocator allocator = Allocator.Persistent) where T : unmanaged
+        {
+            var ptr = (T*)UnsafeUtility.Malloc(size, 0, allocator);
+            UnsafeUtility.MemClear(ptr, size);
+            return ptr;
+        }
+
+        public static T* AllocateClear<T>(long size, T defaultValue, Allocator allocator = Allocator.Persistent)
+            where T : unmanaged
+        {
+            var ptr = (T*)UnsafeUtility.Malloc(size, 0, allocator);
+            UnsafeUtility.MemClear(ptr, size);
+
+            var length = size / SizeOf<T>();
+
+            for (var i = 0; i < length; i++)
+            {
+                ptr[i] = defaultValue;
+            }
+
+            return ptr;
         }
 
         public static T* Allocate<T>(T instance) where T : unmanaged
         {
-            var ptr = (T*)UnsafeUtility.Malloc(GetSize<T>(), 0, Allocator.Persistent);
+            var ptr = (T*)UnsafeUtility.Malloc(SizeOf<T>(), 0, Allocator.Persistent);
             *ptr = instance;
             return ptr;
+
+            unsafe
+            {
+                int number = 27;
+                int* pointerToNumber = &number;
+
+                Console.WriteLine($"Value of the variable: {number}");
+                Console.WriteLine($"Address of the variable: {(long)pointerToNumber:X}");
+            }
         }
+
+        public static T* Resize<T>(ref T* ptr, int oldCapacity, int newCapacity, T defaultValue,
+            Allocator allocator = Allocator.Persistent) where T : unmanaged
+        {
+            Resize(ref ptr, oldCapacity, newCapacity, allocator);
+
+            for (var i = oldCapacity; i < newCapacity; i++)
+            {
+                ptr[i] = defaultValue;
+            }
+            
+            return ptr;
+        }
+        
+        public static T* Resize<T>(ref T* ptr, int oldCapacity, int newCapacity,
+            Allocator allocator = Allocator.Persistent) where T : unmanaged
+        {
+            var oldPtr = ptr;
+
+            var elementSize = UnsafeUtility.SizeOf<T>();
+            var oldSize = oldCapacity * elementSize;
+            var newSize = newCapacity * elementSize;
+
+            ptr = (T*)UnsafeUtility.Malloc(newSize, 0, allocator);
+
+            UnsafeUtility.MemClear(ptr, newSize);
+            UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);
+            UnsafeUtility.Free(oldPtr, allocator);
+
+            return ptr;
+        }
+
+        public static long SizeOf<T>() where T : unmanaged => UnsafeUtility.SizeOf<T>();
+
+        public static void Clear<T>(ref T* ptr, long size) where T : unmanaged => UnsafeUtility.MemClear(ptr, size);
 
         public static void Free<T>(T* ptr, Allocator allocator = Allocator.Persistent) where T : unmanaged
         {
@@ -104,6 +112,17 @@ namespace DesertImage.ECS
         public static void Free(void* ptr, Allocator allocator = Allocator.Persistent)
         {
             UnsafeUtility.Free(ptr, allocator);
+        }
+
+        public static T[] ToArray<T>(T* ptr, int capacity) where T : unmanaged
+        {
+            var array = new T[capacity];
+            for (var i = 0; i < capacity; i++)
+            {
+                array[i] = ptr[i];
+            }
+
+            return array;
         }
     }
 }

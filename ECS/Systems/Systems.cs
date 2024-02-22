@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using DesertImage.Collections;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
@@ -28,7 +29,7 @@ namespace DesertImage.ECS
             }
         }
 
-        public static void Add<T>(SystemsState* state) where T : unmanaged, ISystem
+        public static void Add<T>(SystemsState* state, ExecutionType type) where T : unmanaged, ISystem
         {
             var systemType = typeof(T);
 
@@ -75,10 +76,11 @@ namespace DesertImage.ECS
 
                 var gMethod = methodInfo.MakeGenericMethod(systemType);
 
-                var targetDelegate = Delegate.CreateDelegate(typeof(Action<IntPtr, IntPtr>), default, gMethod);
-                var converted = (Action<IntPtr, IntPtr>)targetDelegate;
+                var targetDelegate =
+                    Delegate.CreateDelegate(typeof(Action<IntPtr, IntPtr, ExecutionType>), default, gMethod);
+                var converted = (Action<IntPtr, IntPtr, ExecutionType>)targetDelegate;
 
-                converted.Invoke((IntPtr)state, (IntPtr)wrapperPtr);
+                converted.Invoke((IntPtr)state, (IntPtr)wrapperPtr, type);
             }
 
             state->SystemsHash.Add(SystemsTools.GetId<T>());
@@ -96,13 +98,13 @@ namespace DesertImage.ECS
 
             var systemId = SystemsTools.GetId<T>();
 
-            for (var i = 0; i < state->ExecuteSystems.Count; i++)
+            for (var i = 0; i < state->MultiThreadSystems.Count; i++)
             {
-                var systemData = state->ExecuteSystems[i];
+                var systemData = state->MultiThreadSystems[i];
 
                 if (systemData.Id != systemId) continue;
 
-                state->ExecuteSystems.RemoveAt(i);
+                state->MultiThreadSystems.RemoveAt(i);
                 break;
             }
 
@@ -117,14 +119,38 @@ namespace DesertImage.ECS
 
         public static void Execute(World* world, float deltaTime)
         {
+            ExecuteMainThread(ref world->SystemsState->EarlyMainThreadSystems, world, deltaTime);
+            ExecuteMultiThread(ref world->SystemsState->MultiThreadSystems, world, deltaTime);
+            ExecuteMainThread(ref world->SystemsState->LateMainThreadSystems, world, deltaTime);
+
+        }
+
+        private static void ExecuteMainThread(ref UnsafeList<ExecuteSystemData> systems, World* world, float deltaTime)
+        {
+            for (var i = 0; i < systems.Count; i++)
+            {
+                var systemData = systems[i];
+
+                var wrapper = systemData.Wrapper;
+                var functionPointer = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
+
+                var group = Groups.GetGroup(systemData.Wrapper->Matcher, *world);
+                foreach (var entityId in group.Entities)
+                {
+                    functionPointer.Invoke(wrapper, entityId, world, deltaTime);
+                }
+            }
+        }
+        
+        public static void ExecuteMultiThread(ref UnsafeList<ExecuteSystemData> systems, World* world, float deltaTime)
+        {
             var systemsState = world->SystemsState;
-            var executeSystems = systemsState->ExecuteSystems;
 
             systemsState->DeltaTime = deltaTime;
 
-            for (var i = 0; i < executeSystems.Count; i++)
+            for (var i = 0; i < systems.Count; i++)
             {
-                var systemData = executeSystems[i];
+                var systemData = systems[i];
 
                 var executeJob = new ExecuteSystemJob
                 {
@@ -140,21 +166,33 @@ namespace DesertImage.ECS
 
         private static void AddInit<T>(T instance) where T : unmanaged, IInitSystem => instance.Initialize();
 
-        private static void AddExecute<T>(IntPtr statePtr, IntPtr wrapperPtr) where T : unmanaged, IExecuteSystem
+        private static void AddExecute<T>(IntPtr statePtr, IntPtr wrapperPtr, ExecutionType type)
+            where T : unmanaged, IExecuteSystem
         {
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
             wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
             wrapper->Matcher = (*(T*)wrapperPtr).Matcher;
 
             var state = (SystemsState*)statePtr;
-            state->ExecuteSystems.Add
-            (
-                new ExecuteSystemData
-                {
-                    Id = SystemsTools.GetId<T>(),
-                    Wrapper = wrapper
-                }
-            );
+
+            var data = new ExecuteSystemData
+            {
+                Id = SystemsTools.GetId<T>(),
+                Wrapper = wrapper
+            };
+
+            switch (type)
+            {
+                case ExecutionType.EarlyMainThread:
+                    state->EarlyMainThreadSystems.Add(data);
+                    break;
+                case ExecutionType.LateMainThread:
+                    state->LateMainThreadSystems.Add(data);
+                    break;
+                default:
+                    state->MultiThreadSystems.Add(data);
+                    break;
+            }
         }
     }
 }

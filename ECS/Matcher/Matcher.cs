@@ -6,6 +6,8 @@ namespace DesertImage.ECS
 {
     public readonly struct Matcher : IDisposable
     {
+        public bool IsNull => Id == 0;
+        
         public ushort Id { get; }
 
         public UnsafeHashSet<uint> Components => _components;

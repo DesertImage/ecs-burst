@@ -21,7 +21,9 @@ namespace DesertImage.ECS
             (
                 new SystemsState
                 {
-                    ExecuteSystems = new Collections.UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
+                    EarlyMainThreadSystems = new Collections.UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
+                    MultiThreadSystems = new Collections.UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
+                    LateMainThreadSystems = new Collections.UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
                     SystemsHash = new Collections.UnsafeHashSet<uint>(20, Allocator.Persistent)
                 }
             );
