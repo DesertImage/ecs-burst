@@ -1,3 +1,4 @@
+using DesertImage.Collections;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
@@ -21,10 +22,10 @@ namespace DesertImage.ECS
             (
                 new SystemsState
                 {
-                    EarlyMainThreadSystems = new Collections.UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
-                    MultiThreadSystems = new Collections.UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
-                    LateMainThreadSystems = new Collections.UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
-                    SystemsHash = new Collections.UnsafeHashSet<uint>(20, Allocator.Persistent)
+                    EarlyMainThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
+                    MultiThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
+                    LateMainThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
+                    SystemsHash = new UnsafeUintSparseSet<uint>(20)
                 }
             );
         }

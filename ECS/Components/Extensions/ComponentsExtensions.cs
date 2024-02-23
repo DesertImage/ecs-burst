@@ -6,6 +6,11 @@
         {
             return ref Components.Get<T>(entity, entity.WorldId.GetWorldWithThisId().State);
         }
+        
+        public static T Read<T>(this in Entity entity) where T : unmanaged
+        {
+            return Components.Read<T>(entity, entity.WorldId.GetWorldWithThisId().State);
+        }
 
         public static void Replace<T>(this in Entity entity, in T component) where T : unmanaged
         {

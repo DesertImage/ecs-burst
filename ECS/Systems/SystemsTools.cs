@@ -18,6 +18,7 @@ namespace DesertImage.ECS
             if (id == 0)
             {
                 id = ++_idCounter;
+                SystemsTools<T>.Id = id;
             }
 
             return id;

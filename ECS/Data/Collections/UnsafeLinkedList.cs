@@ -19,7 +19,7 @@ namespace DesertImage.Collections
             public int Next;
         }
 
-        private Node* _data;
+        [NativeDisableUnsafePtrRestriction] private Node* _data;
         private UnsafeQueue<int> _freeIndexes;
 
         private readonly int _capacity;

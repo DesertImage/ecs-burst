@@ -46,7 +46,27 @@ namespace DesertImage.ECS
             Entities.ThrowIfNotAlive(entity);
 
             var componentId = ComponentTools.GetComponentId<T>();
-            return ref state->Components.Read<T>(componentId, entity.Id);
+#if DEBUG
+            if (!state->Components.Contains(entity.Id, componentId))
+            {
+                throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
+            }
+#endif
+            return ref state->Components.Get<T>(componentId, entity.Id);
+        }
+
+        public static T Read<T>(in Entity entity, WorldState* state) where T : unmanaged
+        {
+            Entities.ThrowIfNotAlive(entity);
+
+            var componentId = ComponentTools.GetComponentId<T>();
+#if DEBUG
+            if (!state->Components.Contains(entity.Id, componentId))
+            {
+                throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
+            }
+#endif
+            return state->Components.Read<T>(componentId, entity.Id);
         }
 
         public static void ReplaceStatic<T>(in Entity entity, WorldState* state, T component) where T : unmanaged
@@ -63,7 +83,7 @@ namespace DesertImage.ECS
             else
             {
                 var componentPTr = (IntPtr)MemoryUtility.Allocate(component);
-                state->StaticComponents.Add(componentId, componentPTr);
+                state->StaticComponents.Set(componentId, componentPTr);
             }
         }
 

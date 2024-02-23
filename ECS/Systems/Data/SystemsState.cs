@@ -9,7 +9,7 @@ namespace DesertImage.ECS
         public UnsafeList<ExecuteSystemData> EarlyMainThreadSystems;
         public UnsafeList<ExecuteSystemData> LateMainThreadSystems;
         public UnsafeList<ExecuteSystemData> MultiThreadSystems;
-        public UnsafeHashSet<uint> SystemsHash;
+        public UnsafeUintSparseSet<uint> SystemsHash;
 
         public float DeltaTime;
 

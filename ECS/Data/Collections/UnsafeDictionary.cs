@@ -28,10 +28,10 @@ namespace DesertImage.Collections
         public bool IsNotNull { get; }
         public int Count { get; private set; }
 
-        private UnsafeLinkedList<Entry>* _entries;
-        private int* _lockIndexes;
+        [NativeDisableUnsafePtrRestriction] private UnsafeList<Entry>* _entries;
+        [NativeDisableUnsafePtrRestriction] private int* _lockIndexes;
         private int _capacity;
-        private Allocator _allocator;
+        private readonly Allocator _allocator;
 
         public UnsafeDictionary(int capacity, Allocator allocator) : this()
         {
@@ -39,15 +39,15 @@ namespace DesertImage.Collections
             _allocator = allocator;
 
             _lockIndexes = MemoryUtility.AllocateClear<int>(capacity * UnsafeUtility.SizeOf<int>(), allocator);
-            _entries = MemoryUtility.AllocateClear<UnsafeLinkedList<Entry>>
+            _entries = MemoryUtility.AllocateClear<UnsafeList<Entry>>
             (
-                capacity * UnsafeUtility.SizeOf<UnsafeLinkedList<Entry>>(),
+                capacity * UnsafeUtility.SizeOf<UnsafeList<Entry>>(),
                 allocator
             );
 
             for (var i = 0; i < _capacity; i++)
             {
-                _entries[i] = new UnsafeLinkedList<Entry>(3, Allocator.Persistent);
+                _entries[i] = new UnsafeList<Entry>(1, Allocator.Persistent);
             }
 
             IsNotNull = true;
@@ -64,8 +64,9 @@ namespace DesertImage.Collections
             {
 #if DEBUG
                 throw new Exception($"missing {key}");
-#endif
+#else
                 return;
+#endif
             }
 
             var bucketNumber = GetBucketNumber(key);
@@ -115,9 +116,7 @@ namespace DesertImage.Collections
             var bucketNumber = GetBucketNumber(hashCode);
             var entryNumber = GetEntryNumber(bucketNumber, hashCode);
 
-            ref var node = ref _entries[bucketNumber].Get(entryNumber);
-            ref var entry = ref node.Value;
-
+            ref var entry = ref _entries[bucketNumber].GetByRef(entryNumber);
             return ref entry.Value;
         }
 
@@ -127,7 +126,7 @@ namespace DesertImage.Collections
 
             MemoryUtility.Resize(ref _lockIndexes, _capacity, newCapacity);
 
-            _entries = MemoryUtility.AllocateClear<UnsafeLinkedList<Entry>>
+            _entries = (UnsafeList<Entry>*)MemoryUtility.AllocateClear<UnsafeLinkedList<Entry>>
             (
                 newCapacity * UnsafeUtility.SizeOf<UnsafeLinkedList<Entry>>(),
                 _allocator
@@ -138,9 +137,8 @@ namespace DesertImage.Collections
                 var bucketEntries = oldEntries[i];
                 if (!bucketEntries.IsNotNull) continue;
 
-                foreach (var node in bucketEntries)
+                foreach (var entry in bucketEntries)
                 {
-                    var entry = node.Value;
                     Set(entry.Key, entry.Value);
                 }
             }
@@ -175,9 +173,8 @@ namespace DesertImage.Collections
 
             _lockIndexes[bucketNumber].Lock();
             {
-                ref var linkedList = ref GetBucketEntries(bucketNumber);
-                // var linkedList = _entries[bucketNumber];
-                linkedList.AddFirst
+                ref var list = ref GetBucketEntries(bucketNumber);
+                list.Add
                 (
                     new Entry
                     {
@@ -198,11 +195,11 @@ namespace DesertImage.Collections
             }
         }
 
-        private ref UnsafeLinkedList<Entry> GetBucketEntries(int bucketNumber)
+        private ref UnsafeList<Entry> GetBucketEntries(int bucketNumber)
         {
             if (!_entries[bucketNumber].IsNotNull)
             {
-                _entries[bucketNumber] = new UnsafeLinkedList<Entry>(3, Allocator.Persistent);
+                _entries[bucketNumber] = new UnsafeList<Entry>(1, Allocator.Persistent);
             }
 
             return ref _entries[bucketNumber];
@@ -215,10 +212,11 @@ namespace DesertImage.Collections
 
             _lockIndexes[bucketNumber].Lock();
             {
-                ref var linkedList = ref GetBucketEntries(bucketNumber);
-                foreach (var node in linkedList)
+                ref var list = ref GetBucketEntries(bucketNumber);
+                for (var i = 0; i < list.Count; i++)
                 {
-                    if (node.Value.HashCode != hashCode) continue;
+                    var entry = list[i];
+                    if (entry.HashCode != hashCode) continue;
 
                     var newEntry = new Entry
                     {
@@ -228,9 +226,7 @@ namespace DesertImage.Collections
                         Value = value
                     };
 
-                    ref var refNode = ref linkedList.Get(node.Index);
-                    refNode.Value = newEntry;
-
+                    list[i] = newEntry;
                     break;
                 }
             }
@@ -252,8 +248,8 @@ namespace DesertImage.Collections
 
                 if (entryNumber == -1) throw new NullReferenceException();
 
-                ref var node = ref _entries[bucketNumber].Get(entryNumber);
-                node.Value.Value = value;
+                ref var entry = ref _entries[bucketNumber].GetByRef(entryNumber);
+                entry.Value = value;
             }
             _lockIndexes[bucketNumber].Unlock();
         }
@@ -261,9 +257,10 @@ namespace DesertImage.Collections
         private Entry GetEntry(int bucketNumber, int hashCode)
         {
             var bucketEntries = _entries[bucketNumber];
-            foreach (var node in bucketEntries)
+            for (var i = 0; i < bucketEntries.Count; i++)
             {
-                if (node.Value.HashCode == hashCode) return node.Value;
+                var entry = bucketEntries[i];
+                if (entry.HashCode == hashCode) return entry;
             }
 
             return default;
@@ -272,9 +269,10 @@ namespace DesertImage.Collections
         private int GetEntryNumber(int bucketNumber, int hashCode)
         {
             var bucketEntries = GetBucketEntries(bucketNumber);
-            foreach (var node in bucketEntries)
+            for (var i = 0; i < bucketEntries.Count; i++)
             {
-                if (node.Value.HashCode == hashCode) return node.Index;
+                var entry = bucketEntries[i];
+                if (entry.HashCode == hashCode) return i;
             }
 
             return -1;
@@ -299,7 +297,7 @@ namespace DesertImage.Collections
             {
                 get
                 {
-                    var entry = _lastNode.Value;
+                    var entry = _data._entries[_bucketNumber][_entryNumber];
                     return new Pair<TKey, TValue>
                     {
                         Key = entry.Key,
@@ -311,51 +309,37 @@ namespace DesertImage.Collections
             object IEnumerator.Current => Current;
 
             private int _bucketNumber;
-            private UnsafeLinkedList<Entry>.Node _lastNode;
+            private int _entryNumber;
 
             public Enumerator(UnsafeDictionary<TKey, TValue> data) : this()
             {
                 _data = data;
                 _bucketNumber = 0;
+                _entryNumber = -1;
             }
 
             public bool MoveNext()
             {
                 if (_data.Count == 0) return false;
 
-                var linkedList = _data._entries[_bucketNumber];
+                var list = _data._entries[_bucketNumber];
 
-                if (!linkedList.IsNotNull)
+                while (!list.IsNotNull || list.Count == 0 || list.Count <= _entryNumber)
                 {
-                    _bucketNumber++;
+                    list = _data._entries[++_bucketNumber];
+                    _entryNumber = -1;
                 }
 
-                var isLastNodeNull = _lastNode is { Index: 0, Previous: 0, Next: 0 };
-                if (isLastNodeNull)
-                {
-                    if (linkedList.HasFirst())
-                    {
-                        _lastNode = linkedList.GetFirst();
-                    }
-                    else
-                    {
-                        _bucketNumber++;
-                        return true;
-                    }
-                }
-                else if (_lastNode.Next >= 0)
-                {
-                    _lastNode = linkedList.Get(_lastNode.Next);
-                }
-                else
-                {
-                    _bucketNumber++;
-                }
+                _entryNumber++;
 
                 return _bucketNumber < _data._capacity;
             }
 
-            public void Reset() => _bucketNumber = 0;
+            public void Reset()
+            {
+                _bucketNumber = 0;
+                _entryNumber = -1;
+            }
 
             public void Dispose()
             {

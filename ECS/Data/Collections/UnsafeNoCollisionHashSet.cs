@@ -10,11 +10,13 @@ using Debug = UnityEngine.Debug;
 namespace DesertImage.Collections
 {
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(UnsafeHashSetDebugView<>))]
-    public unsafe struct UnsafeHashSet<T> : IDisposable, IEnumerable<T> where T : unmanaged
+    [DebuggerTypeProxy(typeof(UnsafeNoCollisionHashSetDebugView<>))]
+    public unsafe struct UnsafeNoCollisionHashSet<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
         internal struct Entry
         {
+            public static Entry Default => new Entry { HashCode = -1 };
+
             public int HashCode;
             public T Value;
         }
@@ -23,29 +25,27 @@ namespace DesertImage.Collections
 
         public int Count { get; private set; }
 
-        [NativeDisableUnsafePtrRestriction] private int* _buckets;
-        [NativeDisableUnsafePtrRestriction] private Entry* _entries;
+        [NativeDisableUnsafePtrRestriction] internal Entry* _entries;
         [NativeDisableUnsafePtrRestriction] private int* _lockIndexes;
 
-        private int _capacity;
-        private int _entriesCapacity;
+        internal int _capacity;
         private Allocator _allocator;
 
-        public UnsafeHashSet(int capacity, Allocator allocator) : this()
+        public UnsafeNoCollisionHashSet(int capacity, Allocator allocator) : this()
         {
-            _entriesCapacity = 3;
             _capacity = capacity;
             _allocator = allocator;
 
             var intSize = MemoryUtility.SizeOf<T>();
             var fullIntSize = capacity * intSize;
 
-            _buckets = MemoryUtility.AllocateClear(fullIntSize, -1, allocator);
-            _entries = MemoryUtility.AllocateClear<Entry>
+            _entries = MemoryUtility.AllocateClear
             (
-                capacity * _entriesCapacity * MemoryUtility.SizeOf<Entry>(),
+                capacity * MemoryUtility.SizeOf<Entry>(),
+                Entry.Default,
                 allocator
             );
+
             _lockIndexes = MemoryUtility.AllocateClear<int>(fullIntSize, allocator);
 
             IsNotNull = true;
@@ -73,10 +73,7 @@ namespace DesertImage.Collections
 
             _lockIndexes[bucketNumber].Lock();
             {
-                var entryNumber = _buckets[bucketNumber];
-
-                _entries[entryNumber] = default;
-                _buckets[bucketNumber] = -1;
+                _entries[bucketNumber] = Entry.Default;
 
                 Count--;
             }
@@ -90,10 +87,8 @@ namespace DesertImage.Collections
 #endif
             if (Count == 0) return false;
 
-            var hashCode = key.GetHashCode();
-            var bucketNumber = GetBucketNumber(hashCode);
-
-            return GetEntry(bucketNumber, key, hashCode) >= 0;
+            var bucketNumber = GetBucketNumber(key);
+            return _entries[bucketNumber].HashCode >= 0;
         }
 
         public void Resize(int newSize)
@@ -101,39 +96,34 @@ namespace DesertImage.Collections
             var oldSize = _capacity;
 
             var intSize = MemoryUtility.SizeOf<T>();
-            var fullIntSize = newSize & intSize;
+            var fullIntSize = newSize * intSize;
 
-            var bucketNew = MemoryUtility.AllocateClear(fullIntSize, -1, _allocator);
-            var entriesNew = MemoryUtility.AllocateClear<Entry>
+            var entriesNew = MemoryUtility.AllocateClear
             (
-                newSize * _entriesCapacity * MemoryUtility.SizeOf<Entry>(),
+                newSize * MemoryUtility.SizeOf<Entry>(),
+                Entry.Default,
                 _allocator
             );
+
             var lockIndexesNew = MemoryUtility.AllocateClear<int>(fullIntSize, _allocator);
 
             for (var i = 0; i < oldSize; i++)
             {
-                var entryNumber = _buckets[i];
-
-                if (entryNumber < 0) continue;
-
-                var entry = _entries[entryNumber];
+                var entry = _entries[i];
 
                 var hashCode = entry.HashCode;
 
-                var newBucketNumber = GetBucketNumber(hashCode);
-                var newEntryNumber = GetFreeEntryIndex(newBucketNumber);
+                if (hashCode < 0) continue;
 
-                bucketNew[newBucketNumber] = newEntryNumber;
-                lockIndexesNew[newBucketNumber] = _lockIndexes[newBucketNumber];
-                _entries[newEntryNumber] = entry;
+                var newBucketNumber = GetBucketNumber(hashCode);
+
+                lockIndexesNew[newBucketNumber] = _lockIndexes[i];
+                entriesNew[newBucketNumber] = entry;
             }
 
-            MemoryUtility.Free(_buckets, _allocator);
             MemoryUtility.Free(_entries, _allocator);
             MemoryUtility.Free(_lockIndexes, _allocator);
 
-            _buckets = bucketNew;
             _entries = entriesNew;
             _lockIndexes = lockIndexesNew;
 
@@ -142,11 +132,9 @@ namespace DesertImage.Collections
 
         public void Dispose()
         {
-            MemoryUtility.Free(_buckets, _allocator);
             MemoryUtility.Free(_entries, _allocator);
             MemoryUtility.Free(_lockIndexes, _allocator);
 
-            _buckets = null;
             _entries = null;
             _lockIndexes = null;
         }
@@ -161,49 +149,20 @@ namespace DesertImage.Collections
 
             _lockIndexes[bucketNumber].Lock();
             {
-                var freeEntryIndex = GetFreeEntryIndex(bucketNumber);
-
-                _buckets[bucketNumber] = freeEntryIndex;
-                _entries[freeEntryIndex] = new Entry
+                _entries[bucketNumber] = new Entry
                 {
                     HashCode = hashCode,
                     Value = value,
                 };
 
                 Count++;
+
+                if (Count >= _capacity)
+                {
+                    Resize(_capacity << 1);
+                }
             }
             _lockIndexes[bucketNumber].Unlock();
-        }
-
-        private int GetFreeEntryIndex(int bucketNumber)
-        {
-            var entriesNumber = bucketNumber * _entriesCapacity;
-            var lastBucketEntryNumber = entriesNumber + _entriesCapacity - 1;
-
-            for (var i = entriesNumber; i < lastBucketEntryNumber; i++)
-            {
-                var entry = _entries[i];
-
-                if (entry.HashCode == 0) return i;
-            }
-
-            throw new Exception("no free entries");
-            // return -1;
-        }
-
-        private int GetEntry(int bucketNumber, T key, int hashCode)
-        {
-            var entriesNumber = bucketNumber * _entriesCapacity;
-            var lastBucketEntryNumber = entriesNumber + _entriesCapacity - 1;
-
-            for (var i = entriesNumber; i < lastBucketEntryNumber; i++)
-            {
-                var entry = _entries[i];
-
-                if (entry.HashCode == hashCode && key.Equals(entry.Value)) return i;
-            }
-
-            return -1;
         }
 
         private int GetBucketNumber(T key) => (key.GetHashCode() & int.MaxValue) % _capacity;
@@ -211,7 +170,7 @@ namespace DesertImage.Collections
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly UnsafeHashSet<T> _data;
+            private readonly UnsafeNoCollisionHashSet<T> _data;
 
             public T Current => _data._entries[_counter].Value;
             object IEnumerator.Current => Current;
@@ -219,7 +178,7 @@ namespace DesertImage.Collections
             private int _counter;
             private int _lastEntry;
 
-            public Enumerator(UnsafeHashSet<T> data) : this()
+            public Enumerator(UnsafeNoCollisionHashSet<T> data) : this()
             {
                 _data = data;
                 _counter = -1;
@@ -228,10 +187,11 @@ namespace DesertImage.Collections
             public bool MoveNext()
             {
                 ++_counter;
-
+                
                 while (_data._entries[_counter].HashCode < 0)
                 {
                     _counter++;
+                    if (_counter >= _data._capacity) return false;
                 }
 
                 return _counter < _data._capacity;
@@ -250,13 +210,13 @@ namespace DesertImage.Collections
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 
-    internal sealed unsafe class UnsafeHashSetDebugView<T> where T : unmanaged
+    internal sealed unsafe class UnsafeNoCollisionHashSetDebugView<T> where T : unmanaged
     {
-        private readonly UnsafeHashSet<T> _data;
+        private readonly UnsafeNoCollisionHashSet<T> _data;
 
-        public UnsafeHashSetDebugView(UnsafeHashSet<T> array) => _data = array;
+        public UnsafeNoCollisionHashSetDebugView(UnsafeNoCollisionHashSet<T> array) => _data = array;
 
-        // public int[] Buckets => _data._buckets->ToArray();
+        public UnsafeNoCollisionHashSet<T>.Entry[] Items => MemoryUtility.ToArray(_data._entries, _data._capacity);
         // public UnsafeHashSet<T>.Entry[] Entries => _data._entries->ToArray();
     }
 }

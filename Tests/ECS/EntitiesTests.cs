@@ -29,7 +29,7 @@ namespace DesertImage.ECS
 
             world.Dispose();
         }
-        
+
         [Test]
         public void Create_10_000()
         {
@@ -61,7 +61,7 @@ namespace DesertImage.ECS
         }
 
         [Test]
-        public void Create_1_000_000()
+        public void Create_1000_000()
         {
             const int entitiesCount = 1_000_000;
 

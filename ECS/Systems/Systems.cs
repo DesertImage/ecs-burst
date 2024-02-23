@@ -4,34 +4,38 @@ using DesertImage.Collections;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
-using UnityEngine;
 
 namespace DesertImage.ECS
 {
     public static unsafe class Systems
     {
         [BurstCompile]
-        private struct ExecuteSystemJob : IJob
+        private struct ExecuteSystemJob : IJobParallelFor
         {
-            public ExecuteSystemData SystemData;
+            public UnsafeUintSparseSet<uint> Data;
+            public FunctionPointer<SystemsTools.Execute> Method;
+            public float DeltaTime;
+
+            [NativeDisableUnsafePtrRestriction] public ExecuteSystemWrapper* Wrapper;
             [NativeDisableUnsafePtrRestriction] public World* World;
 
-            public void Execute()
-            {
-                var wrapper = SystemData.Wrapper;
-                var functionPointer = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
-
-                var group = Groups.GetGroup(SystemData.Wrapper->Matcher, *World);
-                foreach (var entityId in group.Entities)
-                {
-                    functionPointer.Invoke(wrapper, entityId, World, World->SystemsState->DeltaTime);
-                }
-            }
+            public void Execute(int index) => Method.Invoke(Wrapper, Data._dense[index], World, DeltaTime);
+            
+            // public void Execute()
+            // {
+                // for (var i = 0; i < Data._denseCapacity; i++)
+                // {
+                //     Method.Invoke(Wrapper, Data._dense[i], World, DeltaTime);
+                // }
+            // }
         }
 
-        public static void Add<T>(SystemsState* state, ExecutionType type) where T : unmanaged, ISystem
+        public static void Add<T>(in World world, ExecutionType type) where T : unmanaged, ISystem
         {
             var systemType = typeof(T);
+            var systemId = SystemsTools.GetId<T>();
+
+            var state = world.SystemsState;
 
             if (Contains<T>(state))
             {
@@ -76,14 +80,19 @@ namespace DesertImage.ECS
 
                 var gMethod = methodInfo.MakeGenericMethod(systemType);
 
-                var targetDelegate =
-                    Delegate.CreateDelegate(typeof(Action<IntPtr, IntPtr, ExecutionType>), default, gMethod);
-                var converted = (Action<IntPtr, IntPtr, ExecutionType>)targetDelegate;
+                var targetDelegate = Delegate.CreateDelegate
+                (
+                    typeof(Action<World, IntPtr, ExecutionType>),
+                    default,
+                    gMethod
+                );
 
-                converted.Invoke((IntPtr)state, (IntPtr)wrapperPtr, type);
+                var converted = (Action<World, IntPtr, ExecutionType>)targetDelegate;
+
+                converted.Invoke(world, (IntPtr)wrapperPtr, type);
             }
 
-            state->SystemsHash.Add(SystemsTools.GetId<T>());
+            state->SystemsHash.Set(systemId, systemId);
         }
 
         public static void Remove<T>(SystemsState* state) where T : ISystem
@@ -98,17 +107,31 @@ namespace DesertImage.ECS
 
             var systemId = SystemsTools.GetId<T>();
 
+            state->SystemsHash.Remove(systemId);
+
+            for (var i = 0; i < state->EarlyMainThreadSystems.Count; i++)
+            {
+                var systemData = state->EarlyMainThreadSystems[i];
+                if (systemData.Id != systemId) continue;
+                state->EarlyMainThreadSystems.RemoveAt(i);
+                return;
+            }
+
+            for (var i = 0; i < state->LateMainThreadSystems.Count; i++)
+            {
+                var systemData = state->LateMainThreadSystems[i];
+                if (systemData.Id != systemId) continue;
+                state->LateMainThreadSystems.RemoveAt(i);
+                return;
+            }
+
             for (var i = 0; i < state->MultiThreadSystems.Count; i++)
             {
                 var systemData = state->MultiThreadSystems[i];
-
                 if (systemData.Id != systemId) continue;
-
                 state->MultiThreadSystems.RemoveAt(i);
                 break;
             }
-
-            state->SystemsHash.Remove(systemId);
         }
 
         public static bool Contains<T>(SystemsState* state) where T : ISystem
@@ -122,7 +145,6 @@ namespace DesertImage.ECS
             ExecuteMainThread(ref world->SystemsState->EarlyMainThreadSystems, world, deltaTime);
             ExecuteMultiThread(ref world->SystemsState->MultiThreadSystems, world, deltaTime);
             ExecuteMainThread(ref world->SystemsState->LateMainThreadSystems, world, deltaTime);
-
         }
 
         private static void ExecuteMainThread(ref UnsafeList<ExecuteSystemData> systems, World* world, float deltaTime)
@@ -134,14 +156,16 @@ namespace DesertImage.ECS
                 var wrapper = systemData.Wrapper;
                 var functionPointer = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
 
-                var group = Groups.GetGroup(systemData.Wrapper->Matcher, *world);
-                foreach (var entityId in group.Entities)
+                var group = Groups.GetSystemGroup(systemData.Id, *world);
+
+                for (uint j = 0; j < group.Entities.Count; j++)
                 {
+                    var entityId = group.Entities._dense[j];
                     functionPointer.Invoke(wrapper, entityId, world, deltaTime);
                 }
             }
         }
-        
+
         public static void ExecuteMultiThread(ref UnsafeList<ExecuteSystemData> systems, World* world, float deltaTime)
         {
             var systemsState = world->SystemsState;
@@ -152,13 +176,20 @@ namespace DesertImage.ECS
             {
                 var systemData = systems[i];
 
+                var wrapper = systemData.Wrapper;
+                var group = Groups.GetSystemGroup(systemData.Id, *world);
+
+                var entities = group.Entities;
+
                 var executeJob = new ExecuteSystemJob
                 {
-                    SystemData = systemData,
+                    Data = entities,
+                    Wrapper = wrapper,
+                    Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
                     World = world
                 };
 
-                systemsState->Handle = executeJob.Schedule(systemsState->Handle);
+                systemsState->Handle = executeJob.Schedule(entities.Count, 128, systemsState->Handle);
             }
 
             systemsState->Handle.Complete();
@@ -166,18 +197,33 @@ namespace DesertImage.ECS
 
         private static void AddInit<T>(T instance) where T : unmanaged, IInitSystem => instance.Initialize();
 
-        private static void AddExecute<T>(IntPtr statePtr, IntPtr wrapperPtr, ExecutionType type)
+        private static void AddExecute<T>(World world, IntPtr wrapperPtr, ExecutionType type)
             where T : unmanaged, IExecuteSystem
         {
+            var systemId = SystemsTools.GetId<T>();
+
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
             wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
-            wrapper->Matcher = (*(T*)wrapperPtr).Matcher;
 
-            var state = (SystemsState*)statePtr;
+            var matcherId = Groups.GetSystemMatcherId(systemId, world);
+            if (matcherId > 0)
+            {
+                wrapper->MatcherId = matcherId;
+            }
+            else
+            {
+                var matcher = (*(T*)wrapperPtr).Matcher;
+
+                Groups.RegisterSystemMatcher(systemId, matcher, world);
+
+                wrapper->MatcherId = matcher.Id;
+            }
+
+            var state = world.SystemsState;
 
             var data = new ExecuteSystemData
             {
-                Id = SystemsTools.GetId<T>(),
+                Id = systemId,
                 Wrapper = wrapper
             };
 

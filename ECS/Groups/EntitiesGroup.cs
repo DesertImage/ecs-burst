@@ -8,18 +8,18 @@ namespace DesertImage.ECS
     {
         public readonly ushort Id;
 
-        public UnsafeSparseSet<uint> Entities;
+        public UnsafeUintSparseSet<uint> Entities;
 
         public EntitiesGroup(ushort id)
         {
             Id = id;
-            Entities = new UnsafeSparseSet<uint>(50, ECSSettings.ComponentsEntitiesCapacity);
+            Entities = new UnsafeUintSparseSet<uint>(50, ECSSettings.ComponentsEntitiesCapacity);
         }
 
-        public void Add(uint entityId) => Entities.Add((int)entityId, entityId);
+        public void Add(uint entityId) => Entities.Set(entityId, entityId);
 
-        public void Remove(uint entityId) => Entities.Remove((int)entityId);
-        public bool Contains(uint entityId) => Entities.Contains((int)entityId);
+        public void Remove(uint entityId) => Entities.Remove(entityId);
+        public bool Contains(uint entityId) => Entities.Contains(entityId);
 
         public readonly void Dispose() => Entities.Dispose();
 

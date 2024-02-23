@@ -7,12 +7,12 @@ namespace DesertImage.ECS
     public readonly struct Matcher : IDisposable
     {
         public bool IsNull => Id == 0;
-        
+
         public ushort Id { get; }
 
-        public UnsafeHashSet<uint> Components => _components;
+        public UnsafeUintSparseSet<uint> Components => _components;
 
-        private readonly UnsafeHashSet<uint> _components;
+        private readonly UnsafeUintSparseSet<uint> _components;
 
         private readonly UnsafeList<uint> _allOf;
         private readonly UnsafeList<uint> _noneOf;
@@ -26,27 +26,30 @@ namespace DesertImage.ECS
             _noneOf = noneOf;
             _anyOf = anyOf;
 
-            _components = new UnsafeHashSet<uint>(allOf.Count + noneOf.Count + anyOf.Count, Allocator.Persistent);
+            _components = new UnsafeUintSparseSet<uint>(allOf.Count + noneOf.Count + anyOf.Count);
 
             for (var i = 0; i < allOf.Count; i++)
             {
-                _components.Add(allOf[i]);
+                var componentId = allOf[i];
+                _components.Set(componentId, componentId);
             }
 
             for (var i = 0; i < noneOf.Count; i++)
             {
-                _components.Add(noneOf[i]);
+                var componentId = noneOf[i];
+                _components.Set(componentId, componentId);
             }
 
             for (var i = 0; i < anyOf.Count; i++)
             {
-                _components.Add(anyOf[i]);
+                var componentId = anyOf[i];
+                _components.Set(componentId, componentId);
             }
         }
 
-        public bool Check(Entity entity) => HasNot(entity) && HasAll(entity) && HasAnyOf(entity);
+        public bool Check(Entity entity) => HasNoneOf(entity) && HasAll(entity) && HasAnyOf(entity);
 
-        public bool HasNot(in Entity entity)
+        public bool HasNoneOf(in Entity entity)
         {
             for (var i = 0; i < _noneOf.Count; i++)
             {
@@ -60,7 +63,7 @@ namespace DesertImage.ECS
         {
             for (var i = 0; i < _allOf.Count; i++)
             {
-                if (entity.Has(_allOf[i])) return false;
+                if (!entity.Has(_allOf[i])) return false;
             }
 
             return true;

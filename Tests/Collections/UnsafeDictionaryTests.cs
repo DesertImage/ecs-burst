@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using NUnit.Framework;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Debug = UnityEngine.Debug;
 
 namespace DesertImage.Collections
@@ -23,6 +24,28 @@ namespace DesertImage.Collections
         }
 
         [Test]
+        public void Enumeration()
+        {
+            var data = new UnsafeDictionary<int, int>(20, Allocator.Persistent);
+
+            data.Add(0, 1);
+            data.Add(2, 3);
+            data.Add(5, 5);
+            data.Add(1, 5);
+
+            var result = 0;
+
+            foreach (var pair in data)
+            {
+                result += pair.Value;
+            }
+
+            data.Dispose();
+
+            Assert.AreEqual(14, result);
+        }
+
+        [Test]
         public void Add1000000()
         {
             const int count = 1_000_000;
@@ -32,6 +55,7 @@ namespace DesertImage.Collections
             var unsafeDictionary = new UnsafeDictionary<int, int>(count + 1, Allocator.Persistent);
             var nativeDictionary = new NativeParallelHashMap<int, int>(count + 1, Allocator.Persistent);
             var dictionary = new Dictionary<int, int>();
+            var list = new UnsafeList<int>(count + 1, Allocator.Persistent);
 
             timer.Start();
             for (var i = 0; i < count; i++)
@@ -67,12 +91,26 @@ namespace DesertImage.Collections
 
             var nativeElapsed = timer.Elapsed.TotalMilliseconds;
 
+            timer.Reset();
+
+            timer.Start();
+            for (var i = 0; i < count; i++)
+            {
+                list.Add(i);
+            }
+
+            timer.Stop();
+
+            var listElapsed = timer.Elapsed.TotalMilliseconds;
+
             Debug.Log($"Unsafe: {unsafeElapsed}");
             Debug.Log($"Classic: {classicElapsed}");
             Debug.Log($"Native: {nativeElapsed}");
+            Debug.Log($"List: {listElapsed}");
 
             unsafeDictionary.Dispose();
             nativeDictionary.Dispose();
+            list.Dispose();
         }
 
         [Test]
@@ -88,6 +126,33 @@ namespace DesertImage.Collections
             data.Dispose();
 
             Assert.IsFalse(result);
+        }
+
+        [Test]
+        public unsafe void SparseSetTest()
+        {
+            var data = new UnsafeSparseSet<int>(20);
+
+            data.Set(0, 1);
+            data.Set(1, 2);
+            data.Set(3, 3);
+            data.Set(5, 4);
+            data.Set(9, 5);
+            data.Remove(3);
+            data.Set(13, 6);
+            data.Set(16, 7);
+            data.Set(20, 8);
+            data.Remove(1);
+            data.Set(21, 9);
+
+
+            for (var i = 0; i < data.Count; i++)
+            {
+                var value = data.Values[i];
+                Debug.Log($"Value: {value}");
+            }
+
+            data.Dispose();
         }
     }
 }

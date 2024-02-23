@@ -11,12 +11,13 @@ namespace DesertImage.ECS
         public UnsafeQueue<uint> EntitiesPool;
 
         public ComponentStorage Components;
-        public UnsafeDictionary<uint, IntPtr> StaticComponents;
+        public UnsafeUintSparseSet<IntPtr> StaticComponents;
 
         public ushort GroupIdCounter;
         public UnsafeUshortSparseSet<EntitiesGroup> Groups;
         public UnsafeUshortSparseSet<Matcher> Matchers;
-        public UnsafeDictionary<ushort, ushort> MatcherToGroup;
+        public UnsafeUintSparseSet<ushort> SystemToMatcher;
+        public UnsafeUshortSparseSet<ushort> MatcherToGroup;
         public UnsafeUshortSparseSet<ushort> GroupToMatcher;
         public UnsafeUintSparseSet<UnsafeList<ushort>> EntityToGroups;
         public UnsafeUintSparseSet<UnsafeList<ushort>> ComponentToGroups;
@@ -30,14 +31,15 @@ namespace DesertImage.ECS
             EntitiesPool = new UnsafeQueue<uint>(100, Allocator.Persistent);
 
             Components = new ComponentStorage(componentsCapacity, entitiesCapacity);
-            StaticComponents = new UnsafeDictionary<uint, IntPtr>(20, Allocator.Persistent);
+            StaticComponents = new UnsafeUintSparseSet<IntPtr>(20);
 
             GroupIdCounter = 0;
             Groups = new UnsafeUshortSparseSet<EntitiesGroup>(groupsCapacity);
 
             Matchers = new UnsafeUshortSparseSet<Matcher>(groupsCapacity);
+            SystemToMatcher = new UnsafeUintSparseSet<ushort>(groupsCapacity);
 
-            MatcherToGroup = new UnsafeDictionary<ushort, ushort>(groupsCapacity, Allocator.Persistent);
+            MatcherToGroup = new UnsafeUshortSparseSet<ushort>(groupsCapacity);
             GroupToMatcher = new UnsafeUshortSparseSet<ushort>(groupsCapacity);
 
             EntityToGroups = new UnsafeUintSparseSet<UnsafeList<ushort>>(entitiesCapacity);
@@ -53,7 +55,8 @@ namespace DesertImage.ECS
             GroupIdCounter = 0;
             MatcherToGroup.Dispose();
             GroupToMatcher.Dispose();
-
+            SystemToMatcher.Dispose();
+            
             foreach (var value in Groups)
             {
                 value.Dispose();
@@ -70,10 +73,9 @@ namespace DesertImage.ECS
 
             Components.Dispose();
 
-            foreach (var pair in StaticComponents)
+            for (var i = 0; i < StaticComponents.Count; i++)
             {
-                if (pair.Key == 0) continue;
-                MemoryUtility.Free((void*)pair.Value);
+                MemoryUtility.Free((void*)StaticComponents._dense[i]);
             }
 
             StaticComponents.Dispose();

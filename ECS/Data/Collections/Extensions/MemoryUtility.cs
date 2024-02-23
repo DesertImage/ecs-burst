@@ -32,7 +32,7 @@ namespace DesertImage.ECS
 
         public static T* AllocateClear<T>(long size, Allocator allocator = Allocator.Persistent) where T : unmanaged
         {
-            var ptr = (T*)UnsafeUtility.Malloc(size, 0, allocator);
+            var ptr = (T*)UnsafeUtility.Malloc(size, UnsafeUtility.AlignOf<T>(), allocator);
             UnsafeUtility.MemClear(ptr, size);
             return ptr;
         }
@@ -40,7 +40,7 @@ namespace DesertImage.ECS
         public static T* AllocateClear<T>(long size, T defaultValue, Allocator allocator = Allocator.Persistent)
             where T : unmanaged
         {
-            var ptr = (T*)UnsafeUtility.Malloc(size, 0, allocator);
+            var ptr = (T*)UnsafeUtility.Malloc(size, UnsafeUtility.AlignOf<T>(), allocator);
             UnsafeUtility.MemClear(ptr, size);
 
             var length = size / SizeOf<T>();
@@ -55,18 +55,9 @@ namespace DesertImage.ECS
 
         public static T* Allocate<T>(T instance) where T : unmanaged
         {
-            var ptr = (T*)UnsafeUtility.Malloc(SizeOf<T>(), 0, Allocator.Persistent);
+            var ptr = (T*)UnsafeUtility.Malloc(SizeOf<T>(), UnsafeUtility.AlignOf<T>(), Allocator.Persistent);
             *ptr = instance;
             return ptr;
-
-            unsafe
-            {
-                int number = 27;
-                int* pointerToNumber = &number;
-
-                Console.WriteLine($"Value of the variable: {number}");
-                Console.WriteLine($"Address of the variable: {(long)pointerToNumber:X}");
-            }
         }
 
         public static T* Resize<T>(ref T* ptr, int oldCapacity, int newCapacity, T defaultValue,
@@ -78,10 +69,10 @@ namespace DesertImage.ECS
             {
                 ptr[i] = defaultValue;
             }
-            
+
             return ptr;
         }
-        
+
         public static T* Resize<T>(ref T* ptr, int oldCapacity, int newCapacity,
             Allocator allocator = Allocator.Persistent) where T : unmanaged
         {
@@ -91,7 +82,21 @@ namespace DesertImage.ECS
             var oldSize = oldCapacity * elementSize;
             var newSize = newCapacity * elementSize;
 
-            ptr = (T*)UnsafeUtility.Malloc(newSize, 0, allocator);
+            ptr = (T*)UnsafeUtility.Malloc(newSize, UnsafeUtility.AlignOf<T>(), allocator);
+
+            UnsafeUtility.MemClear(ptr, newSize);
+            UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);
+            UnsafeUtility.Free(oldPtr, allocator);
+
+            return ptr;
+        }
+
+        public static T* Resize<T>(ref T* ptr, long oldSize, long newSize, Allocator allocator = Allocator.Persistent)
+            where T : unmanaged
+        {
+            var oldPtr = ptr;
+
+            ptr = (T*)UnsafeUtility.Malloc(newSize, UnsafeUtility.AlignOf<T>(), allocator);
 
             UnsafeUtility.MemClear(ptr, newSize);
             UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);

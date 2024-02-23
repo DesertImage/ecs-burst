@@ -11,8 +11,11 @@ namespace DesertImage.ECS
         private byte* _data;
         private long* _offsets;
         private long* _sizes;
-        private UnsafeHashSet<uint> _hashes;
+        private UnsafeNoCollisionHashSet<uint> _hashes;
+
         private UnsafeArray<bool>* _entityComponents;
+
+        //TODO: lock on one entity's component, not component for all entities
         private int* _lockIndexes;
 
         private long _size;
@@ -27,17 +30,16 @@ namespace DesertImage.ECS
         {
             _allocator = Allocator.Persistent;
 
-            //TODO: fix size
-            _data = MemoryUtility.AllocateClear<byte>(componentsCapacity, _allocator);
+            _data = MemoryUtility.AllocateClear<byte>(componentsCapacity * entitiesCapacity, _allocator);
 
             var longSize = MemoryUtility.SizeOf<long>();
-            var fullLongSize = longSize * entitiesCapacity;
+            var fullLongSize = longSize * componentsCapacity;
 
             _offsets = MemoryUtility.AllocateClear<long>(fullLongSize, _allocator);
             _sizes = MemoryUtility.AllocateClear<long>(fullLongSize, _allocator);
             _lockIndexes = MemoryUtility.AllocateClear<int>(entitiesCapacity * MemoryUtility.SizeOf<int>(), _allocator);
-            _hashes = new UnsafeHashSet<uint>(entitiesCapacity, _allocator);
 
+            _hashes = new UnsafeNoCollisionHashSet<uint>(componentsCapacity, _allocator);
             _entityComponents = MemoryUtility.AllocateClear<UnsafeArray<bool>>
             (
                 entitiesCapacity * MemoryUtility.SizeOf<UnsafeArray<bool>>(),
@@ -54,8 +56,26 @@ namespace DesertImage.ECS
         public void Write<T>(uint entityId, T data) where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentId<T>();
-
             var componentIndex = (int)componentId;
+
+            var isOutOfEntityCapacity = entityId >= _entitiesCapacity;
+            var isOutOfComponentsCapacity = componentIndex >= _capacity;
+
+            if (isOutOfComponentsCapacity || isOutOfEntityCapacity)
+            {
+                Resize
+                (
+                    isOutOfEntityCapacity ? _entitiesCapacity << 1 : _entitiesCapacity,
+                    isOutOfComponentsCapacity ? _capacity << 1 : _capacity
+                );
+            }
+
+#if DEBUG
+            if (componentIndex >= _capacity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+#endif
 
             _lockIndexes[componentIndex].Lock();
             {
@@ -68,38 +88,41 @@ namespace DesertImage.ECS
 
                 var entityIndex = (int)entityId;
 
+#if DEBUG
+                if (entityIndex >= _entitiesCapacity)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+#endif
+
                 if (isNewId)
                 {
                     var previousOffset = _lastOffset;
                     idOffset = previousOffset < 0 ? 0 : _lastOffset;
 
                     _lastOffset = idOffset + subArraySize;
+
                     _hashes.Add(componentId);
-
-                    if (_entityComponents[entityIndex].IsNull)
-                    {
-                        var components = new UnsafeArray<bool>(_capacity, true, _allocator);
-                        components[componentIndex] = true;
-                        _entityComponents[entityIndex] = components;
-
-                        var test = _entityComponents[entityIndex];
-                    }
-                    else
-                    {
-                        _entityComponents[entityIndex][componentIndex] = true;
-                    }
 
                     _offsets[componentIndex] = idOffset;
                     _sizes[componentIndex] = elementSize;
                 }
-
+#if DEBUG
                 if (idOffset >= _size)
                 {
                     _lockIndexes[componentIndex].Unlock();
-#if DEBUG
                     throw new Exception("out of array memory");
+                }
 #endif
-                    return;
+                if (_entityComponents[entityIndex].IsNull)
+                {
+                    var components = new UnsafeArray<bool>(_capacity, true, _allocator);
+                    components[componentIndex] = true;
+                    _entityComponents[entityIndex] = components;
+                }
+                else
+                {
+                    _entityComponents[entityIndex][componentIndex] = true;
                 }
 
                 UnsafeUtility.WriteArrayElement(_data + idOffset, entityIndex, data);
@@ -109,7 +132,16 @@ namespace DesertImage.ECS
 
         public void ClearEntityComponents(uint entityId)
         {
+#if DEBUG
+            if (entityId >= _entitiesCapacity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+#endif
             var entityComponents = _entityComponents[(int)entityId];
+
+            if (entityComponents.IsNull) return;
+
             for (var i = 0; i < entityComponents.Length; i++)
             {
                 var isHas = entityComponents[i];
@@ -125,6 +157,13 @@ namespace DesertImage.ECS
         private void Clear(uint entityId, uint componentId)
         {
             var componentIndex = (int)componentId;
+
+#if DEBUG
+            if (componentIndex >= _capacity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+#endif
 
             _lockIndexes[componentIndex].Lock();
             {
@@ -153,11 +192,50 @@ namespace DesertImage.ECS
             _lockIndexes[componentIndex].Unlock();
         }
 
-        public ref T Read<T>(uint componentId, uint index) where T : unmanaged
+        public void Resize(int newEntitiesCapacity, int newComponentsCapacity)
         {
-            var size = MemoryUtility.SizeOf<T>();
-            var offset = _offsets[(int)componentId];
+            var longSize = MemoryUtility.SizeOf<long>();
 
+            var oldEntitiesCapacity = _entitiesCapacity;
+            var oldSize = _size;
+
+            var oldFullLongSize = longSize * _capacity;
+            var newFullLongSize = longSize * newComponentsCapacity;
+
+            var newSize = newEntitiesCapacity * newComponentsCapacity;
+
+            MemoryUtility.Resize(ref _data, oldSize, newSize);
+            MemoryUtility.Resize(ref _offsets, oldFullLongSize, newFullLongSize);
+            MemoryUtility.Resize(ref _sizes, oldFullLongSize, newFullLongSize);
+            MemoryUtility.Resize(ref _lockIndexes, oldEntitiesCapacity, newEntitiesCapacity);
+            MemoryUtility.Resize(ref _entityComponents, oldEntitiesCapacity, newEntitiesCapacity);
+
+            _size = newSize;
+            _capacity = newComponentsCapacity;
+            _entitiesCapacity = newEntitiesCapacity;
+        }
+
+        public T Read<T>(uint componentId, uint index) where T : unmanaged
+        {
+            var offset = _offsets[(int)componentId];
+#if DEBUG
+            if (index >= _entitiesCapacity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+#endif
+            return UnsafeUtility.ReadArrayElement<T>(_data + offset, (int)index);
+        }
+
+        public ref T Get<T>(uint componentId, uint index) where T : unmanaged
+        {
+            var offset = _offsets[(int)componentId];
+#if DEBUG
+            if (index >= _entitiesCapacity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+#endif
             return ref UnsafeUtility.ArrayElementAsRef<T>(_data + offset, (int)index);
         }
 
@@ -171,6 +249,17 @@ namespace DesertImage.ECS
 
         public bool Contains(uint entityId, uint componentId)
         {
+#if DEBUG
+            if (entityId >= _entitiesCapacity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+
+            if (componentId >= _capacity)
+            {
+                throw new IndexOutOfRangeException();
+            }
+#endif
             var components = _entityComponents[(int)entityId];
             return !components.IsNull && components[(int)componentId];
         }
@@ -179,6 +268,7 @@ namespace DesertImage.ECS
         {
             UnsafeUtility.Free(_data, _allocator);
             MemoryUtility.Free(_offsets, _allocator);
+            MemoryUtility.Free(_sizes, _allocator);
             MemoryUtility.Free(_lockIndexes, _allocator);
 
             _hashes.Dispose();

@@ -50,7 +50,7 @@ namespace DesertImage.Collections
             Length = length;
 
             _elementSize = UnsafeUtility.SizeOf<T>();
-            Data = (T*)UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
+            Data = (T*)UnsafeUtility.Malloc(length * _elementSize, UnsafeUtility.AlignOf<T>(), allocator);
             _allocator = allocator;
 
             for (var i = 0; i < length; i++)
@@ -79,13 +79,6 @@ namespace DesertImage.Collections
             Length = length;
 
             return this;
-        }
-
-        public UnsafeArray<T> ResizeToNew(int newSize)
-        {
-            var target = new UnsafeArray<T>(newSize, true, _allocator);
-            CopyTo(target);
-            return target;
         }
 
         public void Clear()

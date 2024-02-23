@@ -4,7 +4,7 @@ namespace DesertImage.ECS
 {
     public unsafe struct ExecuteSystemWrapper
     {
-        public Matcher Matcher;
+        public ushort MatcherId;
         [NativeDisableUnsafePtrRestriction] public void* Value;
         [NativeDisableUnsafePtrRestriction] public void* MethodPtr;
     }

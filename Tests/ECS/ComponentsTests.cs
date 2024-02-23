@@ -103,7 +103,7 @@ namespace DesertImage.ECS
 
             firstValue = firstEntity.GetStatic<TestStaticValueComponent>().Value;
             secondValue = secondEntity.GetStatic<TestStaticValueComponent>().Value;
-            
+
             var thirdResult = firstValue == secondValue;
 
             world.Dispose();
@@ -111,6 +111,25 @@ namespace DesertImage.ECS
             Assert.IsTrue(firstResult);
             Assert.IsTrue(secondResult);
             Assert.IsTrue(thirdResult);
+        }
+
+        [Test]
+        public void ComponentStorageManyEntities()
+        {
+            const int componentsCapacity = 512;
+            const int entitiesCapacity = 256;
+
+            const int entitiesCount = 100_000;
+
+            var storage = new ComponentStorage(entitiesCapacity, componentsCapacity);
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                storage.Write((uint)i, new TestValueComponent());
+                storage.Get<TestValueComponent>(ComponentTools.GetComponentId<TestValueComponent>(), (uint)i);
+            }
+
+            storage.Dispose();
         }
     }
 }

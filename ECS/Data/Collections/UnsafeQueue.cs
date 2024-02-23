@@ -9,7 +9,7 @@ namespace DesertImage.Collections
     {
         public int Count { get; private set; }
 
-        private T* _ptr;
+        [NativeDisableUnsafePtrRestriction] private T* _ptr;
         private int _lockIndex;
 
         private long _size;

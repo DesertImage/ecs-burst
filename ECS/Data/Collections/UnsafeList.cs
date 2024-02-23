@@ -16,7 +16,7 @@ namespace DesertImage.Collections
 
         public int Count { get; private set; }
 
-        private T* _data;
+        [NativeDisableUnsafePtrRestriction] private T* _data;
         private int _capacity;
         private long _size;
         private Allocator _allocator;
@@ -71,6 +71,7 @@ namespace DesertImage.Collections
         {
             _data[index] = default;
             MemoryUtility.ShiftLeft(ref _data, index, _capacity);
+            Count--;
         }
 
         public void Clear()

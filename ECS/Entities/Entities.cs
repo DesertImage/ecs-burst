@@ -10,7 +10,7 @@ namespace DesertImage.ECS
             var pool = state->EntitiesPool;
             var id = pool.Count > 0 ? pool.Dequeue() : ++state->EntityIdCounter;
 
-            state->AliveEntities.Add((int)id, id);
+            state->AliveEntities.Set((int)id, id);
             Groups.OnEntityCreated(id, state);
 
             return new Entity(id, world.Id);
