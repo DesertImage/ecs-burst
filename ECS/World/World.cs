@@ -1,5 +1,3 @@
-using DesertImage.Collections;
-using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.ECS
@@ -11,24 +9,40 @@ namespace DesertImage.ECS
         [NativeDisableUnsafePtrRestriction] public readonly WorldState* State;
         [NativeDisableUnsafePtrRestriction] public readonly SystemsState* SystemsState;
 
-        private static uint _entityIdCounter;
+        //TODO: refactor
+        private ObjectReference<ModuleProvider> _moduleProvider;
 
         public World(byte id)
         {
             Id = id;
 
             State = MemoryUtility.Allocate(new WorldState(512, 1024));
-            SystemsState = MemoryUtility.Allocate
-            (
-                new SystemsState
-                {
-                    EarlyMainThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
-                    MultiThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
-                    LateMainThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent),
-                    SystemsHash = new UnsafeUintSparseSet<uint>(20)
-                }
-            );
+            SystemsState = MemoryUtility.Allocate(new SystemsState(20));
+
+            _moduleProvider = default;
         }
+
+        public World(byte id, ModuleProvider moduleProvider)
+        {
+            Id = id;
+
+            State = MemoryUtility.Allocate(new WorldState(512, 1024));
+            SystemsState = MemoryUtility.Allocate(new SystemsState(20));
+
+            _moduleProvider = moduleProvider;
+        }
+
+        public World(byte id, int componentsCapacity, int entitiesCapacity)
+        {
+            Id = id;
+
+            State = MemoryUtility.Allocate(new WorldState(componentsCapacity, entitiesCapacity));
+            SystemsState = MemoryUtility.Allocate(new SystemsState(20));
+
+            _moduleProvider = default;
+        }
+
+        public T GetModule<T>() => _moduleProvider.Value.Get<T>();
 
         public void Dispose()
         {

@@ -31,12 +31,14 @@ namespace DesertImage.ECS.Editor
                 storage.Get<Object>(ref tempId, evt.newValue);
 
                 var prop = property.serializedObject.FindProperty(id.propertyPath);
-                // prop.serializedObject.Update();
+                prop.serializedObject.Update();
                 id.uintValue = tempId;
                 prop.serializedObject.ApplyModifiedProperties();
                 prop.serializedObject.Update();
             });
 
+            container.Add(objectField);
+            
             return container;
         }
     }

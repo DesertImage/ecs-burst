@@ -1,7 +1,9 @@
-using UnityEngine;
+using System;
+using Object = UnityEngine.Object;
 
 namespace DesertImage.ECS
 {
+    [Serializable]
     public struct ObjectReference<T> where T : Object
     {
         public uint Id;

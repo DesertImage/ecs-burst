@@ -20,13 +20,13 @@ namespace DesertImage.ECS
             [NativeDisableUnsafePtrRestriction] public World* World;
 
             public void Execute(int index) => Method.Invoke(Wrapper, Data._dense[index], World, DeltaTime);
-            
+
             // public void Execute()
             // {
-                // for (var i = 0; i < Data._denseCapacity; i++)
-                // {
-                //     Method.Invoke(Wrapper, Data._dense[i], World, DeltaTime);
-                // }
+            // for (var i = 0; i < Data._denseCapacity; i++)
+            // {
+            //     Method.Invoke(Wrapper, Data._dense[i], World, DeltaTime);
+            // }
             // }
         }
 
@@ -170,8 +170,6 @@ namespace DesertImage.ECS
         {
             var systemsState = world->SystemsState;
 
-            systemsState->DeltaTime = deltaTime;
-
             for (var i = 0; i < systems.Count; i++)
             {
                 var systemData = systems[i];
@@ -186,7 +184,8 @@ namespace DesertImage.ECS
                     Data = entities,
                     Wrapper = wrapper,
                     Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
-                    World = world
+                    World = world,
+                    DeltaTime = deltaTime
                 };
 
                 systemsState->Handle = executeJob.Schedule(entities.Count, 128, systemsState->Handle);

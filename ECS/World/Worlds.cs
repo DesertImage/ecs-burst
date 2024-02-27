@@ -39,6 +39,24 @@ namespace DesertImage.ECS
 
             return *world;
         }
+        
+        public static World Create(ModuleProvider moduleProvider)
+        {
+            if (!_isInitialized)
+            {
+                Initialize();
+            }
+
+            var id = GetNextWorldId();
+
+            WorldsCounter.Counter.Data++;
+
+            var world = MemoryUtility.Allocate(new World(id));
+
+            WorldsStorage.Worlds.Data[id] = (IntPtr)world;
+
+            return *world;
+        }
 
         public static World Get(ushort id) => *GetPtr(id);
         internal static World* GetPtr(ushort id) => (World*)WorldsStorage.Worlds.Data[id];

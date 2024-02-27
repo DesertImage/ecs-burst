@@ -125,6 +125,9 @@ namespace DesertImage.ECS
                     _entityComponents[entityIndex][componentIndex] = true;
                 }
 
+#if UNITY_EDITOR
+                ComponentsDebug.Add(entityId, data);
+#endif
                 UnsafeUtility.WriteArrayElement(_data + idOffset, entityIndex, data);
             }
             _lockIndexes[componentIndex].Unlock();
@@ -132,6 +135,9 @@ namespace DesertImage.ECS
 
         public void ClearEntityComponents(uint entityId)
         {
+#if UNITY_EDITOR
+            ComponentsDebug.RemoveAll(entityId);
+#endif
 #if DEBUG
             if (entityId >= _entitiesCapacity)
             {
@@ -158,6 +164,9 @@ namespace DesertImage.ECS
         {
             var componentIndex = (int)componentId;
 
+#if UNITY_EDITOR
+            ComponentsDebug.Remove(entityId, componentId);
+#endif
 #if DEBUG
             if (componentIndex >= _capacity)
             {

@@ -1,5 +1,6 @@
 using System;
 using DesertImage.Collections;
+using Unity.Collections;
 using Unity.Jobs;
 
 namespace DesertImage.ECS
@@ -11,9 +12,17 @@ namespace DesertImage.ECS
         public UnsafeList<ExecuteSystemData> MultiThreadSystems;
         public UnsafeUintSparseSet<uint> SystemsHash;
 
-        public float DeltaTime;
-
         public JobHandle Handle;
+
+        public SystemsState(int capacity)
+        {
+            EarlyMainThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent);
+            MultiThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent);
+            LateMainThreadSystems = new UnsafeList<ExecuteSystemData>(20, Allocator.Persistent);
+            SystemsHash = new UnsafeUintSparseSet<uint>(20);
+
+            Handle = default;
+        }
 
         public void Dispose()
         {
