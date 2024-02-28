@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace DesertImage.Assets
 {
@@ -16,7 +15,7 @@ namespace DesertImage.Assets
     {
         public Dictionary<TId, TItem>.ValueCollection Values => _storage.Values;
         
-        internal List<LibraryNode<TId, TItem>> Nodes;
+        public List<LibraryNode<TId, TItem>> Nodes;
 
         private readonly Dictionary<TId, TItem> _storage = new Dictionary<TId, TItem>();
 

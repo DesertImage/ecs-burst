@@ -12,3 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad6894f903b34544ae0015b9d1466877, type: 3}
   m_Name: New Object Library
   m_EditorClassIdentifier: 
+  Nodes:
+  - Id: 0
+    Value: {fileID: 882505063754682726, guid: dc8aac717f3e348fea14e8e10fca820d, type: 3}

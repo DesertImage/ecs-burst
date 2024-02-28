@@ -24,10 +24,7 @@ namespace DesertImage.ECS
 
         public static World Create()
         {
-            if (!_isInitialized)
-            {
-                Initialize();
-            }
+            if (!_isInitialized) Initialize();
 
             var id = GetNextWorldId();
 
@@ -39,19 +36,16 @@ namespace DesertImage.ECS
 
             return *world;
         }
-        
+
         public static World Create(ModuleProvider moduleProvider)
         {
-            if (!_isInitialized)
-            {
-                Initialize();
-            }
+            if (!_isInitialized) Initialize();
 
             var id = GetNextWorldId();
 
             WorldsCounter.Counter.Data++;
 
-            var world = MemoryUtility.Allocate(new World(id));
+            var world = MemoryUtility.Allocate(new World(id, moduleProvider));
 
             WorldsStorage.Worlds.Data[id] = (IntPtr)world;
 

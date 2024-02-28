@@ -8,6 +8,7 @@ namespace DesertImage.ECS
         protected World World;
 
         [SerializeField] private List<ScriptableObject> modules;
+
         private readonly Dictionary<int, object> _allModules = new Dictionary<int, object>();
         private readonly List<IUpdate> _updatables = new List<IUpdate>();
         private readonly List<IDestroy> _destroyables = new List<IDestroy>();
@@ -42,14 +43,16 @@ namespace DesertImage.ECS
 
         protected virtual void Initialize()
         {
-            AddModules(modules);
+            InitModules();
             InitSystems();
         }
+
+        protected virtual void InitModules() => AddModules(modules);
 
         protected abstract void InitSystems();
 
 
-        private void AddModule<T>(T module) where T : class
+        protected void AddModule<T>(T module) where T : class
         {
             if (module is IAwake awakable) awakable.OnAwake(in World);
             if (module is IUpdate updatable) _updatables.Add(updatable);

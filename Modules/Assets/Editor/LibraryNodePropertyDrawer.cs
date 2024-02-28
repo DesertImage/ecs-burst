@@ -36,7 +36,7 @@ namespace DesertImage.Assets.Editor
             {
                 objectType = arguments.GenericTypeArguments[1],
                 allowSceneObjects = false,
-                value = obj?.objectReferenceValue,
+                value = obj.objectReferenceValue,
                 style =
                 {
                     flexGrow = 1f
@@ -48,16 +48,17 @@ namespace DesertImage.Assets.Editor
                 evt =>
                 {
                     if (evt.newValue == evt.previousValue) return;
-                    objectField.value = evt.newValue;
 
-                    property.serializedObject.ApplyModifiedProperties();
-                    property.serializedObject.Update();
+                    obj.objectReferenceValue = evt.newValue;
+
+                    obj.serializedObject.ApplyModifiedProperties();
+                    obj.serializedObject.Update();
                 }
             );
 
             container.Add(propertyField);
+            container.Add(new ToolbarSpacer());
             container.Add(objectField);
-
 
             return container;
         }

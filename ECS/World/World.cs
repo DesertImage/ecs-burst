@@ -42,7 +42,7 @@ namespace DesertImage.ECS
             _moduleProvider = default;
         }
 
-        public T GetModule<T>() => _moduleProvider.Value.Get<T>();
+        public readonly T GetModule<T>() => _moduleProvider.Value.Get<T>();
 
         public void Dispose()
         {

@@ -1,3 +1,4 @@
 {
-	"name": "DesertImage.Assets"
+	"name": "DesertImage.Assets",
+	"references":[ "GUID:0a417c5664a314e70870df1ee44a5bfd" ]
 }
