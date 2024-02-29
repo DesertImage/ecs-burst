@@ -86,6 +86,11 @@ namespace DesertImage.Collections
             if (key >= _sparseCapacity)
             {
                 var newSparseCapacity = _sparseCapacity << 1;
+                if (newSparseCapacity <= key)
+                {
+                    newSparseCapacity = key + 1;
+                }
+                
                 MemoryUtility.Resize(ref _sparse, _sparseCapacity, newSparseCapacity);
                 _sparseCapacity = newSparseCapacity;
             }
