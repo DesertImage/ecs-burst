@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Burst;
 
 namespace DesertImage.ECS
 {
@@ -8,6 +9,7 @@ namespace DesertImage.ECS
 #if UNITY_EDITOR
         public static readonly Dictionary<uint, object[]> Components = new Dictionary<uint, object[]>();
 
+        [BurstDiscard]
         public static void Add<T>(uint entityId, T component) where T : struct
         {
             var componentId = ComponentTools.GetComponentId<T>();
@@ -29,6 +31,7 @@ namespace DesertImage.ECS
             }
         }
 
+        [BurstDiscard]
         public static void Remove<T>(uint entityId) where T : struct
         {
             var componentId = ComponentTools.GetComponentId<T>();
@@ -40,6 +43,7 @@ namespace DesertImage.ECS
             }
         }
 
+        [BurstDiscard]
         public static void Remove(uint entityId, uint componentId)
         {
             if (!Components.TryGetValue(entityId, out var components)) return;
@@ -49,6 +53,7 @@ namespace DesertImage.ECS
             }
         }
 
+        [BurstDiscard]
         public static void RemoveAll(uint entityId)
         {
             if (!Components.TryGetValue(entityId, out var components)) return;
