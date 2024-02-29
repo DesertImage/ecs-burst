@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "DesertImage.ECS",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "DesertImage.Assets"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

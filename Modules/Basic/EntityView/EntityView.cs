@@ -1,8 +1,9 @@
+using DesertImage.Assets;
 using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public class EntityView : MonoBehaviour
+    public class EntityView : MonoBehaviourPoolable
     {
         public Entity Entity { get; private set; }
 
