@@ -1,27 +1,38 @@
 using System;
 using DesertImage.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.ECS
 {
     [Serializable]
-    public struct EntitiesGroup : IDisposable, IEquatable<EntitiesGroup>
+    public unsafe struct EntitiesGroup : IDisposable, IEquatable<EntitiesGroup>
     {
         public readonly ushort Id;
 
-        public UnsafeUintSparseSet<uint> Entities;
+        public int Count => _entities->Count;
+
+        [NativeDisableUnsafePtrRestriction] private UnsafeUintSparseSet<uint>* _entities;
 
         public EntitiesGroup(ushort id)
         {
             Id = id;
-            Entities = new UnsafeUintSparseSet<uint>(50, ECSSettings.ComponentsEntitiesCapacity);
+            _entities = MemoryUtility.Allocate
+            (
+                new UnsafeUintSparseSet<uint>(50, ECSSettings.ComponentsEntitiesCapacity)
+            );
         }
 
-        public void Add(uint entityId) => Entities.Set(entityId, entityId);
+        public void Add(uint entityId) => _entities->Set(entityId, entityId);
+        public void Remove(uint entityId) => _entities->Remove(entityId);
+        public bool Contains(uint entityId) => _entities->Contains(entityId);
 
-        public void Remove(uint entityId) => Entities.Remove(entityId);
-        public bool Contains(uint entityId) => Entities.Contains(entityId);
+        public void Dispose()
+        {
+            _entities->Dispose();
+            MemoryUtility.Free(_entities);
+        }
 
-        public readonly void Dispose() => Entities.Dispose();
+        public uint GetEntityId(int index) => _entities->_dense[index];
 
         public bool Equals(EntitiesGroup other) => Id == other.Id;
         public override bool Equals(object obj) => obj is EntitiesGroup other && Equals(other);

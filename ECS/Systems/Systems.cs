@@ -4,30 +4,31 @@ using DesertImage.Collections;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
+using UnityEngine;
 
 namespace DesertImage.ECS
 {
     public static unsafe class Systems
     {
         [BurstCompile]
-        private struct ExecuteSystemJob : IJobParallelFor
+        private struct ExecuteSystemJob : IJob
         {
-            public UnsafeUintSparseSet<uint> Data;
+            public EntitiesGroup Group;
             public FunctionPointer<SystemsTools.Execute> Method;
             public float DeltaTime;
 
             [NativeDisableUnsafePtrRestriction] public ExecuteSystemWrapper* Wrapper;
             [NativeDisableUnsafePtrRestriction] public World* World;
 
-            public void Execute(int index) => Method.Invoke(Wrapper, Data._dense[index], World, DeltaTime);
+            public void Execute(int index) => Method.Invoke(Wrapper, Group.GetEntityId(index), World, DeltaTime);
 
-            // public void Execute()
-            // {
-            // for (var i = 0; i < Data._denseCapacity; i++)
-            // {
-            //     Method.Invoke(Wrapper, Data._dense[i], World, DeltaTime);
-            // }
-            // }
+            public void Execute()
+            {
+                for (var i = 0; i < Group.Count; i++)
+                {
+                    Method.Invoke(Wrapper, Group.GetEntityId(i), World, DeltaTime);
+                }
+            }
         }
 
         public static void Add<T>(in World world, ExecutionType type) where T : unmanaged, ISystem
@@ -158,9 +159,9 @@ namespace DesertImage.ECS
 
                 var group = Groups.GetSystemGroup(systemData.Id, *world);
 
-                for (uint j = 0; j < group.Entities.Count; j++)
+                for (var j = 0; j < group.Count; j++)
                 {
-                    var entityId = group.Entities._dense[j];
+                    var entityId = group.GetEntityId(j);
                     functionPointer.Invoke(wrapper, entityId, world, deltaTime);
                 }
             }
@@ -177,18 +178,17 @@ namespace DesertImage.ECS
                 var wrapper = systemData.Wrapper;
                 var group = Groups.GetSystemGroup(systemData.Id, *world);
 
-                var entities = group.Entities;
-
                 var executeJob = new ExecuteSystemJob
                 {
-                    Data = entities,
+                    Group = group,
                     Wrapper = wrapper,
                     Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
                     World = world,
                     DeltaTime = deltaTime
                 };
 
-                systemsState->Handle = executeJob.Schedule(entities.Count, 128, systemsState->Handle);
+                // systemsState->Handle = executeJob.Schedule(group.Count, 128, systemsState->Handle);
+                systemsState->Handle = executeJob.Schedule(systemsState->Handle);
             }
 
             systemsState->Handle.Complete();

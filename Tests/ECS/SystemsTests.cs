@@ -54,6 +54,26 @@ namespace DesertImage.ECS.Tests
         }
 
         [Test]
+        public void SystemExecuteRemove()
+        {
+            var world = Worlds.Create();
+
+            var entity = world.GetNewEntity();
+
+            entity.Replace(new TestValueComponent { Value = 2 });
+
+            const ExecutionType executionType = ExecutionType.MultiThread;
+            world.Add<TestValueRemoveSystem>(executionType);
+            world.Add<TestValueSystem>(executionType);
+
+            world.Tick(.1f);
+
+            var firstResult = entity.Has<TestValueComponent>();
+
+            world.Dispose();
+        }
+
+        [Test]
         public void ExecutionTypeBenchmark()
         {
             const int entitiesCount = 50_000;
