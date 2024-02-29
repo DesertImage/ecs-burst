@@ -84,7 +84,7 @@ namespace DesertImage.ECS
                 var elementSize = MemoryUtility.SizeOf<T>();
                 var subArraySize = elementSize * _entitiesCapacity;
 
-                var idOffset = isNewId ? _offsets[componentIndex] : 0;
+                var idOffset = isNewId ? 0 : _offsets[componentIndex];
 
                 var entityIndex = (int)entityId;
 
