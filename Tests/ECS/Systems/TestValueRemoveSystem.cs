@@ -1,6 +1,6 @@
 ﻿namespace DesertImage.ECS
 {
-    public struct TestValueSecondSystem : ICalculateSystem
+    public struct TestValueRemoveSystem : IExecuteSystem
     {
         public Matcher Matcher => MatcherBuilder.Create()
             .With<TestValueComponent>()
@@ -9,8 +9,10 @@
 
         public void Execute(Entity entity, World world, float deltaTime)
         {
-            ref var testValueComponent = ref entity.Get<TestValueComponent>();
-            testValueComponent.Value++;
+            var testValueComponent = entity.Read<TestValueComponent>();
+            if (testValueComponent.Value < 2) return;
+
+            entity.Remove<TestValueComponent>();
         }
     }
 }

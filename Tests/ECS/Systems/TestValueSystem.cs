@@ -1,6 +1,8 @@
-﻿namespace DesertImage.ECS
+﻿using UnityEngine;
+
+namespace DesertImage.ECS
 {
-    public struct TestValueSystem : IExecuteSystem
+    public struct TestValueSystem : ICalculateSystem
     {
         public Matcher Matcher => MatcherBuilder.Create()
             .With<TestValueComponent>()
@@ -9,6 +11,12 @@
 
         public void Execute(Entity entity, World world, float deltaTime)
         {
+            if (!entity.Has<TestValueComponent>())
+            {
+                Debug.Log("WRONG");
+                return;
+            }
+
             ref var testValueComponent = ref entity.Get<TestValueComponent>();
             testValueComponent.Value++;
         }

@@ -1,5 +1,6 @@
 using DesertImage.Collections;
 using Unity.Collections;
+using UnityEngine;
 
 namespace DesertImage.ECS
 {
@@ -119,7 +120,7 @@ namespace DesertImage.ECS
                 var matcherId = state->GroupToMatcher[groupId];
                 var matcher = state->Matchers.Get(matcherId);
 
-                if(!matcher.Components.Contains(componentId)) continue;
+                if (!matcher.Components.Contains(componentId)) continue;
                 if (matcher.Check(entity)) continue;
 
                 i--;
@@ -130,9 +131,9 @@ namespace DesertImage.ECS
             for (var i = 0; i < componentGroups.Count; i++)
             {
                 var groupId = componentGroups[i];
-                
-                if(IsGroupContainsEntity(groupId, entityId, state)) continue;
-                
+
+                if (IsGroupContainsEntity(groupId, entityId, state)) continue;
+
                 var matcherId = state->GroupToMatcher[groupId];
                 var matcher = state->Matchers.Get(matcherId);
 
@@ -152,7 +153,7 @@ namespace DesertImage.ECS
                 var matcherId = state->GroupToMatcher[groupId];
                 var matcher = state->Matchers.Get(matcherId);
 
-                if(!matcher.Components.Contains(componentId)) continue;
+                if (!matcher.Components.Contains(componentId)) continue;
                 if (matcher.Check(entity)) continue;
 
                 i--;
@@ -163,8 +164,8 @@ namespace DesertImage.ECS
             for (var i = 0; i < componentGroups.Count; i++)
             {
                 var groupId = componentGroups[i];
-                
-                if(IsGroupContainsEntity(groupId, entityId, state)) continue;
+
+                if (IsGroupContainsEntity(groupId, entityId, state)) continue;
 
                 var matcherId = state->GroupToMatcher[groupId];
                 var matcher = state->Matchers.Get(matcherId);

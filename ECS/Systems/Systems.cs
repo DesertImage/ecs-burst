@@ -10,24 +10,41 @@ namespace DesertImage.ECS
     public static unsafe class Systems
     {
         [BurstCompile]
-        private struct ExecuteSystemJob : IJobParallelFor
+        private struct ExecuteJob : IJob
         {
-            public UnsafeUintSparseSet<uint> Data;
+            public EntitiesGroup Group;
             public FunctionPointer<SystemsTools.Execute> Method;
             public float DeltaTime;
 
             [NativeDisableUnsafePtrRestriction] public ExecuteSystemWrapper* Wrapper;
             [NativeDisableUnsafePtrRestriction] public World* World;
 
-            public void Execute(int index) => Method.Invoke(Wrapper, Data._dense[index], World, DeltaTime);
+            public void Execute(int index) => Method.Invoke(Wrapper, Group.GetEntityId(index), World, DeltaTime);
 
-            // public void Execute()
-            // {
-            // for (var i = 0; i < Data._denseCapacity; i++)
-            // {
-            //     Method.Invoke(Wrapper, Data._dense[i], World, DeltaTime);
-            // }
-            // }
+            public void Execute()
+            {
+                for (var i = Group.Count - 1; i >= 0; i--)
+                {
+                    Method.Invoke(Wrapper, Group.GetEntityId(i), World, DeltaTime);
+                }
+            }
+        }
+
+        [BurstCompile]
+        private struct ExecuteParallelForJob : IJobParallelFor
+        {
+            public EntitiesGroup Group;
+            public FunctionPointer<SystemsTools.Execute> Method;
+            public float DeltaTime;
+
+            [NativeDisableUnsafePtrRestriction] public ExecuteSystemWrapper* Wrapper;
+            [NativeDisableUnsafePtrRestriction] public World* World;
+
+            public void Execute(int index)
+            {
+                if(index >= Group.Count) return;
+                Method.Invoke(Wrapper, Group.GetEntityId(index), World, DeltaTime);
+            }
         }
 
         public static void Add<T>(in World world, ExecutionType type) where T : unmanaged, ISystem
@@ -158,9 +175,9 @@ namespace DesertImage.ECS
 
                 var group = Groups.GetSystemGroup(systemData.Id, *world);
 
-                for (uint j = 0; j < group.Entities.Count; j++)
+                for (var j = group.Count - 1; j >= 0; j--)
                 {
-                    var entityId = group.Entities._dense[j];
+                    var entityId = group.GetEntityId(j);
                     functionPointer.Invoke(wrapper, entityId, world, deltaTime);
                 }
             }
@@ -177,18 +194,31 @@ namespace DesertImage.ECS
                 var wrapper = systemData.Wrapper;
                 var group = Groups.GetSystemGroup(systemData.Id, *world);
 
-                var entities = group.Entities;
-
-                var executeJob = new ExecuteSystemJob
+                if (wrapper->IsCalculateSystem == 1)
                 {
-                    Data = entities,
-                    Wrapper = wrapper,
-                    Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
-                    World = world,
-                    DeltaTime = deltaTime
-                };
+                    var job = new ExecuteParallelForJob
+                    {
+                        Group = group,
+                        Wrapper = wrapper,
+                        Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
+                        World = world,
+                        DeltaTime = deltaTime
+                    };
+                    systemsState->Handle = job.Schedule(group.Count, 128, systemsState->Handle);
+                }
+                else
+                {
+                    var job = new ExecuteJob
+                    {
+                        Group = group,
+                        Wrapper = wrapper,
+                        Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
+                        World = world,
+                        DeltaTime = deltaTime
+                    };
 
-                systemsState->Handle = executeJob.Schedule(entities.Count, 128, systemsState->Handle);
+                    systemsState->Handle = job.Schedule(systemsState->Handle);
+                }
             }
 
             systemsState->Handle.Complete();
@@ -203,19 +233,13 @@ namespace DesertImage.ECS
 
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
             wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
+            wrapper->IsCalculateSystem = (byte)(typeof(ICalculateSystem).IsAssignableFrom(typeof(T)) ? 1 : 0);
 
             var matcherId = Groups.GetSystemMatcherId(systemId, world);
-            if (matcherId > 0)
-            {
-                wrapper->MatcherId = matcherId;
-            }
-            else
+            if (matcherId <= 0)
             {
                 var matcher = (*(T*)wrapperPtr).Matcher;
-
                 Groups.RegisterSystemMatcher(systemId, matcher, world);
-
-                wrapper->MatcherId = matcher.Id;
             }
 
             var state = world.SystemsState;

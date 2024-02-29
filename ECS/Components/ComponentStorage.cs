@@ -114,7 +114,7 @@ namespace DesertImage.ECS
                     throw new Exception("out of array memory");
                 }
 #endif
-                if (_entityComponents[entityIndex].IsNull)
+                if (!_entityComponents[entityIndex].IsNotNull)
                 {
                     var components = new UnsafeArray<bool>(_capacity, true, _allocator);
                     components[componentIndex] = true;
@@ -146,7 +146,7 @@ namespace DesertImage.ECS
 #endif
             var entityComponents = _entityComponents[(int)entityId];
 
-            if (entityComponents.IsNull) return;
+            if (!entityComponents.IsNotNull) return;
 
             for (var i = 0; i < entityComponents.Length; i++)
             {
@@ -270,7 +270,7 @@ namespace DesertImage.ECS
             }
 #endif
             var components = _entityComponents[(int)entityId];
-            return !components.IsNull && components[(int)componentId];
+            return components.IsNotNull && components[(int)componentId];
         }
 
         public void Dispose()
