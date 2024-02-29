@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using NUnit.Framework;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
@@ -11,7 +12,7 @@ namespace DesertImage.Collections
     [DebuggerTypeProxy(typeof(UnsafeArrayDebugView<>))]
     public unsafe struct UnsafeArray<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
-        public bool IsNull => Data == null;
+        public bool IsNotNull { get; private set; }
 
         public int Length { get; private set; }
 
@@ -28,6 +29,8 @@ namespace DesertImage.Collections
             Data = (T*)UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
 
             _allocator = allocator;
+
+            IsNotNull = true;
         }
 
         public UnsafeArray(int length, bool clearMemory, Allocator allocator) : this()
@@ -43,6 +46,8 @@ namespace DesertImage.Collections
             if (!clearMemory) return;
 
             UnsafeUtility.MemClear(Data, fullSize);
+            
+            IsNotNull = true;
         }
 
         public UnsafeArray(int length, Allocator allocator, T defaultValue) : this()
@@ -57,6 +62,8 @@ namespace DesertImage.Collections
             {
                 Data[i] = defaultValue;
             }
+            
+            IsNotNull = true;
         }
 
         public UnsafeArray<T> Resize(int length, bool clear = true)
@@ -91,7 +98,13 @@ namespace DesertImage.Collections
             UnsafeUtility.MemCpy(target.Data, Data, Length * _elementSize);
         }
 
-        public readonly void Dispose() => UnsafeUtility.Free(Data, _allocator);
+        public readonly void Dispose()
+        {
+#if DEBUG
+            if (Data == null) throw new NullReferenceException();
+#endif
+            UnsafeUtility.Free(Data, _allocator);
+        }
 
         public T[] ToArray()
         {

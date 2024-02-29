@@ -19,6 +19,7 @@ namespace DesertImage.ECS
                 }
 
                 components[componentId] = component;
+                Components[entityId] = components;
             }
             else
             {
@@ -42,7 +43,7 @@ namespace DesertImage.ECS
         public static void Remove(uint entityId, uint componentId)
         {
             if (!Components.TryGetValue(entityId, out var components)) return;
-            if (components.Length < componentId)
+            if (components.Length > componentId)
             {
                 components[componentId] = null;
             }

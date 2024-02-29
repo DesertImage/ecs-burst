@@ -219,8 +219,6 @@ namespace DesertImage.ECS
 
         private static void EntityRemove(uint entityId, ushort groupId, WorldState* state)
         {
-            Debug.Log($"Remove enitity {entityId} from group: {groupId}");
-
             state->EntityToGroups.Get(entityId).Remove(groupId);
             state->Groups.Get(groupId).Remove(entityId);
         }

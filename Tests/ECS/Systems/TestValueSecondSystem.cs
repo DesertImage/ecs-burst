@@ -1,6 +1,6 @@
 ﻿namespace DesertImage.ECS
 {
-    public struct TestValueSecondSystem : IExecuteSystem
+    public struct TestValueSecondSystem : ICalculateSystem
     {
         public Matcher Matcher => MatcherBuilder.Create()
             .With<TestValueComponent>()

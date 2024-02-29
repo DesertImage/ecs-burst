@@ -2,7 +2,7 @@
 
 namespace DesertImage.ECS
 {
-    public struct TestValueSystem : IExecuteSystem
+    public struct TestValueSystem : ICalculateSystem
     {
         public Matcher Matcher => MatcherBuilder.Create()
             .With<TestValueComponent>()
@@ -14,7 +14,6 @@ namespace DesertImage.ECS
             if (!entity.Has<TestValueComponent>())
             {
                 Debug.Log("WRONG");
-                // Assert.IsTrue(false);
                 return;
             }
 

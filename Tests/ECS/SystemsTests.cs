@@ -2,7 +2,6 @@ using System.Diagnostics;
 using DesertImage.Collections;
 using NUnit.Framework;
 using Unity.Collections;
-using Unity.Jobs;
 using Debug = UnityEngine.Debug;
 
 namespace DesertImage.ECS.Tests
@@ -60,15 +59,14 @@ namespace DesertImage.ECS.Tests
 
             var entity = world.GetNewEntity();
 
-            entity.Replace(new TestValueComponent { Value = 2 });
+            entity.Replace(new TestValueComponent { Value = 1 });
 
             const ExecutionType executionType = ExecutionType.MultiThread;
             world.Add<TestValueRemoveSystem>(executionType);
             world.Add<TestValueSystem>(executionType);
 
             world.Tick(.1f);
-
-            var firstResult = entity.Has<TestValueComponent>();
+            world.Tick(.1f);
 
             world.Dispose();
         }
@@ -133,8 +131,9 @@ namespace DesertImage.ECS.Tests
                 entity.Replace<TestValueComponent>();
             }
 
-            world.Add<TestValueSystem>(ExecutionType.EarlyMainThread);
-            world.Add<TestValueSecondSystem>(ExecutionType.EarlyMainThread);
+            const ExecutionType executionType = ExecutionType.MultiThread;
+            world.Add<TestValueSystem>(executionType);
+            world.Add<TestValueSecondSystem>(executionType);
 
             world.Tick(.1f);
 
@@ -145,7 +144,7 @@ namespace DesertImage.ECS.Tests
                 results[i] = component.Value;
             }
 
-            world.Add<TestValueThirdSystem>(ExecutionType.EarlyMainThread);
+            world.Add<TestValueThirdSystem>(executionType);
 
             world.Tick(.1f);
             world.Tick(.1f);
