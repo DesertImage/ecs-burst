@@ -13,6 +13,8 @@ namespace DesertImage.ECS
             Systems.Add<T>(world, type);
         }
 
+        public static void AddFeature<T>(this World world) where T : unmanaged, IFeature => new T().Link(world);
+
         public static void Remove<T>(this World world) where T : unmanaged, ISystem
         {
             Systems.Remove<T>(world.SystemsState);
