@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using DesertImage.Collections;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
@@ -171,7 +172,7 @@ namespace DesertImage.ECS
                 var systemData = systems[i];
 
                 var wrapper = systemData.Wrapper;
-                var functionPointer = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
+                var functionPointer = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
 
                 var group = Groups.GetSystemGroup(systemData.Id, *world);
 
@@ -232,7 +233,7 @@ namespace DesertImage.ECS
             var systemId = SystemsTools.GetId<T>();
 
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
-            wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
+            wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod(type == ExecutionType.MultiThread);
             wrapper->IsCalculateSystem = (byte)(typeof(ICalculateSystem).IsAssignableFrom(typeof(T)) ? 1 : 0);
 
             var matcherId = Groups.GetSystemMatcherId(systemId, world);

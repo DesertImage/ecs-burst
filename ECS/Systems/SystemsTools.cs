@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using AOT;
 using Unity.Burst;
 
@@ -33,9 +34,11 @@ namespace DesertImage.ECS
     [BurstCompile]
     public static unsafe class SystemsToolsExecute<T> where T : unmanaged, IExecuteSystem
     {
-        public static void* MakeExecuteMethod()
+        public static void* MakeExecuteMethod(bool isBurst)
         {
-            return (void*)BurstCompiler.CompileFunctionPointer<SystemsTools.Execute>(MakeExecute).Value;
+            return isBurst
+                ? (void*)BurstCompiler.CompileFunctionPointer<SystemsTools.Execute>(MakeExecute).Value
+                : (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.Execute(MakeExecute));
         }
 
         [BurstCompile]
