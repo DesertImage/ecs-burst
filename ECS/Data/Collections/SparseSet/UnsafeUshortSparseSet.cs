@@ -110,8 +110,16 @@ namespace DesertImage.Collections
 #if DEBUG
             if (sparseIndex == 0) throw new IndexOutOfRangeException();
 #endif
-            _dense[sparseIndex - 1] = _dense[Count - 1];
-            _sparse[Count - 1] = sparseIndex;
+            if (Count > 1)
+            {
+                _dense[sparseIndex - 1] = _dense[Count - 1];
+                _sparse[Count - 1] = sparseIndex;
+            }
+            else
+            {
+                _dense[sparseIndex - 1] = default;
+            }
+            
             _sparse[key] = 0;
 
             Count--;
