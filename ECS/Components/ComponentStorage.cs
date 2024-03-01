@@ -70,7 +70,7 @@ namespace DesertImage.ECS
                 );
             }
 
-#if DEBUG
+#if DEBUG_MODE
             if (componentIndex >= _capacity)
             {
                 throw new IndexOutOfRangeException();
@@ -88,7 +88,7 @@ namespace DesertImage.ECS
 
                 var entityIndex = (int)entityId;
 
-#if DEBUG
+#if DEBUG_MODE
                 if (entityIndex >= _entitiesCapacity)
                 {
                     throw new IndexOutOfRangeException();
@@ -107,7 +107,7 @@ namespace DesertImage.ECS
                     _offsets[componentIndex] = idOffset;
                     _sizes[componentIndex] = elementSize;
                 }
-#if DEBUG
+#if DEBUG_MODE
                 if (idOffset >= _size)
                 {
                     _lockIndexes[componentIndex].Unlock();
@@ -138,7 +138,7 @@ namespace DesertImage.ECS
 #if UNITY_EDITOR
             ComponentsDebug.RemoveAll(entityId);
 #endif
-#if DEBUG
+#if DEBUG_MODE
             if (entityId >= _entitiesCapacity)
             {
                 throw new IndexOutOfRangeException();
@@ -167,7 +167,7 @@ namespace DesertImage.ECS
 #if UNITY_EDITOR
             ComponentsDebug.Remove(entityId, componentId);
 #endif
-#if DEBUG
+#if DEBUG_MODE
             if (componentIndex >= _capacity)
             {
                 throw new IndexOutOfRangeException();
@@ -188,7 +188,7 @@ namespace DesertImage.ECS
                 if (idOffset >= _size)
                 {
                     _lockIndexes[componentIndex].Unlock();
-#if DEBUG
+#if DEBUG_MODE
                     throw new Exception("out of array memory");
 #endif
                     return;
@@ -227,7 +227,7 @@ namespace DesertImage.ECS
         public T Read<T>(uint componentId, uint index) where T : unmanaged
         {
             var offset = _offsets[(int)componentId];
-#if DEBUG
+#if DEBUG_MODE
             if (index >= _entitiesCapacity)
             {
                 throw new IndexOutOfRangeException();
@@ -239,7 +239,7 @@ namespace DesertImage.ECS
         public ref T Get<T>(uint componentId, uint index) where T : unmanaged
         {
             var offset = _offsets[(int)componentId];
-#if DEBUG
+#if DEBUG_MODE
             if (index >= _entitiesCapacity)
             {
                 throw new IndexOutOfRangeException();
@@ -258,7 +258,7 @@ namespace DesertImage.ECS
 
         public bool Contains(uint entityId, uint componentId)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (entityId >= _entitiesCapacity)
             {
                 throw new IndexOutOfRangeException();

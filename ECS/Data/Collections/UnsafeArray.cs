@@ -68,7 +68,7 @@ namespace DesertImage.Collections
 
         public UnsafeArray<T> Resize(int length, bool clear = true)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (length < Length) throw new Exception("new length is less then original");
 #endif
             var oldData = Data;
@@ -100,7 +100,7 @@ namespace DesertImage.Collections
 
         public readonly void Dispose()
         {
-#if DEBUG
+#if DEBUG_MODE
             if (Data == null) throw new NullReferenceException();
 #endif
             UnsafeUtility.Free(Data, _allocator);

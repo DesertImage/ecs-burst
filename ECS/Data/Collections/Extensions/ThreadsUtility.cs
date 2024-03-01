@@ -6,13 +6,13 @@ namespace DesertImage.ECS
     {
         public static void Lock(this ref int lockIndex)
         {
-#if DEBUG
+#if DEBUG_MODE
             long triesCount = 0;
 #endif
             while (0 != Interlocked.CompareExchange(ref lockIndex, 1, 0))
             {
                 Unity.Burst.Intrinsics.Common.Pause();
-#if DEBUG
+#if DEBUG_MODE
                 triesCount++;
                 if (triesCount >= 1000000000)
                 {
@@ -29,13 +29,13 @@ namespace DesertImage.ECS
         {
             Interlocked.MemoryBarrier();
 
-#if DEBUG
+#if DEBUG_MODE
             long triesCount = 0;
 #endif
             while (1 != Interlocked.CompareExchange(ref lockIndex, 0, 1))
             {
                 Unity.Burst.Intrinsics.Common.Pause();
-#if DEBUG
+#if DEBUG_MODE
                 triesCount++;
                 if (triesCount >= 1000000000)
                 {

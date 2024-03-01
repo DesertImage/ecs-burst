@@ -57,12 +57,12 @@ namespace DesertImage.Collections
 
         public void Remove(TKey key)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
             if (!Contains(key))
             {
-#if DEBUG
+#if DEBUG_MODE
                 throw new Exception($"missing {key}");
 #else
                 return;
@@ -81,7 +81,7 @@ namespace DesertImage.Collections
 
         public bool Contains(TKey key)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
             if (Count == 0) return false;
@@ -93,7 +93,7 @@ namespace DesertImage.Collections
 
         public bool TryGetValue(TKey key, out TValue value)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
             value = default;
@@ -164,7 +164,7 @@ namespace DesertImage.Collections
 
         private void Insert(TKey key, TValue value)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
 
@@ -235,7 +235,7 @@ namespace DesertImage.Collections
 
         private void Replace(TKey key, TValue value)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
 

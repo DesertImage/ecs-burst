@@ -58,7 +58,7 @@ namespace DesertImage.Collections
         {
             if (!Contains(element))
             {
-#if DEBUG
+#if DEBUG_MODE
                 throw new Exception($"not contains {element}");
 #endif
                 return;

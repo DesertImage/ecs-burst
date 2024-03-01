@@ -112,7 +112,7 @@ namespace DesertImage.Collections
         {
             var sparseIndex = _sparse[key];
 
-#if DEBUG
+#if DEBUG_MODE
             if (sparseIndex == 0) throw new IndexOutOfRangeException();
 #endif
             if (Count > 1)

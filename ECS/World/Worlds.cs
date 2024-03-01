@@ -59,7 +59,7 @@ namespace DesertImage.ECS
         {
             if (WorldsCounter.Counter.Data == 0)
             {
-#if DEBUG
+#if DEBUG_MODE
                 throw new Exception("Words count is already 0");
 #endif
                 return;

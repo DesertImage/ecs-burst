@@ -58,7 +58,7 @@ namespace DesertImage.ECS
             {
                 if (_objects[index])
                 {
-#if DEBUG
+#if DEBUG_MODE
                     throw new Exception($"Storage already contains {obj}");
 #else
                  return;

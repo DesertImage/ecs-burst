@@ -57,13 +57,13 @@ namespace DesertImage.Collections
 
         public void Remove(T key)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
 
             if (!Contains(key))
             {
-#if DEBUG
+#if DEBUG_MODE
                 throw new Exception($"missing {key}");
 #endif
                 return;
@@ -82,7 +82,7 @@ namespace DesertImage.Collections
 
         public bool Contains(T key)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("HashSet is null");
 #endif
             if (Count == 0) return false;
@@ -141,7 +141,7 @@ namespace DesertImage.Collections
 
         private void Insert(T value)
         {
-#if DEBUG
+#if DEBUG_MODE
             if (!IsNotNull) throw new Exception("Dictionary is null");
 #endif
             var hashCode = value.GetHashCode();

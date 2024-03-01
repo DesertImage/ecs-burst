@@ -57,7 +57,7 @@ namespace DesertImage.ECS
 
             if (Contains<T>(state))
             {
-#if DEBUG
+#if DEBUG_MODE
                 throw new Exception($"system {systemType} already added");
 #endif
                 return;
@@ -117,7 +117,7 @@ namespace DesertImage.ECS
         {
             if (!Contains<T>(state))
             {
-#if DEBUG
+#if DEBUG_MODE
                 throw new Exception($"system {typeof(T)} haven't been added");
 #endif
                 return;

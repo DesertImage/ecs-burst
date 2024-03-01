@@ -9,7 +9,7 @@ namespace DesertImage.ECS
         {
             if (!Has<T>(entity, state))
             {
-#if DEBUG
+#if DEBUG_MODE
                 throw new Exception($"Entity {entity} has not {typeof(T).Name}");
 #else
                 return;
@@ -46,7 +46,7 @@ namespace DesertImage.ECS
             Entities.ThrowIfNotAlive(entity);
 
             var componentId = ComponentTools.GetComponentId<T>();
-#if DEBUG
+#if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
             {
                 throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
@@ -60,7 +60,7 @@ namespace DesertImage.ECS
             Entities.ThrowIfNotAlive(entity);
 
             var componentId = ComponentTools.GetComponentId<T>();
-#if DEBUG
+#if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
             {
                 throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
