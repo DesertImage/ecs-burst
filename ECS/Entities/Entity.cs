@@ -5,17 +5,17 @@ namespace DesertImage.ECS
 {
     [Serializable]
     [DebuggerTypeProxy(typeof(EntityDebugView))]
-    public struct Entity
+    public unsafe struct Entity
     {
         public readonly uint Id;
-        public readonly ushort WorldId;
+        public readonly World* World;
         
         internal byte IsAliveFlag;
 
-        public Entity(uint id, ushort worldId)
+        public Entity(uint id, World* world)
         {
             Id = id;
-            WorldId = worldId;
+            World = world;
             IsAliveFlag = 1;
         }
     }

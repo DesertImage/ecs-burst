@@ -46,7 +46,7 @@ namespace DesertImage.ECS
         private static void MakeExecute(void* wrapper, uint entityId, World* world, float deltaTime)
         {
             var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
-            ptr.Execute(new Entity(entityId, world->Id), *world, deltaTime);
+            ptr.Execute(new Entity(entityId, world), *world, deltaTime);
         }
     }
 }

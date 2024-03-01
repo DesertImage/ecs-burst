@@ -13,7 +13,7 @@ namespace DesertImage.ECS
             state->AliveEntities.Set((int)id, id);
             Groups.OnEntityCreated(id, state);
 
-            return new Entity(id, world.Id);
+            return new Entity(id, world.GetPtr());
         }
 
         internal static void DestroyEntity(in Entity entity, WorldState* state)
@@ -29,7 +29,7 @@ namespace DesertImage.ECS
             state->AliveEntities.Remove((int)entityId);
         }
 
-        internal static Entity GetEntity(uint id, in World world) => new Entity(id, world.Id);
+        internal static Entity GetEntity(uint id, in World world) => new Entity(id, world.GetPtr());
 
         internal static void ThrowIfNotAlive(in Entity entity)
         {

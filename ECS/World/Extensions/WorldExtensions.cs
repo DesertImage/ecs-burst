@@ -2,35 +2,35 @@ namespace DesertImage.ECS
 {
     public static unsafe class WorldExtensions
     {
-        public static Entity GetNewEntity(this World world)
+        public static Entity GetNewEntity(this in World world)
         {
             return Entities.GetNew(world);
         }
 
-        public static void Add<T>(this World world, ExecutionType type = ExecutionType.MultiThread)
+        public static void Add<T>(this in World world, ExecutionType type = ExecutionType.MultiThread)
             where T : unmanaged, ISystem
         {
             Systems.Add<T>(world, type);
         }
 
-        public static void AddFeature<T>(this World world) where T : unmanaged, IFeature => new T().Link(world);
+        public static void AddFeature<T>(this in World world) where T : unmanaged, IFeature => new T().Link(world);
 
-        public static void Remove<T>(this World world) where T : unmanaged, ISystem
+        public static void Remove<T>(this in World world) where T : unmanaged, ISystem
         {
             Systems.Remove<T>(world.SystemsState);
         }
 
-        public static void Contains<T>(this World world) where T : unmanaged, ISystem
+        public static void Contains<T>(this in World world) where T : unmanaged, ISystem
         {
             Systems.Contains<T>(world.SystemsState);
         }
 
-        public static void Tick(this World world, float deltaTime)
+        public static void Tick(this in World world, float deltaTime)
         {
             Systems.Execute(Worlds.GetPtr(world.Id), deltaTime);
         }
 
-        public static EntitiesGroup GetGroup(this World world, Matcher matcher)
+        public static EntitiesGroup GetGroup(this in World world, Matcher matcher)
         {
             return Groups.GetGroup(matcher, world);
         }
@@ -39,5 +39,7 @@ namespace DesertImage.ECS
         {
             return Worlds.Get(id);
         }
+
+        internal static World* GetPtr(this in World world) => Worlds.GetPtr(world.Id);
     }
 }

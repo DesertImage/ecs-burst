@@ -4,12 +4,12 @@
     {
         public static ref T Get<T>(this in Entity entity) where T : unmanaged
         {
-            return ref Components.Get<T>(entity, entity.WorldId.GetWorldWithThisId().State);
+            return ref Components.Get<T>(entity, entity.World->State);
         }
         
         public static T Read<T>(this in Entity entity) where T : unmanaged
         {
-            return Components.Read<T>(entity, entity.WorldId.GetWorldWithThisId().State);
+            return Components.Read<T>(entity, entity.World->State);
         }
 
         public static void Replace<T>(this in Entity entity, in T component) where T : unmanaged
@@ -50,7 +50,7 @@
 
         public static ref T GetStatic<T>(this in Entity entity) where T : unmanaged
         {
-            return ref Components.GetStatic<T>(entity, entity.WorldId.GetWorldWithThisId().State);
+            return ref Components.GetStatic<T>(entity, entity.World->State);
         }
     }
 }

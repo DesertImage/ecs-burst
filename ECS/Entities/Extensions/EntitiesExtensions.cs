@@ -11,6 +11,6 @@
 
         public static bool IsAlive(this in Entity entity) => entity.IsAliveFlag == 1;
 
-        public static World GetWorld(this in Entity entity) => entity.WorldId.GetWorldWithThisId();
+        public static World GetWorld(this in Entity entity) => *entity.World;
     }
 }
