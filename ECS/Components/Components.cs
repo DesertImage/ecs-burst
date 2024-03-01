@@ -26,13 +26,17 @@ namespace DesertImage.ECS
 
         public static void Replace<T>(in Entity entity, WorldState* state, T component) where T : unmanaged
         {
+#if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
+#endif
             state->Components.Write(entity.Id, component);
         }
 
         public static bool Has<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
+#if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
+#endif
             return state->Components.Contains<T>(entity.Id);
         }
 
@@ -43,8 +47,9 @@ namespace DesertImage.ECS
 
         public static ref T Get<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
+#if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
-
+#endif
             var componentId = ComponentTools.GetComponentId<T>();
 #if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
@@ -57,8 +62,9 @@ namespace DesertImage.ECS
 
         public static T Read<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
+#if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
-
+#endif
             var componentId = ComponentTools.GetComponentId<T>();
 #if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
@@ -69,10 +75,8 @@ namespace DesertImage.ECS
             return state->Components.Read<T>(componentId, entity.Id);
         }
 
-        public static void ReplaceStatic<T>(in Entity entity, WorldState* state, T component) where T : unmanaged
+        public static void ReplaceStatic<T>(WorldState* state, T component) where T : unmanaged
         {
-            Entities.ThrowIfNotAlive(entity);
-
             var componentId = ComponentTools.GetComponentId<T>();
 
             if (state->StaticComponents.Contains(componentId))
@@ -89,8 +93,9 @@ namespace DesertImage.ECS
 
         public static ref T GetStatic<T>(in Entity entity, WorldState* state) where T : unmanaged
         {
+#if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
-
+#endif
             var componentId = ComponentTools.GetComponentId<T>();
             return ref *(T*)state->StaticComponents[componentId];
         }

@@ -18,8 +18,9 @@ namespace DesertImage.ECS
 
         internal static void DestroyEntity(in Entity entity, WorldState* state)
         {
+#if DEBUG_MODE
             ThrowIfNotAlive(entity);
-
+#endif
             var entityId = entity.Id;
 
             Groups.OnEntityDestroyed(entityId, state);
@@ -31,9 +32,11 @@ namespace DesertImage.ECS
 
         internal static Entity GetEntity(uint id, in World world) => new Entity(id, world.GetPtr());
 
+#if DEBUG_MODE
         internal static void ThrowIfNotAlive(in Entity entity)
         {
             if (!entity.IsAlive()) throw new Exception($"Entity {entity} is not alive");
         }
+#endif
     }
 }

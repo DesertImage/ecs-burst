@@ -45,7 +45,7 @@
 
         public static void ReplaceStatic<T>(this in Entity entity, T instance) where T : unmanaged
         {
-            Components.ReplaceStatic(entity, entity.GetWorld().State, instance);
+            Components.ReplaceStatic(entity.GetWorld().State, instance);
         }
 
         public static ref T GetStatic<T>(this in Entity entity) where T : unmanaged
