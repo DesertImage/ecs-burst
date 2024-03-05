@@ -6,7 +6,7 @@
 
         public void Initialize(in World world)
         {
-            _group = Filter.Create(world).With<T>().Build();
+            _group = Filter.Create(world).With<T>().Find();
         }
 
         public unsafe void Execute(SystemsContext* context)

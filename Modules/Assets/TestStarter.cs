@@ -33,7 +33,7 @@ namespace DesertImage.ECS.Tests
 
         public void Initialize(in World world)
         {
-            _group = Filter.Create(world).With<TestValueComponent>().Build();
+            _group = Filter.Create(world).With<TestValueComponent>().Find();
         }
 
         public unsafe void Execute(SystemsContext* context)
@@ -56,7 +56,7 @@ namespace DesertImage.ECS.Tests
 
         public void Initialize(in World world)
         {
-            _group = Filter.Create(world).With<TestValueComponent>().Build();
+            _group = Filter.Create(world).With<TestValueComponent>().Find();
         }
 
         public unsafe void Execute(SystemsContext* context)

@@ -9,7 +9,7 @@
             _group = Filter.Create(world)
                 .With<TestValueComponent>()
                 .None<TestComponent>()
-                .Build();
+                .Find();
         }
 
         public unsafe void Execute(SystemsContext* context)

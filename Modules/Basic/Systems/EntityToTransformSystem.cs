@@ -13,7 +13,7 @@ namespace DesertImage.ECS
                 .With<Position>()
                 .With<Rotation>()
                 .With<Scale>()
-                .Build();
+                .Find();
         }
 
         public unsafe void Execute(SystemsContext* context)

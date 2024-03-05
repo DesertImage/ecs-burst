@@ -44,7 +44,7 @@ namespace DesertImage.ECS
             return this;
         }
 
-        public ref EntitiesGroup Build()
+        public ref EntitiesGroup Find()
         {
             var sparseSet = _world->State->Groups;
             var count = sparseSet.Count;

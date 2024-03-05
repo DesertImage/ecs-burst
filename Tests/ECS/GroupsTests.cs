@@ -9,7 +9,7 @@ namespace DesertImage.ECS.Tests
         {
             var world = Worlds.Create();
 
-            var group = Filter.Create(world).With<TestComponent>().Build();
+            var group = Filter.Create(world).With<TestComponent>().Find();
 
             var entity = world.GetNewEntity();
             entity.Replace<TestComponent>();
@@ -28,7 +28,7 @@ namespace DesertImage.ECS.Tests
 
             var entity = world.GetNewEntity();
 
-            var group = Filter.Create(world).With<TestComponent>().Build();
+            var group = Filter.Create(world).With<TestComponent>().Find();
 
             entity.Replace<TestComponent>();
             entity.Remove<TestComponent>();
@@ -48,7 +48,7 @@ namespace DesertImage.ECS.Tests
             var entity = world.GetNewEntity();
             var entityId = entity.Id;
 
-            var group = Filter.Create(world).With<TestComponent>().None<TestValueComponent>().Build();
+            var group = Filter.Create(world).With<TestComponent>().None<TestValueComponent>().Find();
 
             entity.Replace<TestComponent>();
 
@@ -88,7 +88,7 @@ namespace DesertImage.ECS.Tests
 
             var entityId = entity.Id;
 
-            var group = Filter.Create(world).With<TestComponent>().None<TestValueComponent>().Build();
+            var group = Filter.Create(world).With<TestComponent>().None<TestValueComponent>().Find();
 
             var firstResult = group.Contains(entityId);
             var secondResult = group.Contains(secondEntity.Id);

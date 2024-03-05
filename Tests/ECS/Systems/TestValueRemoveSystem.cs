@@ -6,7 +6,7 @@
 
         public void Initialize(in World world)
         {
-            _group = Filter.Create(world).With<TestValueComponent>().None<TestComponent>().Build();
+            _group = Filter.Create(world).With<TestValueComponent>().None<TestComponent>().Find();
         }
 
         public unsafe void Execute(SystemsContext* context)
