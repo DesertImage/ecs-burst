@@ -60,7 +60,7 @@ namespace DesertImage.Collections
         {
             var oldPtr = _ptr;
 
-            var newSize = newCapacity * UnsafeUtility.SizeOf<T>();
+            long newSize = newCapacity * UnsafeUtility.SizeOf<T>();
             _ptr = MemoryUtility.AllocateClear<T>(newSize, _allocator);
 
             UnsafeUtility.MemClear(_ptr, newSize);

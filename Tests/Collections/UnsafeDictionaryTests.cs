@@ -127,32 +127,5 @@ namespace DesertImage.Collections
 
             Assert.IsFalse(result);
         }
-
-        [Test]
-        public unsafe void SparseSetTest()
-        {
-            var data = new UnsafeSparseSet<int>(20);
-
-            data.Set(0, 1);
-            data.Set(1, 2);
-            data.Set(3, 3);
-            data.Set(5, 4);
-            data.Set(9, 5);
-            data.Remove(3);
-            data.Set(13, 6);
-            data.Set(16, 7);
-            data.Set(20, 8);
-            data.Remove(1);
-            data.Set(21, 9);
-
-
-            for (var i = 0; i < data.Count; i++)
-            {
-                var value = data.Values[i];
-                Debug.Log($"Value: {value}");
-            }
-
-            data.Dispose();
-        }
     }
 }

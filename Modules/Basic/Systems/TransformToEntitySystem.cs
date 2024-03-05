@@ -1,23 +1,31 @@
 namespace DesertImage.ECS
 {
-    public struct TransformToEntitySystem : IExecuteSystem
+    public struct TransformToEntitySystem : IInitSystem, IExecuteSystem
     {
-        public Matcher Matcher => MatcherBuilder.Create()
-            .With<View>()
-            .With<Position>()
-            .With<Rotation>()
-            .With<Scale>()
-            .Build();
+        private EntitiesGroup _group;
 
-        public void Execute(Entity entity, World world, float deltaTime)
+        public void Initialize(in World world)
         {
-            var view = entity.Read<View>().Value.Value;
-            var transform = view.transform;
+            _group = Filter.Create(world)
+                .With<View>()
+                .With<Position>()
+                .With<Rotation>()
+                .With<Scale>()
+                .Build();
+        }
 
-            entity.Replace(new Position { Value = transform.position });
-            entity.Replace(new LocalPosition { Value = transform.localPosition });
-            entity.Replace(new Rotation { Value = transform.rotation.eulerAngles });
-            entity.Replace(new Scale { Value = transform.localScale });
+        public unsafe void Execute(SystemsContext* context)
+        {
+            foreach (var entity in _group)
+            {
+                var view = entity.Read<View>().Value.Value;
+                var transform = view.transform;
+
+                entity.Replace(new Position { Value = transform.position });
+                entity.Replace(new LocalPosition { Value = transform.localPosition });
+                entity.Replace(new Rotation { Value = transform.rotation.eulerAngles });
+                entity.Replace(new Scale { Value = transform.localScale });
+            }
         }
     }
 }

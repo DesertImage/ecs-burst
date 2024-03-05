@@ -17,5 +17,7 @@
 
             return id;
         }
+
+        public static uint GetComponentIdFast<T>() where T : struct => ComponentTypes<T>.TypeId.Data;
     }
 }

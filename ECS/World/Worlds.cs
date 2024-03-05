@@ -30,11 +30,12 @@ namespace DesertImage.ECS
 
             WorldsCounter.Counter.Data++;
 
-            var world = MemoryUtility.Allocate(new World(id));
+            var worldPtr = (World*)MemoryUtility.AllocateClear(MemoryUtility.SizeOf<World>(), Allocator.Persistent);
 
-            WorldsStorage.Worlds.Data[id] = (IntPtr)world;
+            *worldPtr = new World(id, worldPtr);
+            WorldsStorage.Worlds.Data[id] = (IntPtr)worldPtr;
 
-            return *world;
+            return *worldPtr;
         }
 
         public static World Create(ModuleProvider moduleProvider)
@@ -45,14 +46,17 @@ namespace DesertImage.ECS
 
             WorldsCounter.Counter.Data++;
 
-            var world = MemoryUtility.Allocate(new World(id, moduleProvider));
+            var worldPtr = (World*)MemoryUtility.AllocateClear(MemoryUtility.SizeOf<World>(), Allocator.Persistent);
 
-            WorldsStorage.Worlds.Data[id] = (IntPtr)world;
+            *worldPtr = new World(id, worldPtr, moduleProvider);
+            WorldsStorage.Worlds.Data[id] = (IntPtr)worldPtr;
 
-            return *world;
+            WorldsStorage.Worlds.Data[id] = (IntPtr)worldPtr;
+
+            return *worldPtr;
         }
 
-        public static World Get(ushort id) => *GetPtr(id);
+        public static ref World Get(ushort id) => ref *GetPtr(id);
         internal static World* GetPtr(ushort id) => (World*)WorldsStorage.Worlds.Data[id];
 
         public static void Destroy(byte id)

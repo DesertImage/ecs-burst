@@ -29,7 +29,7 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
 #endif
-            state->Components.Write(entity.Id, component);
+            state->Components.Set(entity.Id, component);
         }
 
         public static bool Has<T>(in Entity entity, WorldState* state) where T : unmanaged
@@ -50,14 +50,14 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
 #endif
-            var componentId = ComponentTools.GetComponentId<T>();
+            var componentId = ComponentTools.GetComponentIdFast<T>();
 #if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
             {
                 throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
             }
 #endif
-            return ref state->Components.Get<T>(componentId, entity.Id);
+            return ref state->Components.Get<T>(entity.Id, componentId);
         }
 
         public static T Read<T>(in Entity entity, WorldState* state) where T : unmanaged
@@ -65,14 +65,14 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
 #endif
-            var componentId = ComponentTools.GetComponentId<T>();
+            var componentId = ComponentTools.GetComponentIdFast<T>();
 #if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
             {
                 throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
             }
 #endif
-            return state->Components.Read<T>(componentId, entity.Id);
+            return state->Components.Read<T>(entity.Id, componentId);
         }
 
         public static void ReplaceStatic<T>(WorldState* state, T component) where T : unmanaged
@@ -96,13 +96,13 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
 #endif
-            var componentId = ComponentTools.GetComponentId<T>();
+            var componentId = ComponentTools.GetComponentIdFast<T>();
             return ref *(T*)state->StaticComponents[componentId];
         }
 
         public static void OnEntityDestroyed(in Entity entity, WorldState* state)
         {
-            state->Components.ClearEntityComponents(entity.Id);
+            state->Components.ClearAll(entity.Id);
         }
     }
 }

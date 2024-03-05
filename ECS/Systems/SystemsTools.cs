@@ -8,7 +8,7 @@ namespace DesertImage.ECS
     {
         private static uint _idCounter;
 
-        public delegate void Execute(void* wrapper, uint entityId, World* world, float deltaTime);
+        public delegate void Execute(void* wrapper, SystemsContext* context);
 
         public delegate void Destroy();
 
@@ -34,19 +34,21 @@ namespace DesertImage.ECS
     [BurstCompile]
     public static unsafe class SystemsToolsExecute<T> where T : unmanaged, IExecuteSystem
     {
-        public static void* MakeExecuteMethod(bool isBurst)
+        public static void* MakeExecuteMethod()
         {
-            return isBurst
-                ? (void*)BurstCompiler.CompileFunctionPointer<SystemsTools.Execute>(MakeExecute).Value
-                : (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.Execute(MakeExecute));
+            return (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.Execute(MakeExecute));
+
+            // return isBurst
+            // ? (void*)BurstCompiler.CompileFunctionPointer<SystemsTools.Execute>(MakeExecute).Value
+            // : (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.Execute(MakeExecute));
         }
 
         [BurstCompile]
         [MonoPInvokeCallback(typeof(SystemsTools.Execute))]
-        private static void MakeExecute(void* wrapper, uint entityId, World* world, float deltaTime)
+        private static void MakeExecute(void* wrapper, SystemsContext* context)
         {
             var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
-            ptr.Execute(new Entity(entityId, world), *world, deltaTime);
+            ptr.Execute(context);
         }
     }
 }

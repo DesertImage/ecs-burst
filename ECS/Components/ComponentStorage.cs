@@ -1,288 +1,182 @@
 using System;
+using System.Diagnostics;
 using DesertImage.Collections;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using UnityEngine;
 
 namespace DesertImage.ECS
 {
+    [DebuggerDisplay("Count = {_count}. Size = {_size}")]
+    [DebuggerTypeProxy(typeof(ComponentStorageNewDebugView))]
     public unsafe struct ComponentStorage : IDisposable
     {
         private byte* _data;
         private long* _offsets;
-        private long* _sizes;
-        private UnsafeNoCollisionHashSet<uint> _hashes;
-
-        private UnsafeArray<bool>* _entityComponents;
-
-        //TODO: lock on one entity's component, not component for all entities
-        private int* _lockIndexes;
 
         private long _size;
         private int _capacity;
-        private int _entitiesCapacity;
+        private readonly int _entitiesCapacity;
 
         private long _lastOffset;
+        private int _count;
+
+        private UnsafeUintHashSet _hashes;
 
         private readonly Allocator _allocator;
 
-        public ComponentStorage(int componentsCapacity, int entitiesCapacity)
+        public ComponentStorage(int componentsCapacity, int entityCapacity,
+            Allocator allocator = Allocator.Persistent)
         {
-            _allocator = Allocator.Persistent;
+            _size = componentsCapacity * MemoryUtility.SizeOf<UnsafeUintSparseSet<long>>();
 
-            _data = MemoryUtility.AllocateClear<byte>(componentsCapacity * entitiesCapacity, _allocator);
+            _data = MemoryUtility.AllocateClear<byte>(_size, allocator);
+            _offsets = MemoryUtility.AllocateClearCapacity<long>(componentsCapacity, allocator);
+            _hashes = new UnsafeUintHashSet(componentsCapacity, allocator);
 
-            var longSize = MemoryUtility.SizeOf<long>();
-            var fullLongSize = longSize * componentsCapacity;
-
-            _offsets = MemoryUtility.AllocateClear<long>(fullLongSize, _allocator);
-            _sizes = MemoryUtility.AllocateClear<long>(fullLongSize, _allocator);
-            _lockIndexes = MemoryUtility.AllocateClear<int>(entitiesCapacity * MemoryUtility.SizeOf<int>(), _allocator);
-
-            _hashes = new UnsafeNoCollisionHashSet<uint>(componentsCapacity, _allocator);
-            _entityComponents = MemoryUtility.AllocateClear<UnsafeArray<bool>>
-            (
-                entitiesCapacity * MemoryUtility.SizeOf<UnsafeArray<bool>>(),
-                _allocator
-            );
-
-            _lastOffset = -1;
-
-            _size = componentsCapacity * entitiesCapacity;
             _capacity = componentsCapacity;
-            _entitiesCapacity = entitiesCapacity;
+            _entitiesCapacity = entityCapacity;
+
+            _lastOffset = 0;
+            _count = 0;
+
+            _allocator = allocator;
         }
 
-        public void Write<T>(uint entityId, T data) where T : unmanaged
+        public void Set<T>(uint entityId, T data) where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentId<T>();
-            var componentIndex = (int)componentId;
 
-            var isOutOfEntityCapacity = entityId >= _entitiesCapacity;
-            var isOutOfComponentsCapacity = componentIndex >= _capacity;
+            var isOutOfCapacity = componentId >= _capacity;
 
-            if (isOutOfComponentsCapacity || isOutOfEntityCapacity)
+            if (isOutOfCapacity)
             {
-                Resize
+                var newCapacity = _capacity << 1;
+                if (newCapacity <= componentId)
+                {
+                    newCapacity = (int)(componentId + 1);
+                }
+
+                MemoryUtility.Resize(ref _offsets, _capacity, newCapacity);
+                _capacity = newCapacity;
+            }
+
+            var offset = 0L;
+
+            var isNew = _count == 0 || !_hashes.Contains(componentId);
+
+            if (isNew)
+            {
+                var sparseSet = new UnsafeUintUnknownTypeSparseSet
                 (
-                    isOutOfEntityCapacity ? _entitiesCapacity << 1 : _entitiesCapacity,
-                    isOutOfComponentsCapacity ? _capacity << 1 : _capacity
+                    _entitiesCapacity / 2,
+                    _entitiesCapacity, MemoryUtility.SizeOf<T>()
                 );
-            }
 
-#if DEBUG_MODE
-            if (componentIndex >= _capacity)
+                sparseSet.Set(entityId, data);
+
+                _offsets[componentId] = offset = _lastOffset;
+                _lastOffset += MemoryUtility.SizeOf<UnsafeUintUnknownTypeSparseSet>();
+
+                if (_lastOffset >= _size)
+                {
+                    var newSize = _size << 1;
+                    MemoryUtility.Resize(ref _data, _size, newSize);
+                    _size = newSize;
+                }
+
+                _count++;
+
+                _hashes.Add(componentId);
+                *(UnsafeUintUnknownTypeSparseSet*)(_data + offset) = sparseSet;
+            }
+            else
             {
-                throw new IndexOutOfRangeException();
+                ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->Set(entityId, data);
             }
-#endif
-
-            _lockIndexes[componentIndex].Lock();
-            {
-                var isNewId = !ContainsId(componentId);
-
-                var elementSize = MemoryUtility.SizeOf<T>();
-                var subArraySize = elementSize * _entitiesCapacity;
-
-                var idOffset = isNewId ? 0 : _offsets[componentIndex];
-
-                var entityIndex = (int)entityId;
-
-#if DEBUG_MODE
-                if (entityIndex >= _entitiesCapacity)
-                {
-                    throw new IndexOutOfRangeException();
-                }
-#endif
-
-                if (isNewId)
-                {
-                    var previousOffset = _lastOffset;
-                    idOffset = previousOffset < 0 ? 0 : _lastOffset;
-
-                    _lastOffset = idOffset + subArraySize;
-
-                    _hashes.Add(componentId);
-
-                    _offsets[componentIndex] = idOffset;
-                    _sizes[componentIndex] = elementSize;
-                }
-#if DEBUG_MODE
-                if (idOffset >= _size)
-                {
-                    _lockIndexes[componentIndex].Unlock();
-                    throw new Exception("out of array memory");
-                }
-#endif
-                if (!_entityComponents[entityIndex].IsNotNull)
-                {
-                    var components = new UnsafeArray<bool>(_capacity, true, _allocator);
-                    components[componentIndex] = true;
-                    _entityComponents[entityIndex] = components;
-                }
-                else
-                {
-                    _entityComponents[entityIndex][componentIndex] = true;
-                }
-
-#if UNITY_EDITOR
-                ComponentsDebug.Add(entityId, data);
-#endif
-                UnsafeUtility.WriteArrayElement(_data + idOffset, entityIndex, data);
-            }
-            _lockIndexes[componentIndex].Unlock();
         }
 
-        public void ClearEntityComponents(uint entityId)
+        public T Read<T>(uint entityId, uint componentId) where T : unmanaged
         {
-#if UNITY_EDITOR
-            ComponentsDebug.RemoveAll(entityId);
-#endif
-#if DEBUG_MODE
-            if (entityId >= _entitiesCapacity)
-            {
-                throw new IndexOutOfRangeException();
-            }
-#endif
-            var entityComponents = _entityComponents[(int)entityId];
-
-            if (!entityComponents.IsNotNull) return;
-
-            for (var i = 0; i < entityComponents.Length; i++)
-            {
-                var isHas = entityComponents[i];
-
-                if (!isHas) continue;
-
-                Clear(entityId, (uint)i);
-            }
+            return ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Read<T>(entityId);
         }
 
-        public void Clear<T>(uint entityId) where T : unmanaged => Clear(entityId, ComponentTools.GetComponentId<T>());
-
-        private void Clear(uint entityId, uint componentId)
+        public ref T Get<T>(uint entityId, uint componentId) where T : unmanaged
         {
-            var componentIndex = (int)componentId;
-
-#if UNITY_EDITOR
-            ComponentsDebug.Remove(entityId, componentId);
-#endif
-#if DEBUG_MODE
-            if (componentIndex >= _capacity)
-            {
-                throw new IndexOutOfRangeException();
-            }
-#endif
-
-            _lockIndexes[componentIndex].Lock();
-            {
-                if (!ContainsId(componentId))
-                {
-                    _lockIndexes[componentIndex].Unlock();
-                    throw new Exception("Entity");
-                }
-
-                var elementSize = _sizes[componentIndex];
-
-                var idOffset = _offsets[componentIndex];
-                if (idOffset >= _size)
-                {
-                    _lockIndexes[componentIndex].Unlock();
-#if DEBUG_MODE
-                    throw new Exception("out of array memory");
-#endif
-                    return;
-                }
-
-                UnsafeUtility.MemClear(_data + idOffset + elementSize * entityId, elementSize);
-
-                _entityComponents[(int)entityId][componentIndex] = false;
-            }
-            _lockIndexes[componentIndex].Unlock();
+            return ref ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Get<T>(entityId);
         }
 
-        public void Resize(int newEntitiesCapacity, int newComponentsCapacity)
+        public void* GetPtr(uint entityId, uint componentId)
         {
-            var longSize = MemoryUtility.SizeOf<long>();
-
-            var oldEntitiesCapacity = _entitiesCapacity;
-            var oldSize = _size;
-
-            var oldFullLongSize = longSize * _capacity;
-            var newFullLongSize = longSize * newComponentsCapacity;
-
-            var newSize = newEntitiesCapacity * newComponentsCapacity;
-
-            MemoryUtility.Resize(ref _data, oldSize, newSize);
-            MemoryUtility.Resize(ref _offsets, oldFullLongSize, newFullLongSize);
-            MemoryUtility.Resize(ref _sizes, oldFullLongSize, newFullLongSize);
-            MemoryUtility.Resize(ref _lockIndexes, oldEntitiesCapacity, newEntitiesCapacity);
-            MemoryUtility.Resize(ref _entityComponents, oldEntitiesCapacity, newEntitiesCapacity);
-
-            _size = newSize;
-            _capacity = newComponentsCapacity;
-            _entitiesCapacity = newEntitiesCapacity;
+            return ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->GetPtr(entityId);
         }
 
-        public T Read<T>(uint componentId, uint index) where T : unmanaged
+        public ref UnsafeUintUnknownTypeSparseSet ReadSparsSet<T>() where T : unmanaged
         {
-            var offset = _offsets[(int)componentId];
-#if DEBUG_MODE
-            if (index >= _entitiesCapacity)
-            {
-                throw new IndexOutOfRangeException();
-            }
-#endif
-            return UnsafeUtility.ReadArrayElement<T>(_data + offset, (int)index);
+            return ref ReadSparsSet(ComponentTools.GetComponentIdFast<T>());
         }
 
-        public ref T Get<T>(uint componentId, uint index) where T : unmanaged
+        public ref UnsafeUintUnknownTypeSparseSet ReadSparsSet(uint componentId)
         {
-            var offset = _offsets[(int)componentId];
-#if DEBUG_MODE
-            if (index >= _entitiesCapacity)
-            {
-                throw new IndexOutOfRangeException();
-            }
-#endif
-            return ref UnsafeUtility.ArrayElementAsRef<T>(_data + offset, (int)index);
+            return ref *(UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]);
         }
 
-        public bool ContainsId(uint id) => _hashes.Contains(id);
+        public bool ContainsKey(uint componentId) => _hashes.Contains(componentId);
 
         public bool Contains<T>(uint entityId) where T : unmanaged
         {
-            var id = ComponentTools.GetComponentId<T>();
-            return Contains(entityId, id);
+            return Contains(entityId, ComponentTools.GetComponentId<T>());
         }
 
         public bool Contains(uint entityId, uint componentId)
         {
-#if DEBUG_MODE
-            if (entityId >= _entitiesCapacity)
-            {
-                throw new IndexOutOfRangeException();
-            }
+            return _hashes.Contains(componentId) &&
+                   ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Contains(entityId);
+        }
 
-            if (componentId >= _capacity)
+        public void Clear<T>(uint entityId) where T : unmanaged
+        {
+            var componentId = ComponentTools.GetComponentIdFast<T>();
+            ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Remove(entityId);
+        }
+
+        public void ClearAll(uint entityId)
+        {
+            for (var i = 0; i < _count; i++)
             {
-                throw new IndexOutOfRangeException();
+                var offset = _offsets[i];
+
+                if (i > 0 && offset == 0) continue;
+
+                ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->Remove(entityId);
             }
-#endif
-            var components = _entityComponents[(int)entityId];
-            return components.IsNotNull && components[(int)componentId];
         }
 
         public void Dispose()
         {
+            for (var i = 0; i < _capacity; i++)
+            {
+                var offset = _offsets[i];
+
+                if (i > 0 && offset == 0) continue;
+
+                ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->Dispose();
+            }
+
             UnsafeUtility.Free(_data, _allocator);
             MemoryUtility.Free(_offsets, _allocator);
-            MemoryUtility.Free(_sizes, _allocator);
-            MemoryUtility.Free(_lockIndexes, _allocator);
-
             _hashes.Dispose();
 
             _data = null;
+            _offsets = null;
+        }
+
+        sealed class ComponentStorageNewDebugView
+        {
+            private ComponentStorage _data;
+
+            public ComponentStorageNewDebugView(ComponentStorage data) => _data = data;
+
+            public long[] Offsets => MemoryUtility.ToArray(_data._offsets, _data._capacity);
         }
     }
 }

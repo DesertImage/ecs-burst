@@ -2,52 +2,11 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using DesertImage.Collections;
-using Unity.Burst;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Jobs;
 
 namespace DesertImage.ECS
 {
     public static unsafe class Systems
     {
-        [BurstCompile]
-        private struct ExecuteJob : IJob
-        {
-            public EntitiesGroup Group;
-            public FunctionPointer<SystemsTools.Execute> Method;
-            public float DeltaTime;
-
-            [NativeDisableUnsafePtrRestriction] public ExecuteSystemWrapper* Wrapper;
-            [NativeDisableUnsafePtrRestriction] public World* World;
-
-            public void Execute(int index) => Method.Invoke(Wrapper, Group.GetEntityId(index), World, DeltaTime);
-
-            public void Execute()
-            {
-                for (var i = Group.Count - 1; i >= 0; i--)
-                {
-                    Method.Invoke(Wrapper, Group.GetEntityId(i), World, DeltaTime);
-                }
-            }
-        }
-
-        [BurstCompile]
-        private struct ExecuteParallelForJob : IJobParallelFor
-        {
-            public EntitiesGroup Group;
-            public FunctionPointer<SystemsTools.Execute> Method;
-            public float DeltaTime;
-
-            [NativeDisableUnsafePtrRestriction] public ExecuteSystemWrapper* Wrapper;
-            [NativeDisableUnsafePtrRestriction] public World* World;
-
-            public void Execute(int index)
-            {
-                if(index >= Group.Count) return;
-                Method.Invoke(Wrapper, Group.GetEntityId(index), World, DeltaTime);
-            }
-        }
-
         public static void Add<T>(in World world, ExecutionType type) where T : unmanaged, ISystem
         {
             var systemType = typeof(T);
@@ -63,6 +22,8 @@ namespace DesertImage.ECS
                 return;
             }
 
+            var instance = MemoryUtility.Allocate(default(T));
+
             var isInit = typeof(IInitSystem).IsAssignableFrom(systemType);
             if (isInit)
             {
@@ -74,19 +35,16 @@ namespace DesertImage.ECS
 
                 var gMethod = methodInfo.MakeGenericMethod(systemType);
 
-                var targetDelegate = Delegate.CreateDelegate(typeof(Action), default, gMethod);
-                var converted = (Action)targetDelegate;
+                var targetDelegate = Delegate.CreateDelegate(typeof(Action<IntPtr, World>), default, gMethod);
+                var converted = (Action<IntPtr, World>)targetDelegate;
 
-                converted.Invoke();
+                converted.Invoke((IntPtr)instance, world);
             }
 
             var isExecute = typeof(IExecuteSystem).IsAssignableFrom(systemType);
             if (isExecute)
             {
-                var wrapper = new ExecuteSystemWrapper
-                {
-                    Value = MemoryUtility.Allocate(default(T)),
-                };
+                var wrapper = new ExecuteSystemWrapper { Value = instance };
 
                 var wrapperPtr = MemoryUtility.Allocate(wrapper);
 
@@ -100,14 +58,14 @@ namespace DesertImage.ECS
 
                 var targetDelegate = Delegate.CreateDelegate
                 (
-                    typeof(Action<World, IntPtr, ExecutionType>),
+                    typeof(Action<IntPtr, IntPtr, ExecutionType>),
                     default,
                     gMethod
                 );
 
-                var converted = (Action<World, IntPtr, ExecutionType>)targetDelegate;
+                var converted = (Action<IntPtr, IntPtr, ExecutionType>)targetDelegate;
 
-                converted.Invoke(world, (IntPtr)wrapperPtr, type);
+                converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr, type);
             }
 
             state->SystemsHash.Set(systemId, systemId);
@@ -135,14 +93,6 @@ namespace DesertImage.ECS
                 return;
             }
 
-            for (var i = 0; i < state->LateMainThreadSystems.Count; i++)
-            {
-                var systemData = state->LateMainThreadSystems[i];
-                if (systemData.Id != systemId) continue;
-                state->LateMainThreadSystems.RemoveAt(i);
-                return;
-            }
-
             for (var i = 0; i < state->MultiThreadSystems.Count; i++)
             {
                 var systemData = state->MultiThreadSystems[i];
@@ -160,90 +110,56 @@ namespace DesertImage.ECS
 
         public static void Execute(World* world, float deltaTime)
         {
-            ExecuteMainThread(ref world->SystemsState->EarlyMainThreadSystems, world, deltaTime);
-            ExecuteMultiThread(ref world->SystemsState->MultiThreadSystems, world, deltaTime);
-            ExecuteMainThread(ref world->SystemsState->LateMainThreadSystems, world, deltaTime);
+            var state = world->SystemsState;
+
+            state->Context->DeltaTime = deltaTime;
+
+            ExecuteMainThread(ref state->EarlyMainThreadSystems, state);
+            ExecuteMultiThread(ref state->MultiThreadSystems, state);
         }
 
-        private static void ExecuteMainThread(ref UnsafeList<ExecuteSystemData> systems, World* world, float deltaTime)
+        private static void ExecuteMainThread(ref UnsafeList<ExecuteSystemData> systems, SystemsState* state)
         {
             for (var i = 0; i < systems.Count; i++)
             {
                 var systemData = systems[i];
 
                 var wrapper = systemData.Wrapper;
-                var functionPointer = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
-
-                var group = Groups.GetSystemGroup(systemData.Id, *world);
-
-                for (var j = group.Count - 1; j >= 0; j--)
-                {
-                    var entityId = group.GetEntityId(j);
-                    functionPointer.Invoke(wrapper, entityId, world, deltaTime);
-                }
+                var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
+                method.Invoke(wrapper, state->Context);
             }
         }
 
-        public static void ExecuteMultiThread(ref UnsafeList<ExecuteSystemData> systems, World* world, float deltaTime)
+        public static void ExecuteMultiThread(ref UnsafeList<ExecuteSystemData> systems, SystemsState* state)
         {
-            var systemsState = world->SystemsState;
-
             for (var i = 0; i < systems.Count; i++)
             {
                 var systemData = systems[i];
 
                 var wrapper = systemData.Wrapper;
-                var group = Groups.GetSystemGroup(systemData.Id, *world);
-
-                if (wrapper->IsCalculateSystem == 1)
-                {
-                    var job = new ExecuteParallelForJob
-                    {
-                        Group = group,
-                        Wrapper = wrapper,
-                        Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
-                        World = world,
-                        DeltaTime = deltaTime
-                    };
-                    systemsState->Handle = job.Schedule(group.Count, 128, systemsState->Handle);
-                }
-                else
-                {
-                    var job = new ExecuteJob
-                    {
-                        Group = group,
-                        Wrapper = wrapper,
-                        Method = new FunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr),
-                        World = world,
-                        DeltaTime = deltaTime
-                    };
-
-                    systemsState->Handle = job.Schedule(systemsState->Handle);
-                }
+                var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
+                method.Invoke(wrapper, state->Context);
             }
 
-            systemsState->Handle.Complete();
+            // state->Context->Handle.Complete();
         }
 
-        private static void AddInit<T>(T instance) where T : unmanaged, IInitSystem => instance.Initialize();
+        private static void AddInit<T>(IntPtr ptr, World world) where T : unmanaged, IInitSystem
+        {
+            (*(T*)ptr).Initialize(world);
+        }
 
-        private static void AddExecute<T>(World world, IntPtr wrapperPtr, ExecutionType type)
+        private static void AddExecute<T>(IntPtr worldPtr, IntPtr wrapperPtr, ExecutionType type)
             where T : unmanaged, IExecuteSystem
         {
             var systemId = SystemsTools.GetId<T>();
 
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
-            wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod(type == ExecutionType.MultiThread);
+            wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
             wrapper->IsCalculateSystem = (byte)(typeof(ICalculateSystem).IsAssignableFrom(typeof(T)) ? 1 : 0);
 
-            var matcherId = Groups.GetSystemMatcherId(systemId, world);
-            if (matcherId <= 0)
-            {
-                var matcher = (*(T*)wrapperPtr).Matcher;
-                Groups.RegisterSystemMatcher(systemId, matcher, world);
-            }
-
-            var state = world.SystemsState;
+            var world = (World*)worldPtr;
+            var state = world->SystemsState;
 
             var data = new ExecuteSystemData
             {
@@ -253,11 +169,8 @@ namespace DesertImage.ECS
 
             switch (type)
             {
-                case ExecutionType.EarlyMainThread:
+                case ExecutionType.MainThread:
                     state->EarlyMainThreadSystems.Add(data);
-                    break;
-                case ExecutionType.LateMainThread:
-                    state->LateMainThreadSystems.Add(data);
                     break;
                 default:
                     state->MultiThreadSystems.Add(data);

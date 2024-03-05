@@ -1,4 +1,17 @@
 {
-	"name": "DesertImage.Assets",
-	"references":[ "GUID:0a417c5664a314e70870df1ee44a5bfd" ]
+    "name": "DesertImage.Assets",
+    "rootNamespace": "",
+    "references": [
+        "GUID:0a417c5664a314e70870df1ee44a5bfd",
+        "GUID:2665a8d13d1b3f18800f46e256720795"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

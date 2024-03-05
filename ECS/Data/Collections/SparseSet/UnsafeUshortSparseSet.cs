@@ -25,13 +25,12 @@ namespace DesertImage.Collections
 
         public readonly T this[ushort index] => _dense[_sparse[index] - 1];
 
-        public UnsafeUshortSparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity = 100)
+        public UnsafeUshortSparseSet(int denseCapacity, int sparseCapacity)
         {
             var ushortSize = MemoryUtility.SizeOf<ushort>();
 
             _dense = MemoryUtility.AllocateClear<T>(denseCapacity * MemoryUtility.SizeOf<T>());
             _sparse = MemoryUtility.AllocateClear<ushort>(sparseCapacity * ushortSize);
-            MemoryUtility.AllocateClear<ushort>(recycledCapacity * ushortSize);
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
@@ -90,7 +89,7 @@ namespace DesertImage.Collections
                 {
                     newSparseCapacity = key + 1;
                 }
-                
+
                 MemoryUtility.Resize(ref _sparse, _sparseCapacity, newSparseCapacity);
                 _sparseCapacity = newSparseCapacity;
             }
@@ -124,7 +123,7 @@ namespace DesertImage.Collections
             {
                 _dense[sparseIndex - 1] = default;
             }
-            
+
             _sparse[key] = 0;
 
             Count--;
@@ -159,7 +158,11 @@ namespace DesertImage.Collections
             }
         }
 
-        public bool Contains(ushort key) => _sparseCapacity > key && _sparse[key] > 0;
+        public bool Contains(ushort key)
+        {
+            if (key >= _sparseCapacity) return false;
+            return _sparseCapacity > key && _sparse[key] > 0;
+        }
 
         public readonly void Dispose()
         {

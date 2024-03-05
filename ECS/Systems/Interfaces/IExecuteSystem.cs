@@ -1,7 +1,7 @@
 namespace DesertImage.ECS
 {
-    public interface IExecuteSystem : IMatchSystem
+    public unsafe interface IExecuteSystem : ISystem
     {
-        void Execute(Entity entity, World world, float deltaTime);
+        void Execute(SystemsContext* context);
     }
 }

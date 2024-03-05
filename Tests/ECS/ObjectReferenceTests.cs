@@ -44,7 +44,7 @@ namespace DesertImage.ECS
         {
             var world = Worlds.Create();
 
-            world.Add<TestObjectReferenceSystem>(ExecutionType.EarlyMainThread);
+            world.Add<TestObjectReferenceSystem>(ExecutionType.MainThread);
 
             var obj = new GameObject();
             var rigidbody = obj.AddComponent<Rigidbody>();

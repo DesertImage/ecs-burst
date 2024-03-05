@@ -19,7 +19,7 @@ namespace DesertImage.Collections
         [NativeDisableUnsafePtrRestriction] private T* _data;
         private int _capacity;
         private long _size;
-        private Allocator _allocator;
+        private readonly Allocator _allocator;
 
         public UnsafeList(int capacity, Allocator allocator)
         {
@@ -101,7 +101,7 @@ namespace DesertImage.Collections
         }
 
         public ref T GetByRef(int index) => ref _data[index];
-
+        
         public T[] ToArray()
         {
             var array = new T[_capacity];
@@ -118,11 +118,10 @@ namespace DesertImage.Collections
         {
             object IEnumerator.Current => Current;
 
-            public T Current => _current;
+            public T Current => _list[_index];
 
             private readonly UnsafeList<T> _list;
             private int _index;
-            private T _current;
 
             public Enumerator(ref UnsafeList<T> list) : this()
             {

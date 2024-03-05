@@ -4,7 +4,7 @@ namespace DesertImage.ECS
     {
         public static Entity GetNewEntity(this in World world)
         {
-            return Entities.GetNew(world);
+            return Entities.GetNew(world.Ptr);
         }
 
         public static void Add<T>(this in World world, ExecutionType type = ExecutionType.MultiThread)
@@ -30,16 +30,9 @@ namespace DesertImage.ECS
             Systems.Execute(Worlds.GetPtr(world.Id), deltaTime);
         }
 
-        public static EntitiesGroup GetGroup(this in World world, Matcher matcher)
-        {
-            return Groups.GetGroup(matcher, world);
-        }
-
         public static World GetWorldWithThisId(this ushort id)
         {
             return Worlds.Get(id);
         }
-
-        internal static World* GetPtr(this in World world) => Worlds.GetPtr(world.Id);
     }
 }

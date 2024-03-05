@@ -31,7 +31,7 @@ namespace DesertImage.Collections
         {
             _capacity = capacity;
 
-            _data = MemoryUtility.AllocateClear<Node>(capacity * UnsafeUtility.SizeOf<Node>());
+            _data = MemoryUtility.AllocateClearCapacity<Node>(capacity);
             _freeIndexes = new UnsafeQueue<int>(capacity, allocator);
 
             for (var i = _capacity - 1; i >= 0; i--)

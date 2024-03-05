@@ -19,18 +19,20 @@ namespace DesertImage.Collections
 
         [NativeDisableUnsafePtrRestriction] internal T* _dense;
         [NativeDisableUnsafePtrRestriction] internal int* _sparse;
+        [NativeDisableUnsafePtrRestriction] internal int* _keys;
 
         internal int _denseCapacity;
         internal int _sparseCapacity;
 
         public readonly T this[int index] => _dense[_sparse[index]];
 
-        public UnsafeSparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity = 100)
+        public UnsafeSparseSet(int denseCapacity, int sparseCapacity)
         {
             var intSize = MemoryUtility.SizeOf<int>();
 
             _dense = MemoryUtility.AllocateClear<T>(denseCapacity * MemoryUtility.SizeOf<T>());
             _sparse = MemoryUtility.AllocateClear(sparseCapacity * intSize, -1);
+            _keys = MemoryUtility.AllocateClear<int>(denseCapacity * intSize);
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
@@ -46,6 +48,7 @@ namespace DesertImage.Collections
 
             _dense = MemoryUtility.AllocateClear<T>(capacity * MemoryUtility.SizeOf<T>());
             _sparse = MemoryUtility.AllocateClear(capacity * intSize, -1);
+            _keys = MemoryUtility.AllocateClear<int>(capacity * intSize);
 
             _denseCapacity = capacity;
             _sparseCapacity = capacity;
@@ -55,12 +58,13 @@ namespace DesertImage.Collections
             IsNotNull = true;
         }
 
-        public UnsafeSparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity, T defaultValue)
+        public UnsafeSparseSet(int denseCapacity, int sparseCapacity, T defaultValue)
         {
             var intSize = MemoryUtility.SizeOf<int>();
 
             _dense = MemoryUtility.AllocateClear(denseCapacity * MemoryUtility.SizeOf<T>(), defaultValue);
             _sparse = MemoryUtility.AllocateClear(sparseCapacity * intSize, -1);
+            _keys = MemoryUtility.AllocateClear<int>(denseCapacity * intSize);
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
@@ -94,6 +98,7 @@ namespace DesertImage.Collections
 
             _sparse[key] = targetIndex;
             _dense[targetIndex] = value;
+            _keys[targetIndex] = key;
 
             Count++;
 
@@ -101,22 +106,27 @@ namespace DesertImage.Collections
             {
                 var newDenseCapacity = _denseCapacity << 1;
                 MemoryUtility.Resize(ref _dense, _denseCapacity, newDenseCapacity);
+                MemoryUtility.Resize(ref _keys, _denseCapacity, newDenseCapacity);
                 _denseCapacity = newDenseCapacity;
             }
         }
 
         public void Remove(int key)
         {
-            var sparseIndex = _sparse[key];
+            var denseIndex = _sparse[key];
             
             if (Count > 1)
             {
-                _dense[sparseIndex - 1] = _dense[Count - 1];
-                _sparse[Count - 1] = sparseIndex;
+                var lastIndex = Count - 1;
+
+                _dense[denseIndex] = _dense[lastIndex];
+                _sparse[_keys[denseIndex]] = denseIndex;
+                _keys[denseIndex] = _keys[lastIndex];
             }
             else
             {
-                _dense[sparseIndex - 1] = default;
+                _dense[denseIndex] = default;
+                _keys[denseIndex] = default;
             }
             
             _sparse[key] = -1;
@@ -134,6 +144,7 @@ namespace DesertImage.Collections
             for (var i = 0; i < _denseCapacity; i++)
             {
                 _dense[i] = default;
+                _keys[i] = default;
             }
 
             for (var i = 0; i < _sparseCapacity; i++)
@@ -142,12 +153,17 @@ namespace DesertImage.Collections
             }
         }
 
-        public bool Contains(int key) => _sparseCapacity > key && _sparse[key] != -1;
+        public bool Contains(int key)
+        {
+            if(key >= _sparseCapacity) return false;
+            return _sparseCapacity > key && _sparse[key] != -1;
+        }
 
         public readonly void Dispose()
         {
             MemoryUtility.Free(_dense);
             MemoryUtility.Free(_sparse);
+            MemoryUtility.Free(_keys);
         }
 
         public struct Enumerator : IEnumerator<T>

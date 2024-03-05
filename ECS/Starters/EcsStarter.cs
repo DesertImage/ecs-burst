@@ -29,7 +29,7 @@ namespace DesertImage.ECS
             World.Dispose();
         }
 
-        private void Update()
+        protected virtual void Update()
         {
             var deltaTime = Time.deltaTime;
 

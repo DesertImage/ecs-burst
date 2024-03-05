@@ -38,12 +38,8 @@ namespace DesertImage.Collections
             _capacity = capacity;
             _allocator = allocator;
 
-            _lockIndexes = MemoryUtility.AllocateClear<int>(capacity * UnsafeUtility.SizeOf<int>(), allocator);
-            _entries = MemoryUtility.AllocateClear<UnsafeList<Entry>>
-            (
-                capacity * UnsafeUtility.SizeOf<UnsafeList<Entry>>(),
-                allocator
-            );
+            _lockIndexes = MemoryUtility.AllocateClearCapacity<int>(capacity, allocator);
+            _entries = MemoryUtility.AllocateClearCapacity<UnsafeList<Entry>>(capacity, allocator);
 
             for (var i = 0; i < _capacity; i++)
             {
@@ -126,9 +122,9 @@ namespace DesertImage.Collections
 
             MemoryUtility.Resize(ref _lockIndexes, _capacity, newCapacity);
 
-            _entries = (UnsafeList<Entry>*)MemoryUtility.AllocateClear<UnsafeLinkedList<Entry>>
+            _entries = (UnsafeList<Entry>*)MemoryUtility.AllocateClearCapacity<UnsafeLinkedList<Entry>>
             (
-                newCapacity * UnsafeUtility.SizeOf<UnsafeLinkedList<Entry>>(),
+                newCapacity,
                 _allocator
             );
 

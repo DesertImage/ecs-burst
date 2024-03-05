@@ -1,9 +1,20 @@
 ﻿namespace DesertImage.ECS
 {
-    public struct RemoveComponentSystem<T> : IExecuteSystem where T : unmanaged
+    public struct RemoveComponentSystem<T> : IInitSystem, IExecuteSystem where T : unmanaged
     {
-        public Matcher Matcher => MatcherBuilder.Create().With<T>().Build();
+        private EntitiesGroup _group;
 
-        public void Execute(Entity entity, World world, float deltaTime) => entity.Remove<T>();
+        public void Initialize(in World world)
+        {
+            _group = Filter.Create(world).With<T>().Build();
+        }
+
+        public unsafe void Execute(SystemsContext* context)
+        {
+            foreach (var entity in _group)
+            {
+                entity.Remove<T>();
+            }
+        }
     }
 }

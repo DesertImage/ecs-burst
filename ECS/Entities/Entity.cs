@@ -9,7 +9,7 @@ namespace DesertImage.ECS
     {
         public readonly uint Id;
         public readonly World* World;
-        
+
         internal byte IsAliveFlag;
 
         public Entity(uint id, World* world)

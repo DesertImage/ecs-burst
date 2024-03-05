@@ -17,22 +17,23 @@ namespace DesertImage.ECS.Tests
 
             entity.Replace(new TestValueComponent { Value = 2 });
 
-            world.Add<TestValueSystem>(ExecutionType.EarlyMainThread);
+            world.Add<TestValueSystem>(ExecutionType.MainThread);
 
             world.Tick(.1f);
 
-            var firstResult = entity.Get<TestValueComponent>().Value;
-            var secondResult = entity.Get<TestValueComponent>().Value;
+            var firstResult = entity.Read<TestValueComponent>().Value;
 
             entity.Replace<TestComponent>();
 
             world.Tick(.1f);
 
+            var secondResult = entity.Read<TestValueComponent>().Value;
+
             entity.Remove<TestComponent>();
 
             world.Tick(.1f);
 
-            var thirdResult = entity.Get<TestValueComponent>().Value;
+            var thirdResult = entity.Read<TestValueComponent>().Value;
 
             entity.Remove<TestValueComponent>();
 
@@ -42,7 +43,7 @@ namespace DesertImage.ECS.Tests
 
             world.Tick(.1f);
 
-            var fourthResult = entity.Get<TestValueComponent>().Value;
+            var fourthResult = entity.Read<TestValueComponent>().Value;
 
             world.Dispose();
 
@@ -86,7 +87,7 @@ namespace DesertImage.ECS.Tests
                 entity.Replace<TestValueComponent>();
             }
 
-            world.Add<TestValueSystem>(ExecutionType.EarlyMainThread);
+            world.Add<TestValueSystem>(ExecutionType.MainThread);
 
             stopwatch.Start();
 
@@ -97,7 +98,7 @@ namespace DesertImage.ECS.Tests
             var singleThreadResult = stopwatch.Elapsed.TotalMilliseconds;
 
             world.Remove<TestValueSystem>();
-            world.Add<TestValueSystem>();
+            world.Add<TestValueJobSystem>();
 
             stopwatch.Restart();
 

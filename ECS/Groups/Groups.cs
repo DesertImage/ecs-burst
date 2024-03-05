@@ -1,99 +1,23 @@
 using DesertImage.Collections;
 using Unity.Collections;
-using UnityEngine;
 
 namespace DesertImage.ECS
 {
     internal static unsafe class Groups
     {
-        private static ref EntitiesGroup GetNewGroup(WorldState* state)
+        internal static ref EntitiesGroup GetNewGroup(World* world)
         {
+            var state = world->State;
             var id = ++state->GroupIdCounter;
-            state->Groups.Set(id, new EntitiesGroup(id));
+            state->Groups.Set(id, new EntitiesGroup(id, world, 20, 256));
             return ref state->Groups.Get(id);
-        }
-
-        internal static ushort GetSystemMatcherId(uint systemId, in World world)
-        {
-            var state = world.State;
-            return (ushort)(state->SystemToMatcher.TryGetValue(systemId, out var matcherId) ? matcherId : 0);
-        }
-
-        internal static EntitiesGroup GetSystemGroup(uint systemId, in World world)
-        {
-            var state = world.State;
-
-            if (state->SystemToMatcher.TryGetValue(systemId, out var matcherId))
-            {
-                var groupId = state->MatcherToGroup.Get(matcherId);
-                return state->Groups.Get(groupId);
-            }
-
-            return default;
-        }
-
-        internal static void RegisterSystemMatcher(uint systemId, Matcher matcher, in World world)
-        {
-            var state = world.State;
-
-            var matcherId = matcher.Id;
-
-            state->SystemToMatcher.Set(systemId, matcherId);
-            state->Matchers.Set(matcherId, matcher);
-
-            if (!state->MatcherToGroup.Contains(matcher.Id))
-            {
-                GetGroup(matcher, world);
-            }
-        }
-
-        internal static ref EntitiesGroup GetGroup(in Matcher matcher, in World world)
-        {
-            var state = world.State;
-            var matcherId = matcher.Id;
-
-            if (state->MatcherToGroup.TryGetValue(matcherId, out var groupId)) return ref GetGroup(groupId, state);
-
-            return ref GetNewGroup(matcher, world);
-        }
-
-        private static ref EntitiesGroup GetNewGroup(in Matcher matcher, in World world)
-        {
-            var state = world.State;
-            var matcherId = matcher.Id;
-
-            ref var newGroup = ref GetNewGroup(state);
-            var newGroupId = newGroup.Id;
-
-            FillGroup(newGroupId, matcher, world);
-
-            state->Matchers.Set(matcherId, matcher);
-            state->MatcherToGroup.Set(matcherId, newGroupId);
-            state->GroupToMatcher.Set(newGroupId, matcherId);
-
-            foreach (var componentId in matcher.Components)
-            {
-                if (state->ComponentToGroups.Contains(componentId))
-                {
-                    state->ComponentToGroups.Get(componentId).Add(newGroupId);
-                }
-                else
-                {
-                    var list = new UnsafeList<ushort>(20, Allocator.Persistent);
-                    list.Add(newGroupId);
-
-                    state->ComponentToGroups.Set(componentId, list);
-                }
-            }
-
-            return ref state->Groups.Get(newGroupId);
         }
 
         internal static ref EntitiesGroup GetGroup(ushort id, WorldState* state) => ref state->Groups.Get(id);
 
         internal static void OnEntityCreated(uint entityId, WorldState* state)
         {
-            if (state->EntityToGroups.TryGetValue(entityId, out _)) return;
+            if (state->EntityToGroups.Contains(entityId)) return;
             state->EntityToGroups.Set(entityId, new UnsafeList<ushort>(20, Allocator.Persistent));
         }
 
@@ -103,7 +27,7 @@ namespace DesertImage.ECS
 
             if (!entityGroups.TryGetValue(entityId, out var groupsList)) return;
 
-            for (var i = 0; i < groupsList.Count; i++)
+            for (var i = groupsList.Count - 1; i >= 0; i--)
             {
                 ref var group = ref GetGroup(groupsList[i], state);
                 group.Remove(entityId);
@@ -114,30 +38,37 @@ namespace DesertImage.ECS
         {
             var entityId = entity.Id;
 
-            for (var i = 0; i < state->EntityToGroups[entityId].Count; i++)
+            for (var i = state->EntityToGroups[entityId].Count - 1; i >= 0; i--)
             {
                 var groupId = state->EntityToGroups[entityId][i];
-                var matcherId = state->GroupToMatcher[groupId];
-                var matcher = state->Matchers.Get(matcherId);
+                var group = state->Groups[groupId];
 
-                if (!matcher.Components.Contains(componentId)) continue;
-                if (matcher.Check(entity)) continue;
+                if (!group._components->Contains(componentId)) continue;
+                if (group.IsValid(entityId)) continue;
 
-                i--;
                 EntityRemove(entityId, groupId, state);
             }
 
             var componentGroups = GetComponentGroups(componentId, state);
-            for (var i = 0; i < componentGroups.Count; i++)
+            for (var i = componentGroups.Count - 1; i >= 0; i--)
             {
                 var groupId = componentGroups[i];
+                var group = state->Groups[groupId];
 
-                if (IsGroupContainsEntity(groupId, entityId, state)) continue;
+                var isValid = group.IsValid(entityId);
+                var isContains = group.Contains(entityId);
 
-                var matcherId = state->GroupToMatcher[groupId];
-                var matcher = state->Matchers.Get(matcherId);
+                if (isContains)
+                {
+                    if (!isValid)
+                    {
+                        EntityRemove(entityId, groupId, state);
+                    }
 
-                if (!matcher.Check(entity)) continue;
+                    continue;
+                }
+
+                if (!isValid) continue;
 
                 EntityAdd(entityId, groupId, state);
             }
@@ -147,36 +78,31 @@ namespace DesertImage.ECS
         {
             var entityId = entity.Id;
 
-            for (var i = 0; i < state->EntityToGroups[entityId].Count; i++)
+            for (var i = state->EntityToGroups[entityId].Count - 1; i >= 0; i--)
             {
                 var groupId = state->EntityToGroups[entityId][i];
-                var matcherId = state->GroupToMatcher[groupId];
-                var matcher = state->Matchers.Get(matcherId);
+                var group = state->Groups[groupId];
 
-                if (!matcher.Components.Contains(componentId)) continue;
-                if (matcher.Check(entity)) continue;
+                if (!group._components->Contains(componentId)) continue;
+                if (group.IsValid(entityId)) continue;
 
-                i--;
                 EntityRemove(entityId, groupId, state);
             }
 
             var componentGroups = GetComponentGroups(componentId, state);
-            for (var i = 0; i < componentGroups.Count; i++)
+            for (var i = componentGroups.Count - 1; i >= 0; i--)
             {
                 var groupId = componentGroups[i];
+                var group = state->Groups[groupId];
 
-                if (IsGroupContainsEntity(groupId, entityId, state)) continue;
-
-                var matcherId = state->GroupToMatcher[groupId];
-                var matcher = state->Matchers.Get(matcherId);
-
-                if (!matcher.Check(entity)) continue;
+                if (group.Contains(entityId)) continue;
+                if (!group.IsValid(entityId)) continue;
 
                 EntityAdd(entityId, groupId, state);
             }
         }
 
-        private static ref UnsafeList<ushort> GetComponentGroups(uint componentId, WorldState* state)
+        internal static ref UnsafeList<ushort> GetComponentGroups(uint componentId, WorldState* state)
         {
             var componentGroups = state->ComponentToGroups;
 
@@ -184,31 +110,18 @@ namespace DesertImage.ECS
 
             var groupsList = new UnsafeList<ushort>(20, Allocator.Persistent);
 
-            foreach (var matcher in state->Matchers)
+            for (var i = state->Groups.Count - 1; i >= 0; i--)
             {
-                if (!matcher.Components.Contains(componentId)) continue;
+                ref var group = ref state->Groups._dense[i];
 
-                var groupId = state->MatcherToGroup[matcher.Id];
-                groupsList.Add(groupId);
+                if (!group._components->Contains(componentId)) continue;
+
+                groupsList.Add(group.Id);
             }
 
             state->ComponentToGroups.Set(componentId, groupsList);
 
             return ref state->ComponentToGroups.Get(componentId);
-        }
-
-        private static void FillGroup(ushort groupId, in Matcher matcher, in World world)
-        {
-            var state = world.State;
-
-            foreach (var entityId in state->AliveEntities)
-            {
-                var entity = Entities.GetEntity(entityId, world);
-
-                if (!matcher.Check(entity)) continue;
-
-                EntityAdd(entityId, groupId, state);
-            }
         }
 
         private static void EntityAdd(uint entityId, ushort groupId, WorldState* state)
@@ -226,6 +139,20 @@ namespace DesertImage.ECS
         private static bool IsGroupContainsEntity(ushort groupId, uint entityId, WorldState* state)
         {
             return state->Groups.Get(groupId).Contains(entityId);
+        }
+
+        internal static void AddComponentGroup(uint componentId, ushort groupId, WorldState* state)
+        {
+            ref var componentGroups = ref GetComponentGroups(componentId, state);
+
+#if DEBUG_MODE
+            if (componentGroups.Contains(groupId))
+            {
+                throw new Exception($"Component groups ({componentId} already contains group: {groupId})");
+            }
+#endif
+
+            componentGroups.Add(groupId);
         }
     }
 }

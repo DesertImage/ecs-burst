@@ -7,7 +7,7 @@ namespace DesertImage.ECS
     public struct WorldState : IDisposable
     {
         public uint EntityIdCounter;
-        public UnsafeSparseSet<uint> AliveEntities;
+        public UnsafeUintSparseSet<uint> AliveEntities;
         public UnsafeQueue<uint> EntitiesPool;
 
         public ComponentStorage Components;
@@ -15,10 +15,6 @@ namespace DesertImage.ECS
 
         public ushort GroupIdCounter;
         public UnsafeUshortSparseSet<EntitiesGroup> Groups;
-        public UnsafeUshortSparseSet<Matcher> Matchers;
-        public UnsafeUintSparseSet<ushort> SystemToMatcher;
-        public UnsafeUshortSparseSet<ushort> MatcherToGroup;
-        public UnsafeUshortSparseSet<ushort> GroupToMatcher;
         public UnsafeUintSparseSet<UnsafeList<ushort>> EntityToGroups;
         public UnsafeUintSparseSet<UnsafeList<ushort>> ComponentToGroups;
 
@@ -27,7 +23,7 @@ namespace DesertImage.ECS
             const int groupsCapacity = 20;
 
             EntityIdCounter = 0;
-            AliveEntities = new UnsafeSparseSet<uint>(entitiesCapacity);
+            AliveEntities = new UnsafeUintSparseSet<uint>(entitiesCapacity);
             EntitiesPool = new UnsafeQueue<uint>(100, Allocator.Persistent);
 
             Components = new ComponentStorage(componentsCapacity, entitiesCapacity);
@@ -35,12 +31,6 @@ namespace DesertImage.ECS
 
             GroupIdCounter = 0;
             Groups = new UnsafeUshortSparseSet<EntitiesGroup>(groupsCapacity);
-
-            Matchers = new UnsafeUshortSparseSet<Matcher>(groupsCapacity);
-            SystemToMatcher = new UnsafeUintSparseSet<ushort>(groupsCapacity);
-
-            MatcherToGroup = new UnsafeUshortSparseSet<ushort>(groupsCapacity);
-            GroupToMatcher = new UnsafeUshortSparseSet<ushort>(groupsCapacity);
 
             EntityToGroups = new UnsafeUintSparseSet<UnsafeList<ushort>>(entitiesCapacity);
             ComponentToGroups = new UnsafeUintSparseSet<UnsafeList<ushort>>(componentsCapacity);
@@ -53,10 +43,7 @@ namespace DesertImage.ECS
             EntitiesPool.Dispose();
 
             GroupIdCounter = 0;
-            MatcherToGroup.Dispose();
-            GroupToMatcher.Dispose();
-            SystemToMatcher.Dispose();
-            
+
             foreach (var value in Groups)
             {
                 value.Dispose();

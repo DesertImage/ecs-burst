@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using DesertImage.ECS;
 using NUnit.Framework;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -46,7 +47,7 @@ namespace DesertImage.Collections
             if (!clearMemory) return;
 
             UnsafeUtility.MemClear(Data, fullSize);
-            
+
             IsNotNull = true;
         }
 
@@ -62,7 +63,19 @@ namespace DesertImage.Collections
             {
                 Data[i] = defaultValue;
             }
-            
+
+            IsNotNull = true;
+        }
+
+        public UnsafeArray(T* ptr, int length, Allocator allocator)
+        {
+            Length = length;
+
+            Data = ptr;
+
+            _elementSize = MemoryUtility.SizeOf<T>();
+            _allocator = allocator;
+
             IsNotNull = true;
         }
 

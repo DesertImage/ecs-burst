@@ -1,16 +1,24 @@
 ﻿namespace DesertImage.ECS
 {
-    public struct TestValueThirdSystem : IExecuteSystem
+    public struct TestValueThirdSystem : IInitSystem, IExecuteSystem
     {
-        public Matcher Matcher => MatcherBuilder.Create()
-            .With<TestValueComponent>()
-            .None<TestComponent>()
-            .Build();
+        private EntitiesGroup _group;
 
-        public void Execute(Entity entity, World world, float deltaTime)
+        public void Initialize(in World world)
         {
-            entity.Replace<TestComponent>();
-            entity.Remove<TestValueComponent>();
+            _group = Filter.Create(world)
+                .With<TestValueComponent>()
+                .None<TestComponent>()
+                .Build();
+        }
+
+        public unsafe void Execute(SystemsContext* context)
+        {
+            foreach (var entity in _group)
+            {
+                // entity.Replace<TestComponent>();
+                entity.Remove<TestValueComponent>();
+            }
         }
     }
 }

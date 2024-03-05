@@ -2,23 +2,31 @@ using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public struct EntityToTransformSystem : IExecuteSystem
+    public struct EntityToTransformSystem : IInitSystem, IExecuteSystem
     {
-        public Matcher Matcher => MatcherBuilder.Create()
-            .With<View>()
-            .With<Position>()
-            .With<Rotation>()
-            .With<Scale>()
-            .Build();
+        private EntitiesGroup _group;
 
-        public void Execute(Entity entity, World world, float deltaTime)
+        public void Initialize(in World world)
         {
-            var view = entity.Read<View>().Value.Value;
-            var transform = view.transform;
+            _group = Filter.Create(world)
+                .With<View>()
+                .With<Position>()
+                .With<Rotation>()
+                .With<Scale>()
+                .Build();
+        }
 
-            transform.position = entity.Read<Position>().Value;
-            transform.rotation = Quaternion.Euler(entity.Read<Rotation>().Value);
-            transform.localScale = entity.Read<Scale>().Value;
+        public unsafe void Execute(SystemsContext* context)
+        {
+            foreach (var entity in _group)
+            {
+                var view = entity.Read<View>().Value.Value;
+                var transform = view.transform;
+
+                transform.position = entity.Read<Position>().Value;
+                transform.rotation = Quaternion.Euler(entity.Read<Rotation>().Value);
+                transform.localScale = entity.Read<Scale>().Value;
+            }
         }
     }
 }

@@ -12,7 +12,7 @@ namespace DesertImage.ECS
         [BurstDiscard]
         public static void Add<T>(uint entityId, T component) where T : struct
         {
-            var componentId = ComponentTools.GetComponentId<T>();
+            var componentId = ComponentTools.GetComponentIdFast<T>();
             if (Components.TryGetValue(entityId, out var components))
             {
                 if (componentId >= components.Length)
@@ -34,7 +34,7 @@ namespace DesertImage.ECS
         [BurstDiscard]
         public static void Remove<T>(uint entityId) where T : struct
         {
-            var componentId = ComponentTools.GetComponentId<T>();
+            var componentId = ComponentTools.GetComponentIdFast<T>();
 
             if (!Components.TryGetValue(entityId, out var components)) return;
             if (components.Length < componentId)
