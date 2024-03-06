@@ -12,7 +12,7 @@
                 .Find();
         }
 
-        public unsafe void Execute(SystemsContext* context)
+        public void Execute(ref SystemsContext context)
         {
             var testValueComponents = _group.GetComponents<TestValueComponent>();
             for (var i = 0; i < testValueComponents.Length; i++)

@@ -9,7 +9,7 @@
             _group = Filter.Create(world).With<T>().Find();
         }
 
-        public unsafe void Execute(SystemsContext* context)
+        public void Execute(ref SystemsContext context)
         {
             foreach (var entity in _group)
             {

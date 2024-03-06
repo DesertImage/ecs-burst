@@ -48,7 +48,7 @@ namespace DesertImage.ECS
         private static void MakeExecute(void* wrapper, SystemsContext* context)
         {
             var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
-            ptr.Execute(context);
+            ptr.Execute(ref *context);
         }
     }
 }

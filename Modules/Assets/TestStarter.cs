@@ -36,12 +36,12 @@ namespace DesertImage.ECS.Tests
             _group = Filter.Create(world).With<TestValueComponent>().Find();
         }
 
-        public unsafe void Execute(SystemsContext* context)
+        public void Execute(ref SystemsContext context)
         {
             var Values = _group.GetComponents<TestValueComponent>();
 
             var job = new PerformanceJob { Values = Values };
-            context->Handle = job.Schedule(context->Handle);
+            context.Handle = job.Schedule(context.Handle);
 
             // for (var i = 0; i < Values.Length; i++)
             // {
@@ -59,7 +59,7 @@ namespace DesertImage.ECS.Tests
             _group = Filter.Create(world).With<TestValueComponent>().Find();
         }
 
-        public unsafe void Execute(SystemsContext* context)
+        public void Execute(ref SystemsContext context)
         {
             // for (var i = 0; i < Values.Length; i++)
             // {

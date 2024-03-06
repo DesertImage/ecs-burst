@@ -28,10 +28,10 @@ namespace DesertImage.ECS
                 .Find();
         }
 
-        public unsafe void Execute(SystemsContext* context)
+        public void Execute(ref SystemsContext context)
         {
             var job = new TestJob { Values = _group.GetComponents<TestValueComponent>() };
-            context->Handle = job.Schedule(context->Handle);
+            context.Handle = job.Schedule(context.Handle);
         }
     }
 }
