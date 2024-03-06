@@ -145,7 +145,7 @@ namespace DesertImage.ECS.Tests
         }
 
         [Test]
-        public unsafe void UniversalGroup()
+        public void NewGroup()
         {
             var world = Worlds.Create();
 
@@ -172,6 +172,44 @@ namespace DesertImage.ECS.Tests
             Assert.IsTrue(firstResult);
             Assert.IsFalse(secondResult);
             Assert.IsFalse(thirdResult);
+        }
+
+        [Test]
+        public void GetComponents()
+        {
+            var world = Worlds.Create();
+
+            const int entitiesCount = 2;
+            var entities = new UnsafeArray<Entity>(entitiesCount, Allocator.Persistent);
+            var results = new UnsafeArray<int>(5, Allocator.Persistent);
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                var entity = world.GetNewEntity();
+                entities[i] = entity;
+                entity.Replace<TestValueComponent>();
+            }
+
+            var group = Filter.Create(world).With<TestValueComponent>().Find();
+
+            var testValueComponents = group.GetComponents<TestValueComponent>();
+            for (var i = testValueComponents.Length - 1; i >= 0; i--)
+            {
+                testValueComponents.Get(i).Value += 1;
+            }
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                Assert.AreEqual
+                (
+                    1,
+                    entities[i].Read<TestValueComponent>().Value
+                );
+            }
+
+            world.Dispose();
+            entities.Dispose();
+            results.Dispose();
         }
     }
 }

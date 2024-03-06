@@ -63,7 +63,11 @@ namespace DesertImage.ECS
 
         public UnsafeArray<T> GetComponents<T>() where T : unmanaged
         {
-            var componentIndex = _componentIndexes.Read(ComponentTools.GetComponentId<T>());
+            var componentId = ComponentTools.GetComponentId<T>();
+#if DEBUG_MODE
+            if(!_componentIndexes.Contains(componentId)) throw new Exception($"Group doesn't store components {typeof(T)} ");
+#endif
+            var componentIndex = _componentIndexes.Read(componentId);
             var data = (T*)_buffer[componentIndex];
             return new UnsafeArray<T>(data, Count, Allocator.Persistent);
         }
