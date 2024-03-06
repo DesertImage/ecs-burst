@@ -154,5 +154,15 @@ namespace DesertImage.ECS
 
             componentGroups.Add(groupId);
         }
+        
+        internal static void AddEntityGroup(uint entityId, ushort groupId, WorldState* state)
+        {
+            state->EntityToGroups.Get(entityId).Add(groupId);
+        }
+        
+        internal static void RemoveEntityGroup(uint entityId, ushort groupId, WorldState* state)
+        {
+            state->EntityToGroups.Get(entityId).Remove(groupId);
+        }
     }
 }

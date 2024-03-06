@@ -1,4 +1,6 @@
+using DesertImage.Collections;
 using NUnit.Framework;
+using Unity.Collections;
 
 namespace DesertImage.ECS.Tests
 {
@@ -38,6 +40,74 @@ namespace DesertImage.ECS.Tests
             world.Dispose();
 
             Assert.IsFalse(result);
+        }
+
+        [Test]
+        public void Count()
+        {
+            var world = Worlds.Create();
+
+            var group = Filter.Create(world)
+                .With<TestComponent>()
+                .With<TestValueComponent>()
+                .None<TestValueSecondComponent>()
+                .Find();
+
+            const int entitiesCount = 2;
+
+            var entities = new UnsafeArray<Entity>(entitiesCount, Allocator.Persistent);
+            var results = new UnsafeArray<int>(5, Allocator.Persistent);
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                var entity = world.GetNewEntity();
+
+                entities[i] = entity;
+
+                entity.Replace<TestComponent>();
+                entity.Replace<TestValueComponent>();
+            }
+
+            results[0] = group.Count;
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                entities[i].Remove<TestValueComponent>();
+            }
+
+            results[1] = group.Count;
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                var entity = entities[i];
+                entity.Replace<TestValueComponent>();
+            }
+
+            results[2] = group.Count;
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                entities[i].Replace<TestValueSecondComponent>();
+            }
+
+            results[3] = group.Count;
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                entities[i].Remove<TestValueSecondComponent>();
+            }
+
+            results[4] = group.Count;
+
+            world.Dispose();
+            entities.Dispose();
+            results.Dispose();
+
+            Assert.AreEqual(entitiesCount, results[0]);
+            Assert.AreEqual(0, results[1]);
+            Assert.AreEqual(entitiesCount, results[2]);
+            Assert.AreEqual(0, results[3]);
+            Assert.AreEqual(entitiesCount, results[4]);
         }
 
         [Test]

@@ -154,8 +154,7 @@ namespace DesertImage.ECS
                 var entityId = spareSet._keys[i];
 
                 //TODO:refactor this
-                _world->State->EntityToGroups.Get(entityId).Add(Id);
-
+                Groups.AddEntityGroup(entityId, Id, _world->State);
                 Add(entityId);
             }
         }
@@ -176,17 +175,12 @@ namespace DesertImage.ECS
             _with.Add(componentId);
 
             if (_with.Count >= _componentsCapacity) Resize(_entitiesCapacity, _componentsCapacity + 1);
-
-            ref var componentGroups = ref Groups.GetComponentGroups(componentId, _world->State);
-
 #if DEBUG_MODE
             if (componentGroups.Contains(Id))
             {
                 throw new Exception($"ComponentGroups of componentId: {componentId} already contains group: {Id}");
             }
 #endif
-            componentGroups.Add(Id);
-
             var count = Count;
             for (var i = count - 1; i >= 0; i--)
             {
@@ -195,8 +189,7 @@ namespace DesertImage.ECS
                 if (_world->State->Components.Contains(entityId, componentId)) continue;
 
                 //TODO:refactor this
-                _world->State->EntityToGroups.Get(entityId).Remove(Id);
-
+                Groups.RemoveEntityGroup(entityId, Id, _world->State);
                 Remove(entityId);
             }
 
@@ -222,8 +215,7 @@ namespace DesertImage.ECS
                 if (!_world->State->Components.Contains(entityId, componentId)) continue;
 
                 //TODO:refactor this
-                _world->State->EntityToGroups.Get(entityId).Remove(Id);
-
+                Groups.RemoveEntityGroup(entityId, Id, _world->State);
                 Remove(entityId);
             }
         }

@@ -60,7 +60,7 @@ namespace DesertImage.ECS
                 _capacity = newCapacity;
             }
 
-            var offset = 0L;
+            var offset = _offsets[componentId];
 
             var isNew = _count == 0 || !_hashes.Contains(componentId);
 
