@@ -50,8 +50,9 @@ namespace DesertImage.Collections
             {
 #if DEBUG_MODE
                 throw new Exception($"missing {key}");
-#endif
+#else
                 return;
+#endif
             }
 
             _entries[key] = 0u;
@@ -91,7 +92,7 @@ namespace DesertImage.Collections
                     newSize = (int)(value + 1);
                 }
 
-                MemoryUtility.Resize(ref _entries, _capacity, newSize);
+                _entries = MemoryUtility.Resize(_entries, _capacity, newSize);
                 _capacity = newSize;
             }
 

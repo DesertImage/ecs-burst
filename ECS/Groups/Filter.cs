@@ -15,9 +15,9 @@ namespace DesertImage.ECS
         {
             _world = world.Ptr;
 
-            _with = new UnsafeList<uint>(3, Allocator.Persistent);
-            _withSizes = new UnsafeList<uint>(3, Allocator.Persistent);
-            _none = new UnsafeList<uint>(1, Allocator.Persistent);
+            _with = new UnsafeList<uint>(3, Allocator.Temp);
+            _withSizes = new UnsafeList<uint>(3, Allocator.Temp);
+            _none = new UnsafeList<uint>(1, Allocator.Temp);
             _componentsHash = 0;
         }
 

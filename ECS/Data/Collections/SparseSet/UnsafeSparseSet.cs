@@ -91,8 +91,8 @@ namespace DesertImage.Collections
                 {
                     newSparseCapacity = key + 1;
                 }
-                
-                MemoryUtility.Resize(ref _sparse, _sparseCapacity, newSparseCapacity, -1);
+
+                _sparse = MemoryUtility.Resize(_sparse, _sparseCapacity, newSparseCapacity, -1);
                 _sparseCapacity = newSparseCapacity;
             }
 
@@ -105,8 +105,8 @@ namespace DesertImage.Collections
             if (Count >= _denseCapacity)
             {
                 var newDenseCapacity = _denseCapacity << 1;
-                MemoryUtility.Resize(ref _dense, _denseCapacity, newDenseCapacity);
-                MemoryUtility.Resize(ref _keys, _denseCapacity, newDenseCapacity);
+                _dense = MemoryUtility.Resize(_dense, _denseCapacity, newDenseCapacity);
+                _keys = MemoryUtility.Resize(_keys, _denseCapacity, newDenseCapacity);
                 _denseCapacity = newDenseCapacity;
             }
         }
@@ -114,7 +114,7 @@ namespace DesertImage.Collections
         public void Remove(int key)
         {
             var denseIndex = _sparse[key];
-            
+
             if (Count > 1)
             {
                 var lastIndex = Count - 1;
@@ -128,7 +128,7 @@ namespace DesertImage.Collections
                 _dense[denseIndex] = default;
                 _keys[denseIndex] = default;
             }
-            
+
             _sparse[key] = -1;
 
             Count--;
@@ -155,7 +155,7 @@ namespace DesertImage.Collections
 
         public bool Contains(int key)
         {
-            if(key >= _sparseCapacity) return false;
+            if (key >= _sparseCapacity) return false;
             return _sparseCapacity > key && _sparse[key] != -1;
         }
 

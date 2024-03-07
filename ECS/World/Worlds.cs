@@ -65,8 +65,9 @@ namespace DesertImage.ECS
             {
 #if DEBUG_MODE
                 throw new Exception("Words count is already 0");
-#endif
+#else
                 return;
+#endif
             }
 
             MemoryUtility.Free((void*)WorldsStorage.Worlds.Data[id]);
@@ -88,7 +89,14 @@ namespace DesertImage.ECS
             _idCounter = 0;
             _isInitialized = false;
 
-            WorldsStorage.Worlds.Data.Dispose();
+            var worlds = WorldsStorage.Worlds.Data;
+            for (var i = 0; i < worlds.Length; i++)
+            {
+                var ptr = worlds[i];
+                MemoryUtility.Free((void*)ptr);
+            }
+
+            worlds.Dispose();
             WorldsIds.FreeIds.Data.Dispose();
         }
     }

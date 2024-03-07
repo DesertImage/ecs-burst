@@ -14,7 +14,7 @@ namespace DesertImage.ECS
         private long* _offsets;
 
         private long _size;
-        private int _capacity;
+        private int _componentsCapacity;
         private readonly int _entitiesCapacity;
 
         private long _lastOffset;
@@ -24,7 +24,7 @@ namespace DesertImage.ECS
 
         private readonly Allocator _allocator;
 
-        public ComponentStorage(int componentsCapacity, int entityCapacity,
+        public ComponentStorage(int componentsCapacity, int entitiesCapacity,
             Allocator allocator = Allocator.Persistent)
         {
             _size = componentsCapacity * MemoryUtility.SizeOf<UnsafeUintSparseSet<long>>();
@@ -33,8 +33,8 @@ namespace DesertImage.ECS
             _offsets = MemoryUtility.AllocateClearCapacity<long>(componentsCapacity, allocator);
             _hashes = new UnsafeUintHashSet(componentsCapacity, allocator);
 
-            _capacity = componentsCapacity;
-            _entitiesCapacity = entityCapacity;
+            _componentsCapacity = componentsCapacity;
+            _entitiesCapacity = entitiesCapacity;
 
             _lastOffset = 0;
             _count = 0;
@@ -46,18 +46,20 @@ namespace DesertImage.ECS
         {
             var componentId = ComponentTools.GetComponentId<T>();
 
-            var isOutOfCapacity = componentId >= _capacity;
-
-            if (isOutOfCapacity)
+            if (entityId == 511)
             {
-                var newCapacity = _capacity << 1;
+            }
+
+            if (componentId >= _componentsCapacity)
+            {
+                var newCapacity = _componentsCapacity << 1;
                 if (newCapacity <= componentId)
                 {
                     newCapacity = (int)(componentId + 1);
                 }
 
-                MemoryUtility.Resize(ref _offsets, _capacity, newCapacity);
-                _capacity = newCapacity;
+                _offsets = MemoryUtility.Resize(_offsets, _componentsCapacity, newCapacity);
+                _componentsCapacity = newCapacity;
             }
 
             var offset = _offsets[componentId];
@@ -66,33 +68,39 @@ namespace DesertImage.ECS
 
             if (isNew)
             {
-                var sparseSet = new UnsafeUintUnknownTypeSparseSet
-                (
-                    _entitiesCapacity / 2,
-                    _entitiesCapacity, MemoryUtility.SizeOf<T>()
-                );
-
+                ref var sparseSet = ref InitComponent(componentId, MemoryUtility.SizeOf<T>());
                 sparseSet.Set(entityId, data);
-
-                _offsets[componentId] = offset = _lastOffset;
-                _lastOffset += MemoryUtility.SizeOf<UnsafeUintUnknownTypeSparseSet>();
-
-                if (_lastOffset >= _size)
-                {
-                    var newSize = _size << 1;
-                    MemoryUtility.Resize(ref _data, _size, newSize);
-                    _size = newSize;
-                }
-
-                _count++;
-
-                _hashes.Add(componentId);
-                *(UnsafeUintUnknownTypeSparseSet*)(_data + offset) = sparseSet;
             }
             else
             {
                 ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->Set(entityId, data);
             }
+        }
+
+        private ref UnsafeUintUnknownTypeSparseSet InitComponent(uint componentId, long componentSize)
+        {
+            var sparseSet = new UnsafeUintUnknownTypeSparseSet
+            (
+                _entitiesCapacity / 2,
+                _entitiesCapacity, componentSize
+            );
+
+            var offset = _offsets[componentId] = _lastOffset;
+            _lastOffset += MemoryUtility.SizeOf<UnsafeUintUnknownTypeSparseSet>();
+
+            if (_lastOffset >= _size)
+            {
+                var newSize = _size << 1;
+                _data = MemoryUtility.Resize(_data, _size, newSize, _allocator);
+                _size = newSize;
+            }
+
+            _count++;
+
+            _hashes.Add(componentId);
+            *(UnsafeUintUnknownTypeSparseSet*)(_data + offset) = sparseSet;
+
+            return ref *(UnsafeUintUnknownTypeSparseSet*)(_data + offset);
         }
 
         public T Read<T>(uint entityId, uint componentId) where T : unmanaged
@@ -110,13 +118,22 @@ namespace DesertImage.ECS
             return ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->GetPtr(entityId);
         }
 
-        public ref UnsafeUintUnknownTypeSparseSet ReadSparsSet<T>() where T : unmanaged
+        public ref UnsafeUintUnknownTypeSparseSet GetSparseSet<T>() where T : unmanaged
         {
-            return ref ReadSparsSet(ComponentTools.GetComponentIdFast<T>());
+            return ref GetSparseSet(ComponentTools.GetComponentIdFast<T>());
         }
 
-        public ref UnsafeUintUnknownTypeSparseSet ReadSparsSet(uint componentId)
+        public ref UnsafeUintUnknownTypeSparseSet GetSparseSet(uint componentId)
         {
+#if DEBUG_MODE
+            if (!ContainsKey(componentId)) throw new Exception($"storage hasn't component: {componentId}");
+#endif
+            return ref *(UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]);
+        }
+
+        public ref UnsafeUintUnknownTypeSparseSet GetSparseSetOrInitialize(uint componentId, long componentSize)
+        {
+            if (!ContainsKey(componentId)) return ref InitComponent(componentId, componentSize);
             return ref *(UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]);
         }
 
@@ -153,16 +170,13 @@ namespace DesertImage.ECS
 
         public void Dispose()
         {
-            for (var i = 0; i < _capacity; i++)
+            foreach (var componentId in _hashes)
             {
-                var offset = _offsets[i];
-
-                if (i > 0 && offset == 0) continue;
-
+                var offset = _offsets[componentId];
                 ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->Dispose();
             }
 
-            UnsafeUtility.Free(_data, _allocator);
+            MemoryUtility.Free(_data, _allocator);
             MemoryUtility.Free(_offsets, _allocator);
             _hashes.Dispose();
 
@@ -176,7 +190,7 @@ namespace DesertImage.ECS
 
             public ComponentStorageNewDebugView(ComponentStorage data) => _data = data;
 
-            public long[] Offsets => MemoryUtility.ToArray(_data._offsets, _data._capacity);
+            public long[] Offsets => MemoryUtility.ToArray(_data._offsets, _data._componentsCapacity);
         }
     }
 }

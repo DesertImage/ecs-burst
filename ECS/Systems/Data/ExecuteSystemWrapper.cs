@@ -1,12 +1,17 @@
+using System;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.ECS
 {
-    public unsafe struct ExecuteSystemWrapper
+    public unsafe struct ExecuteSystemWrapper : IDisposable
     {
-        public byte IsCalculateSystem;
-        
         [NativeDisableUnsafePtrRestriction] public void* Value;
         [NativeDisableUnsafePtrRestriction] public void* MethodPtr;
+        
+        public void Dispose()
+        {
+            MemoryUtility.Free(Value);
+            MethodPtr = null;
+        }
     }
 }

@@ -86,7 +86,7 @@ namespace DesertImage.ECS
             }
             else
             {
-                var componentPTr = (IntPtr)MemoryUtility.Allocate(component);
+                var componentPTr = (IntPtr)MemoryUtility.AllocateInstance(in component);
                 state->StaticComponents.Set(componentId, componentPTr);
             }
         }

@@ -120,7 +120,7 @@ namespace DesertImage.Collections
         {
             var oldEntries = _entries;
 
-            MemoryUtility.Resize(ref _lockIndexes, _capacity, newCapacity);
+            _lockIndexes = MemoryUtility.Resize(_lockIndexes, _capacity, newCapacity);
 
             _entries = (UnsafeList<Entry>*)MemoryUtility.AllocateClearCapacity<UnsafeLinkedList<Entry>>
             (

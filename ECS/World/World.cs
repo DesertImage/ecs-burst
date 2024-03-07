@@ -5,9 +5,9 @@ namespace DesertImage.ECS
     public unsafe struct World
     {
         public byte Id;
-        
+
         [NativeDisableUnsafePtrRestriction] public readonly World* Ptr;
-        
+
         [NativeDisableUnsafePtrRestriction] public readonly WorldState* State;
         [NativeDisableUnsafePtrRestriction] public readonly SystemsState* SystemsState;
 
@@ -19,8 +19,11 @@ namespace DesertImage.ECS
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.Allocate(new WorldState(512, 1024));
-            SystemsState = MemoryUtility.Allocate(new SystemsState(20));
+            State = MemoryUtility.Allocate<WorldState>();
+            *State = new WorldState(512, 1024);
+
+            SystemsState = MemoryUtility.Allocate<SystemsState>();
+            *SystemsState = new SystemsState(20);
 
             _moduleProvider = default;
         }
@@ -30,8 +33,11 @@ namespace DesertImage.ECS
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.Allocate(new WorldState(512, 1024));
-            SystemsState = MemoryUtility.Allocate(new SystemsState(20));
+            State = MemoryUtility.Allocate<WorldState>();
+            *State = new WorldState(512, 1024);
+
+            SystemsState = MemoryUtility.Allocate<SystemsState>();
+            *SystemsState = new SystemsState(20);
 
             _moduleProvider = moduleProvider;
         }
@@ -41,8 +47,11 @@ namespace DesertImage.ECS
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.Allocate(new WorldState(componentsCapacity, entitiesCapacity));
-            SystemsState = MemoryUtility.Allocate(new SystemsState(20));
+            State = MemoryUtility.Allocate<WorldState>();
+            *State = new WorldState(componentsCapacity, entitiesCapacity);
+
+            SystemsState = MemoryUtility.Allocate<SystemsState>();
+            *SystemsState = new SystemsState(20);
 
             _moduleProvider = default;
         }
@@ -54,6 +63,11 @@ namespace DesertImage.ECS
             Worlds.Destroy(Id);
 
             State->Dispose();
+            SystemsState->Dispose();
+            
+            MemoryUtility.Free(State);
+            MemoryUtility.Free(SystemsState);
+            
             Id = 0;
         }
     }

@@ -156,7 +156,7 @@ namespace DesertImage.Collections
         {
             var oldCapacity = _capacity;
 
-            MemoryUtility.Resize(ref _data, oldCapacity, newCapacity);
+            _data = MemoryUtility.Resize(_data, oldCapacity, newCapacity);
 
             for (var i = oldCapacity; i < newCapacity; i++)
             {

@@ -30,6 +30,8 @@ namespace DesertImage.ECS
 
         private World* _world;
 
+        private byte _isPrimaryFilled;
+
         public EntitiesGroup(ushort id, World* world, int entitiesCapacity, int componentsCapacity)
         {
             Id = id;
@@ -41,11 +43,12 @@ namespace DesertImage.ECS
             _bufferSize = entitiesCapacity * componentsCapacity * IntPtr.Size;
 
             _buffer = (void**)UnsafeUtility.Malloc(_bufferSize, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
-            MemoryUtility.Clear(ref _buffer, _bufferSize);
+            MemoryUtility.Clear(_buffer, _bufferSize);
 
-            _components = MemoryUtility.Allocate
+            var hashSet = new UnsafeUintHashSet(2, Allocator.Persistent);
+            _components = MemoryUtility.AllocateInstance
             (
-                new UnsafeUintHashSet(2, Allocator.Persistent)
+                in hashSet
             );
 
             _componentIndexes = new UnsafeUintSparseSet<uint>(2);
@@ -53,56 +56,46 @@ namespace DesertImage.ECS
             _with = new UnsafeList<uint>(2, Allocator.Persistent);
             _noneOf = new UnsafeList<uint>(2, Allocator.Persistent);
 
-            _entities = MemoryUtility.Allocate
+            var sparseSet = new UnsafeUintSparseSet<uint>(entitiesCapacity / 2, entitiesCapacity);
+            _entities = MemoryUtility.AllocateInstance
             (
-                new UnsafeUintSparseSet<uint>(entitiesCapacity / 2, entitiesCapacity)
+                in sparseSet
             );
 
             ComponentsHashCode = default;
+
+            _isPrimaryFilled = 0;
         }
 
         public UnsafeArray<T> GetComponents<T>() where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentId<T>();
 #if DEBUG_MODE
-            if(!_componentIndexes.Contains(componentId)) throw new Exception($"Group doesn't store components {typeof(T)} ");
+            if (!_componentIndexes.Contains(componentId))
+            {
+                throw new Exception($"Group doesn't store components {typeof(T)} ");
+            }
 #endif
             var componentIndex = _componentIndexes.Read(componentId);
-            var data = (T*)_buffer[componentIndex];
-            return new UnsafeArray<T>(data, Count, Allocator.Persistent);
+            var data = _buffer[componentIndex];
+            return new UnsafeArray<T>((T*)data, Count, Allocator.Persistent);
         }
 
         public Entity GetEntity(int index) => new Entity(_entities->_dense[index], _world);
 
-        public EntitiesGroup With<T>() where T : unmanaged
+        internal EntitiesGroup With(uint componentId, long componentSize)
         {
-            if (Count == 0)
+            if (_isPrimaryFilled == 0)
             {
-                Fill<T>();
+                Fill(componentId, componentSize);
             }
             else
             {
-                FilterWith<T>();
+                FilterWith(componentId, componentSize);
             }
 
             return this;
         }
-
-        internal EntitiesGroup With(uint componentId, uint elementSize)
-        {
-            if (Count == 0)
-            {
-                Fill(componentId);
-            }
-            else
-            {
-                FilterWith(componentId);
-            }
-
-            return this;
-        }
-
-        public EntitiesGroup None<T>() where T : unmanaged => None(ComponentTools.GetComponentId<T>());
 
         public EntitiesGroup None(uint componentId)
         {
@@ -121,7 +114,7 @@ namespace DesertImage.ECS
                 Allocator.Persistent
             );
 
-            MemoryUtility.Clear(ref newBuffer, _bufferSize);
+            MemoryUtility.Clear(newBuffer, _bufferSize);
 
             for (var i = 0; i < _componentIndexes.Count; i++)
             {
@@ -142,16 +135,21 @@ namespace DesertImage.ECS
 
         #region FILL/FILTER
 
-        private void Fill<T>() where T : unmanaged => Fill(ComponentTools.GetComponentId<T>());
-
-        private void Fill(uint componentId)
+        private void Fill(uint componentId, long componentSize)
         {
+            _isPrimaryFilled = 1;
+
             ComponentsHashCode += componentId;
+
             _componentIndexes.Set(componentId, 0);
             _components->Add(componentId);
             _with.Add(componentId);
 
-            ref var spareSet = ref _world->State->Components.ReadSparsSet(componentId);
+            ref var storage = ref _world->State->Components;
+
+            if (!storage.ContainsKey(componentId)) return;
+
+            ref var spareSet = ref storage.GetSparseSet(componentId);
 
             for (var i = spareSet.Count - 1; i >= 0; i--)
             {
@@ -161,11 +159,11 @@ namespace DesertImage.ECS
                 Groups.AddEntityGroup(entityId, Id, _world->State);
                 Add(entityId);
             }
+
+            InitComponent(componentId, componentSize);
         }
 
-        private void FilterWith<T>() where T : struct => FilterWith(ComponentTools.GetComponentId<T>());
-
-        private void FilterWith(uint componentId)
+        private void FilterWith(uint componentId, long componentSize)
         {
 #if DEBUG_MODE
             if (_with.Contains(componentId))
@@ -176,15 +174,11 @@ namespace DesertImage.ECS
             ComponentsHashCode += componentId;
 
             _componentIndexes.Set(componentId, (uint)_with.Count);
+            _components->Add(componentId);
             _with.Add(componentId);
 
             if (_with.Count >= _componentsCapacity) Resize(_entitiesCapacity, _componentsCapacity + 1);
-#if DEBUG_MODE
-            if (componentGroups.Contains(Id))
-            {
-                throw new Exception($"ComponentGroups of componentId: {componentId} already contains group: {Id}");
-            }
-#endif
+
             var count = Count;
             for (var i = count - 1; i >= 0; i--)
             {
@@ -202,6 +196,8 @@ namespace DesertImage.ECS
             {
                 FillComponent(_entities->_dense[i], componentId);
             }
+
+            InitComponent(componentId, componentSize);
         }
 
         private void FilterNone(uint componentId)
@@ -224,10 +220,18 @@ namespace DesertImage.ECS
             }
         }
 
+        private void InitComponent(uint componentId, long componentSize)
+        {
+            var componentIndex = _componentIndexes.Read(componentId);
+            var ptr = _world->State->Components.GetSparseSetOrInitialize(componentId, componentSize).GetPtr();
+            _buffer[componentIndex] = ptr;
+        }
+
         private void FillComponent(uint entityId, uint componentId)
         {
             var componentIndex = _componentIndexes.Read(componentId);
-            _buffer[componentIndex] = _world->State->Components.ReadSparsSet(componentId).GetPtr(entityId);
+            var ptr = _world->State->Components.GetSparseSet(componentId).GetPtr(entityId);
+            _buffer[componentIndex + entityId] = ptr;
         }
 
         #endregion
@@ -252,6 +256,7 @@ namespace DesertImage.ECS
             {
                 var componentIndex = _componentIndexes.Read(componentId) * _entitiesCapacity;
 
+                //TODO recheck. Probably don't work
                 if (Count > 1)
                 {
                     _buffer[componentIndex + entityId] = _buffer[componentIndex + (Count - 1)];
@@ -294,8 +299,11 @@ namespace DesertImage.ECS
             _with.Dispose();
             _noneOf.Dispose();
 
+            _entities->Dispose();
+
             MemoryUtility.Free(_buffer);
             MemoryUtility.Free(_components);
+            MemoryUtility.Free(_entities);
         }
 
         public Enumerator GetEnumerator() => new Enumerator(this);

@@ -5,6 +5,7 @@ using System.Diagnostics;
 using DesertImage.ECS;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Debug = UnityEngine.Debug;
 
 namespace DesertImage.Collections
 {
@@ -41,12 +42,15 @@ namespace DesertImage.Collections
 
         public void Add(T element)
         {
+#if DEBUG_MODE
+            if (Contains(element)) Debug.LogWarning($"List already contains {element}");
+#endif
             if (Count >= _capacity)
             {
                 var oldCapacity = _capacity;
                 _capacity <<= 1;
                 _size = _capacity * UnsafeUtility.SizeOf<T>();
-                MemoryUtility.Resize(ref _data, oldCapacity, _capacity, _allocator);
+                _data = MemoryUtility.Resize(_data, oldCapacity, _capacity, _allocator);
             }
 
             _data[Count] = element;
@@ -60,8 +64,9 @@ namespace DesertImage.Collections
             {
 #if DEBUG_MODE
                 throw new Exception($"not contains {element}");
-#endif
+#else
                 return;
+#endif
             }
 
             RemoveAt(IndexOf(element));
@@ -76,7 +81,7 @@ namespace DesertImage.Collections
 
         public void Clear()
         {
-            MemoryUtility.Clear(ref _data, _capacity);
+            MemoryUtility.Clear(_data, _capacity);
             Count = 0;
         }
 
@@ -101,7 +106,7 @@ namespace DesertImage.Collections
         }
 
         public ref T GetByRef(int index) => ref _data[index];
-        
+
         public T[] ToArray()
         {
             var array = new T[_capacity];
@@ -147,7 +152,13 @@ namespace DesertImage.Collections
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 
-        public readonly void Dispose() => MemoryUtility.Free(_data, _allocator);
+        public readonly void Dispose()
+        {
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException();
+#endif
+            MemoryUtility.Free(_data, _allocator);
+        }
 
         public T this[int index]
         {

@@ -18,12 +18,24 @@ namespace DesertImage.ECS
             MultiThreadSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             SystemsHash = new UnsafeUintSparseSet<uint>(capacity);
 
-            Context = MemoryUtility.Allocate(new SystemsContext());
+            var systemsContext = new SystemsContext();
+            Context = MemoryUtility.AllocateInstance(in systemsContext);
         }
 
         public void Dispose()
         {
+            for (var i = 0; i < EarlyMainThreadSystems.Count; i++)
+            {
+                EarlyMainThreadSystems[i].Dispose();
+            }
+            
             EarlyMainThreadSystems.Dispose();
+            
+            for (var i = 0; i < MultiThreadSystems.Count; i++)
+            {
+                MultiThreadSystems[i].Dispose();
+            }
+            
             MultiThreadSystems.Dispose();
 
             SystemsHash.Dispose();

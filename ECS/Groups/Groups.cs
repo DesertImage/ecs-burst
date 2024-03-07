@@ -1,3 +1,4 @@
+using System;
 using DesertImage.Collections;
 using Unity.Collections;
 
@@ -144,22 +145,15 @@ namespace DesertImage.ECS
         internal static void AddComponentGroup(uint componentId, ushort groupId, WorldState* state)
         {
             ref var componentGroups = ref GetComponentGroups(componentId, state);
-
-#if DEBUG_MODE
-            if (componentGroups.Contains(groupId))
-            {
-                throw new Exception($"Component groups ({componentId} already contains group: {groupId})");
-            }
-#endif
-
+            if (componentGroups.Contains(groupId)) return;
             componentGroups.Add(groupId);
         }
-        
+
         internal static void AddEntityGroup(uint entityId, ushort groupId, WorldState* state)
         {
             state->EntityToGroups.Get(entityId).Add(groupId);
         }
-        
+
         internal static void RemoveEntityGroup(uint entityId, ushort groupId, WorldState* state)
         {
             state->EntityToGroups.Get(entityId).Remove(groupId);

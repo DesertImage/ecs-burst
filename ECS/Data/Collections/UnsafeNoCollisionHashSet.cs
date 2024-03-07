@@ -65,8 +65,9 @@ namespace DesertImage.Collections
             {
 #if DEBUG_MODE
                 throw new Exception($"missing {key}");
-#endif
+#else
                 return;
+#endif
             }
 
             var bucketNumber = GetBucketNumber(key);
@@ -187,7 +188,7 @@ namespace DesertImage.Collections
             public bool MoveNext()
             {
                 ++_counter;
-                
+
                 while (_data._entries[_counter].HashCode < 0)
                 {
                     _counter++;

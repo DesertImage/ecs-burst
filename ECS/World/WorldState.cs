@@ -58,6 +58,13 @@ namespace DesertImage.ECS
 
             EntityToGroups.Dispose();
 
+            foreach (var value in ComponentToGroups)
+            {
+                value.Dispose();
+            }
+
+            ComponentToGroups.Dispose();
+            
             Components.Dispose();
 
             for (var i = 0; i < StaticComponents.Count; i++)

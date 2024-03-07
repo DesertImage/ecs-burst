@@ -86,29 +86,32 @@ namespace DesertImage.Collections
 #endif
             var oldData = Data;
             var fullSize = length * _elementSize;
-            Data = (T*)UnsafeUtility.Malloc(fullSize, 0, _allocator);
+            Data = MemoryUtility.Allocate<T>(fullSize, _allocator);
 
             if (clear)
             {
-                UnsafeUtility.MemClear(Data, fullSize);
+                MemoryUtility.Clear(Data, fullSize);
             }
 
-            UnsafeUtility.MemCpy(Data, oldData, Length * _elementSize);
-            UnsafeUtility.Free(oldData, _allocator);
+            MemoryUtility.Copy(Data, oldData, Length * _elementSize);
+            MemoryUtility.Free(oldData, _allocator);
 
             Length = length;
 
             return this;
         }
 
+        public void* GetPtr(int index) => Data + index;
+        public void* GetPtr() => Data;
+
         public void Clear()
         {
-            UnsafeUtility.MemClear(Data, Length * UnsafeUtility.SizeOf(typeof(T)));
+            MemoryUtility.Clear(Data, Length * UnsafeUtility.SizeOf(typeof(T)));
         }
 
         public void CopyTo(UnsafeArray<T> target)
         {
-            UnsafeUtility.MemCpy(target.Data, Data, Length * _elementSize);
+            MemoryUtility.Copy(target.Data, Data, Length * _elementSize);
         }
 
         public readonly void Dispose()
@@ -116,7 +119,7 @@ namespace DesertImage.Collections
 #if DEBUG_MODE
             if (Data == null) throw new NullReferenceException();
 #endif
-            UnsafeUtility.Free(Data, _allocator);
+            MemoryUtility.Free(Data, _allocator);
         }
 
         public T[] ToArray()

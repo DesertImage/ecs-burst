@@ -31,10 +31,9 @@ namespace DesertImage.Collections
         {
             var uintSize = MemoryUtility.SizeOf<uint>();
 
-            var denseSize = denseCapacity * elementSize;
-            _dense = MemoryUtility.AllocateClear<byte>(denseSize);
+            _dense = MemoryUtility.AllocateClear<byte>(denseCapacity * elementSize);
             _sparse = MemoryUtility.AllocateClear<uint>(sparseCapacity * uintSize);
-            _keys = MemoryUtility.AllocateClear<uint>(denseSize);
+            _keys = MemoryUtility.AllocateClear<uint>(denseCapacity * uintSize);
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
@@ -48,9 +47,9 @@ namespace DesertImage.Collections
 
         public void Set<T>(uint key, in T value) where T : unmanaged
         {
-// #if DEBUG
-//             if (!IsNotNull) throw new NullReferenceException();
-// #endif
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException();
+#endif
             if (Contains(key))
             {
                 ((T*)_dense)[_sparse[key] - 1] = value;
@@ -65,7 +64,7 @@ namespace DesertImage.Collections
                     newSparseCapacity = (int)(key + 1);
                 }
 
-                MemoryUtility.Resize(ref _sparse, _sparseCapacity, newSparseCapacity);
+                _sparse = MemoryUtility.Resize(_sparse, _sparseCapacity, newSparseCapacity);
                 _sparseCapacity = newSparseCapacity;
             }
 
@@ -81,20 +80,18 @@ namespace DesertImage.Collections
 
             var newDenseCapacity = _denseCapacity << 1;
 
-            MemoryUtility.Resize(ref _keys, _denseCapacity, newDenseCapacity);
-
             var oldPtr = _dense;
 
             var oldSize = _denseCapacity * _elementSize;
             var newSize = newDenseCapacity * _elementSize;
+            var uintSize = MemoryUtility.SizeOf<uint>();
 
+            _keys = MemoryUtility.Resize(_keys, _denseCapacity * uintSize, newDenseCapacity * uintSize);
             _dense = (byte*)UnsafeUtility.Malloc(newSize, 0, Allocator.Persistent);
 
-            UnsafeUtility.MemClear(_dense, newSize);
-            UnsafeUtility.MemCpy(_dense, oldPtr, oldSize);
-            UnsafeUtility.Free(oldPtr, Allocator.Persistent);
-            
-            MemoryUtility.Resize(ref _keys, _denseCapacity, newDenseCapacity);
+            MemoryUtility.Clear(_dense, newSize);
+            MemoryUtility.Copy(_dense, oldPtr, oldSize);
+            MemoryUtility.Free(oldPtr);
 
             _denseCapacity = newDenseCapacity;
         }
@@ -107,11 +104,11 @@ namespace DesertImage.Collections
             if (sparseIndex == 0) throw new IndexOutOfRangeException();
 #endif
             var denseIndex = sparseIndex - 1;
-            
+
             if (Count > 1)
             {
                 var lastIndex = Count - 1;
-                
+
                 _dense[denseIndex] = _dense[lastIndex];
                 _sparse[_keys[denseIndex]] = denseIndex + 1;
                 _keys[denseIndex] = _keys[lastIndex];
@@ -139,16 +136,29 @@ namespace DesertImage.Collections
         }
 
         public readonly ref T Get<T>(uint key) where T : unmanaged => ref ((T*)_dense)[_sparse[key] - 1];
-        public void* GetPtr(uint key) => _dense + (_sparse[key] - 1) * _elementSize;
+
+        public void* GetPtr(uint key)
+        {
+#if DEBUG_MODE
+            if (!Contains(key)) throw new Exception($"Sparse set doesn't contains key: {key}");
+#endif
+            var denseIndex = _sparse[key] - 1;
+            return _dense + denseIndex * _elementSize;
+        }
+
+        public void* GetPtr() => _dense;
+
         public readonly T Read<T>(uint key) where T : unmanaged => ((T*)_dense)[_sparse[key] - 1];
 
         public void Clear()
         {
             Count = 0;
 
-            MemoryUtility.Clear(ref _dense, _denseCapacity * _elementSize);
-            MemoryUtility.Clear(ref _keys, _denseCapacity * MemoryUtility.SizeOf<uint>());
-            MemoryUtility.Clear(ref _sparse, _sparseCapacity * MemoryUtility.SizeOf<uint>());
+            var intSize = MemoryUtility.SizeOf<uint>();
+
+            MemoryUtility.Clear(_dense, _denseCapacity * _elementSize);
+            MemoryUtility.Clear(_keys, _denseCapacity * intSize);
+            MemoryUtility.Clear(_sparse, _sparseCapacity * intSize);
         }
 
         public bool Contains(uint key)
@@ -159,6 +169,9 @@ namespace DesertImage.Collections
 
         public readonly void Dispose()
         {
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException("Sparse set is null");
+#endif
             MemoryUtility.Free(_dense);
             MemoryUtility.Free(_sparse);
             MemoryUtility.Free(_keys);

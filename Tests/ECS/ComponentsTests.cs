@@ -148,7 +148,7 @@ namespace DesertImage.ECS
             var testBuffer = (void**)UnsafeUtility.Malloc(ptrSize * 4, 0, Allocator.Persistent);
 
             var sparseSet = new UnsafeUintUnknownTypeSparseSet(2, 2, size);
-            var sparseSetSecond = new UnsafeUintUnknownTypeSparseSet(2, 2, size);
+            var sparseSetSecond = new UnsafeUintUnknownTypeSparseSet(2, 2, sizeSecond);
             
             sparseSet.Set(0, new TestValueComponent { Value = 3 });
             sparseSet.Set(1, new TestValueComponent { Value = 6 });

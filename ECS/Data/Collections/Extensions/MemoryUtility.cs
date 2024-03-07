@@ -1,4 +1,3 @@
-using System;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
@@ -25,44 +24,45 @@ namespace DesertImage.ECS
             return data + offset + indexOffset == null;
         }
 
-        public static T* Allocate<T>() where T : unmanaged
+        public static void* Allocate(long size, int alignment, Allocator allocator)
         {
-            return (T*)UnsafeUtility.Malloc(SizeOf<T>(), 0, Allocator.Persistent);
+#if DEBUG_MODE
+            return UnsafeUtility.MallocTracked(size, alignment, allocator, 1);
+#else
+            return UnsafeUtility.Malloc(size, alignment, allocator);
+#endif
+        }
+
+        public static T* Allocate<T>(long size, Allocator allocator = Allocator.Persistent) where T : unmanaged
+        {
+            return (T*)Allocate(size, UnsafeUtility.AlignOf<T>(), allocator);
+        }
+
+        public static T* Allocate<T>(Allocator allocator = Allocator.Persistent) where T : unmanaged
+        {
+            return (T*)Allocate(SizeOf<T>(), UnsafeUtility.AlignOf<T>(), allocator);
         }
 
         public static T* AllocateClear<T>(long size, Allocator allocator = Allocator.Persistent) where T : unmanaged
         {
-            var ptr = (T*)UnsafeUtility.Malloc(size, UnsafeUtility.AlignOf<T>(), allocator);
+            var ptr = Allocate<T>(size, allocator);
             UnsafeUtility.MemClear(ptr, size);
             return ptr;
         }
 
-        public static T* AllocateClearCapacity<T>(int capacity, Allocator allocator = Allocator.Persistent) where T : unmanaged
+        public static T* AllocateClearCapacity<T>(int capacity, Allocator allocator = Allocator.Persistent)
+            where T : unmanaged
         {
             var size = capacity * SizeOf<T>();
-            var ptr = (T*)UnsafeUtility.Malloc(size, UnsafeUtility.AlignOf<T>(), allocator);
+            var ptr = Allocate<T>(size, allocator);
             UnsafeUtility.MemClear(ptr, size);
-            return ptr;
-        }
-        
-        public static T* AllocateClearCapacity<T>(int capacity, T defaultValue, Allocator allocator = Allocator.Persistent) where T : unmanaged
-        {
-            var size = capacity * SizeOf<T>();
-            var ptr = (T*)UnsafeUtility.Malloc(size, UnsafeUtility.AlignOf<T>(), allocator);
-            UnsafeUtility.MemClear(ptr, size);
-            
-            for (var i = 0; i < capacity; i++)
-            {
-                ptr[i] = defaultValue;
-            }
-            
             return ptr;
         }
 
         public static T* AllocateClear<T>(long size, T defaultValue, Allocator allocator = Allocator.Persistent)
             where T : unmanaged
         {
-            var ptr = (T*)UnsafeUtility.Malloc(size, UnsafeUtility.AlignOf<T>(), allocator);
+            var ptr = Allocate<T>(size, allocator);
             UnsafeUtility.MemClear(ptr, size);
 
             var length = size / SizeOf<T>();
@@ -75,17 +75,17 @@ namespace DesertImage.ECS
             return ptr;
         }
 
-        public static T* Allocate<T>(T instance) where T : unmanaged
+        public static T* AllocateInstance<T>(in T instance) where T : unmanaged
         {
-            var ptr = (T*)UnsafeUtility.Malloc(SizeOf<T>(), UnsafeUtility.AlignOf<T>(), Allocator.Persistent);
+            var ptr = Allocate<T>(SizeOf<T>(), Allocator.Persistent);
             *ptr = instance;
             return ptr;
         }
 
-        public static T* Resize<T>(ref T* ptr, int oldCapacity, int newCapacity, T defaultValue,
+        public static T* Resize<T>(T* ptr, int oldCapacity, int newCapacity, T defaultValue,
             Allocator allocator = Allocator.Persistent) where T : unmanaged
         {
-            Resize(ref ptr, oldCapacity, newCapacity, allocator);
+            ptr = Resize(ptr, oldCapacity, newCapacity, allocator);
 
             for (var i = oldCapacity; i < newCapacity; i++)
             {
@@ -95,96 +95,54 @@ namespace DesertImage.ECS
             return ptr;
         }
 
-        public static T* Resize<T>(ref T* ptr, int oldCapacity, int newCapacity,
+        public static T* Resize<T>(T* ptr, int oldCapacity, int newCapacity,
             Allocator allocator = Allocator.Persistent) where T : unmanaged
         {
-            var oldPtr = ptr;
-
             var elementSize = UnsafeUtility.SizeOf<T>();
             var oldSize = oldCapacity * elementSize;
             var newSize = newCapacity * elementSize;
 
-            ptr = (T*)UnsafeUtility.Malloc(newSize, UnsafeUtility.AlignOf<T>(), allocator);
+            var newPtr = AllocateClear<T>(newSize, allocator);
 
-            UnsafeUtility.MemClear(ptr, newSize);
-            UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);
-            UnsafeUtility.Free(oldPtr, allocator);
+            MemoryUtility.Copy(newPtr, ptr, oldSize);
+            Free(ptr, allocator);
 
-            return ptr;
+            return newPtr;
         }
 
-        public static void* ResizePtr(ref void* ptr, int oldCapacity, int newCapacity, long elementSize,
-            Allocator allocator = Allocator.Persistent)
-        {
-            var oldPtr = ptr;
-
-            var oldSize = oldCapacity * elementSize;
-            var newSize = newCapacity * elementSize;
-
-            ptr = UnsafeUtility.Malloc(newSize, 0, allocator);
-
-            UnsafeUtility.MemClear(ptr, newSize);
-            UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);
-            UnsafeUtility.Free(oldPtr, allocator);
-
-            return ptr;
-        }
-
-        public static T* Resize<T>(ref T* ptr, long oldSize, long newSize, Allocator allocator = Allocator.Persistent)
+        public static T* Resize<T>(T* ptr, long oldSize, long newSize, Allocator allocator = Allocator.Persistent)
             where T : unmanaged
         {
-            var oldPtr = ptr;
+            var newPtr = AllocateClear<T>(newSize, allocator);
+            MemoryUtility.Copy(newPtr, ptr, oldSize);
+            Free(ptr, allocator);
 
-            ptr = (T*)UnsafeUtility.Malloc(newSize, UnsafeUtility.AlignOf<T>(), allocator);
-
-            UnsafeUtility.MemClear(ptr, newSize);
-            UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);
-            UnsafeUtility.Free(oldPtr, allocator);
-
-            return ptr;
-        }
-        
-        public static T** ResizePtr<T>(ref T** ptr, long oldSize, long newSize, Allocator allocator = Allocator.Persistent)
-            where T : unmanaged
-        {
-            var oldPtr = ptr;
-
-            ptr = (T**)UnsafeUtility.Malloc(newSize, UnsafeUtility.AlignOf<T>(), allocator);
-
-            UnsafeUtility.MemClear(ptr, newSize);
-            UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);
-            UnsafeUtility.Free(oldPtr, allocator);
-
-            return ptr;
-        }
-        
-        public static void** ResizePtr(ref void** ptr, long oldSize, long newSize, Allocator allocator = Allocator.Persistent)
-        {
-            var oldPtr = ptr;
-
-            ptr = (void**)UnsafeUtility.Malloc(newSize, UnsafeUtility.AlignOf<byte>(), allocator);
-
-            UnsafeUtility.MemClear(ptr, newSize);
-            UnsafeUtility.MemCpy(ptr, oldPtr, oldSize);
-            UnsafeUtility.Free(oldPtr, allocator);
-
-            return ptr;
+            return newPtr;
         }
 
         public static long SizeOf<T>() where T : unmanaged => UnsafeUtility.SizeOf<T>();
 
-        public static void Clear<T>(ref T* ptr, long size) where T : unmanaged => UnsafeUtility.MemClear(ptr, size);
-        public static void Clear(ref void* ptr, long size) => UnsafeUtility.MemClear(ptr, size);
-        public static void Clear(ref void** ptr, long size) => UnsafeUtility.MemClear(ptr, size);
+        public static void Clear<T>(T* ptr, long size) where T : unmanaged => Clear((void*)ptr, size);
+        public static void Clear(void* ptr, long size) => UnsafeUtility.MemClear(ptr, size);
+        public static void Clear(void** ptr, long size) => UnsafeUtility.MemClear(ptr, size);
+
+        public static void Copy(void* destination, void* source, long size)
+        {
+            UnsafeUtility.MemCpy(destination, source, size);
+        }
 
         public static void Free<T>(T* ptr, Allocator allocator = Allocator.Persistent) where T : unmanaged
         {
-            UnsafeUtility.Free(ptr, allocator);
+            Free((void*)ptr, allocator);
         }
 
         public static void Free(void* ptr, Allocator allocator = Allocator.Persistent)
         {
+#if DEBUG_MODE
+            UnsafeUtility.FreeTracked(ptr, allocator);
+#else
             UnsafeUtility.Free(ptr, allocator);
+#endif
         }
 
         public static T[] ToArray<T>(T* ptr, int capacity) where T : unmanaged

@@ -175,7 +175,75 @@ namespace DesertImage.ECS.Tests
         }
 
         [Test]
-        public void GetComponents()
+        public unsafe void GetComponents()
+        {
+            var world = Worlds.Create();
+
+            const int entitiesCount = 2;
+            var entities = new UnsafeArray<Entity>(entitiesCount, Allocator.Persistent);
+            var results = new UnsafeArray<int>(5, Allocator.Persistent);
+
+            for (var i = 0; i < entitiesCount; i++)
+            {
+                var entity = world.GetNewEntity();
+                entities[i] = entity;
+                entity.Replace(new TestValueComponent { Value = 1 });
+                entity.Replace(new TestValueSecondComponent { Value = 2 });
+            }
+
+            var group = Filter.Create(world)
+                .With<TestValueComponent>()
+                .With<TestValueSecondComponent>()
+                .Find();
+
+            var values1 = group.GetComponents<TestValueComponent>();
+            for (var i = 0; i < values1.Length; i++)
+            {
+                values1.Get(i).Value = i;
+
+                var ptr = values1.GetPtr(i);
+                var sparsePointer = world.State->Components.GetSparseSet<TestValueComponent>().GetPtr(entities[i].Id);
+
+                var value = world.State->Components.GetSparseSet<TestValueComponent>()
+                    .Get<TestValueComponent>(entities[i].Id).Value;
+
+                // Assert.IsTrue(ptr == sparsePointer);
+
+                Assert.AreEqual
+                (
+                    i,
+                    entities[i].Read<TestValueComponent>().Value
+                );
+            }
+
+            var values2 = group.GetComponents<TestValueSecondComponent>();
+            for (var i = 0; i < values2.Length; i++)
+            {
+                values2.Get(i).Value = i;
+
+                var ptr = values2.GetPtr(i);
+
+                var sparsePointer = world.State->Components.GetSparseSet<TestValueSecondComponent>()
+                    .GetPtr((uint)(i + 1));
+
+                Assert.IsTrue(ptr == sparsePointer);
+
+                var entityValue = entities[i].Read<TestValueSecondComponent>().Value;
+
+                Assert.AreEqual
+                (
+                    i,
+                    entityValue
+                );
+            }
+
+            world.Dispose();
+            entities.Dispose();
+            results.Dispose();
+        }
+
+        [Test]
+        public void NotInitializedComponent()
         {
             var world = Worlds.Create();
 
@@ -190,21 +258,11 @@ namespace DesertImage.ECS.Tests
                 entity.Replace<TestValueComponent>();
             }
 
-            var group = Filter.Create(world).With<TestValueComponent>().Find();
+            var group = Filter.Create(world).With<TestComponent>().Find();
 
-            var testValueComponents = group.GetComponents<TestValueComponent>();
-            for (var i = testValueComponents.Length - 1; i >= 0; i--)
+            foreach (var entity in group)
             {
-                testValueComponents.Get(i).Value += 1;
-            }
-
-            for (var i = 0; i < entitiesCount; i++)
-            {
-                Assert.AreEqual
-                (
-                    1,
-                    entities[i].Read<TestValueComponent>().Value
-                );
+                var testComponent = entity.Read<TestComponent>();
             }
 
             world.Dispose();

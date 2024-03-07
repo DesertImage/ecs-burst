@@ -64,7 +64,7 @@ namespace DesertImage.Collections
             _ptr = MemoryUtility.AllocateClear<T>(newSize, _allocator);
 
             UnsafeUtility.MemClear(_ptr, newSize);
-            UnsafeUtility.MemCpy(_ptr, oldPtr, _size);
+            MemoryUtility.Copy(_ptr, oldPtr, _size);
 
             _size = newSize;
             _capacity = newCapacity;

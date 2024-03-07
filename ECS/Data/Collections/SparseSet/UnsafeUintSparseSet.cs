@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using DesertImage.ECS;
+using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.Collections
@@ -14,8 +15,6 @@ namespace DesertImage.Collections
         public bool IsNotNull { get; private set; }
 
         public int Count { get; private set; }
-
-        public T* Values => _dense;
 
         [NativeDisableUnsafePtrRestriction] internal T* _dense;
         [NativeDisableUnsafePtrRestriction] internal uint* _sparse;
@@ -95,7 +94,7 @@ namespace DesertImage.Collections
                     newSparseCapacity = (int)(key + 1);
                 }
                 
-                MemoryUtility.Resize(ref _sparse, _sparseCapacity, newSparseCapacity);
+                _sparse = MemoryUtility.Resize(_sparse, _sparseCapacity, newSparseCapacity);
                 _sparseCapacity = newSparseCapacity;
             }
 
@@ -108,8 +107,8 @@ namespace DesertImage.Collections
             if (Count >= _denseCapacity)
             {
                 var newDenseCapacity = _denseCapacity << 1;
-                MemoryUtility.Resize(ref _dense, _denseCapacity, newDenseCapacity);
-                MemoryUtility.Resize(ref _keys, _denseCapacity, newDenseCapacity);
+                _dense = MemoryUtility.Resize(_dense, _denseCapacity, newDenseCapacity);
+                _keys = MemoryUtility.Resize(_keys, _denseCapacity, newDenseCapacity);
                 _denseCapacity = newDenseCapacity;
             }
         }
@@ -178,11 +177,15 @@ namespace DesertImage.Collections
             return _sparseCapacity > key && _sparse[key] > 0;
         }
 
-        public readonly void Dispose()
+        public void Dispose()
         {
             MemoryUtility.Free(_dense);
             MemoryUtility.Free(_sparse);
             MemoryUtility.Free(_keys);
+
+            _dense = null;
+            _sparse = null;
+            _keys = null;
         }
 
         public struct Enumerator : IEnumerator<T>
@@ -190,7 +193,7 @@ namespace DesertImage.Collections
             object IEnumerator.Current => Current;
 
             public T Current => _sparseSet._dense[_index - 1];
-
+            
             private readonly UnsafeUintSparseSet<T> _sparseSet;
             private uint _index;
             private uint _counter;

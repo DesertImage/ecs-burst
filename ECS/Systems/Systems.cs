@@ -18,11 +18,13 @@ namespace DesertImage.ECS
             {
 #if DEBUG_MODE
                 throw new Exception($"system {systemType} already added");
-#endif
+#else
                 return;
+#endif
             }
 
-            var instance = MemoryUtility.Allocate(default(T));
+            var system = default(T);
+            var instance = MemoryUtility.AllocateInstance(in system);
 
             var isInit = typeof(IInitSystem).IsAssignableFrom(systemType);
             if (isInit)
@@ -45,8 +47,7 @@ namespace DesertImage.ECS
             if (isExecute)
             {
                 var wrapper = new ExecuteSystemWrapper { Value = instance };
-
-                var wrapperPtr = MemoryUtility.Allocate(wrapper);
+                var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
 
                 var methodInfo = typeof(Systems).GetMethod
                 (
@@ -156,7 +157,6 @@ namespace DesertImage.ECS
 
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
             wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
-            wrapper->IsCalculateSystem = (byte)(typeof(ICalculateSystem).IsAssignableFrom(typeof(T)) ? 1 : 0);
 
             var world = (World*)worldPtr;
             var state = world->SystemsState;

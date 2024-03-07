@@ -46,26 +46,9 @@ namespace DesertImage.Collections
 
             _dense = MemoryUtility.AllocateClear<T>(capacity * MemoryUtility.SizeOf<T>());
             _sparse = MemoryUtility.AllocateClear<ushort>(capacity * ushortSize);
-            MemoryUtility.AllocateClear<ushort>(capacity * ushortSize);
 
             _denseCapacity = capacity;
             _sparseCapacity = capacity;
-
-            Count = 0;
-
-            IsNotNull = true;
-        }
-
-        public UnsafeUshortSparseSet(int denseCapacity, int sparseCapacity, int recycledCapacity, T defaultValue)
-        {
-            var ushortSize = MemoryUtility.SizeOf<ushort>();
-
-            _dense = MemoryUtility.AllocateClear(denseCapacity * MemoryUtility.SizeOf<T>(), defaultValue);
-            _sparse = MemoryUtility.AllocateClear<ushort>(sparseCapacity * ushortSize);
-            MemoryUtility.AllocateClear<ushort>(recycledCapacity * ushortSize);
-
-            _denseCapacity = denseCapacity;
-            _sparseCapacity = sparseCapacity;
 
             Count = 0;
 
@@ -90,7 +73,7 @@ namespace DesertImage.Collections
                     newSparseCapacity = key + 1;
                 }
 
-                MemoryUtility.Resize(ref _sparse, _sparseCapacity, newSparseCapacity);
+                _sparse = MemoryUtility.Resize(_sparse, _sparseCapacity, newSparseCapacity);
                 _sparseCapacity = newSparseCapacity;
             }
 
@@ -102,7 +85,7 @@ namespace DesertImage.Collections
             if (Count >= _denseCapacity)
             {
                 var newDenseCapacity = _denseCapacity << 1;
-                MemoryUtility.Resize(ref _dense, _denseCapacity, newDenseCapacity);
+                _dense = MemoryUtility.Resize(_dense, _denseCapacity, newDenseCapacity);
                 _denseCapacity = newDenseCapacity;
             }
         }
