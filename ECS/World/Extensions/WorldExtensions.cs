@@ -25,6 +25,16 @@ namespace DesertImage.ECS
             Systems.Contains<T>(world.SystemsState);
         }
 
+        public static T GetStatic<T>(this in World world) where T : unmanaged
+        {
+            return Components.GetStatic<T>(world.State);
+        }
+
+        public static void ReplaceStatic<T>(this in World world, T instance) where T : unmanaged
+        {
+            Components.ReplaceStatic(world.State, instance);
+        }
+
         public static void Tick(this in World world, float deltaTime)
         {
             Systems.Execute(Worlds.GetPtr(world.Id), deltaTime);

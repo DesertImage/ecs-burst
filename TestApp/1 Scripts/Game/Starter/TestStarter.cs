@@ -17,36 +17,38 @@ namespace Game
         {
             var parent = new GameObject("Hand");
 
-            const int cardsCount = 3;
+            const int cardsCount = 5;
 
             for (var i = 0; i < cardsCount; i++)
             {
                 var entity = World.GetNewEntity();
 
-                // entity.ReplaceStatic
-                // (
-                //     new Hand
-                //     {
-                //         Count = cardsCount,
-                //         CardWidth = 1f,
-                //         Spacing = .3f
-                //     }
-                // );
+                entity.ReplaceStatic
+                (
+                    new Hand
+                    {
+                        Count = cardsCount,
+                        CardWidth = 1f,
+                        Spacing = 1.5f
+                    }
+                );
 
-                // entity.InstantiateView(0);
+                entity.InstantiateView(0);
 
-                entity.Replace(new OriginPosition { Value = new float3(3f) });
-                // entity.Replace<LocalPosition>();
+                entity.Replace<OriginPosition>();
+                entity.Replace<LocalPosition>();
 
-                
-                // entity.Replace(new Parent { Value = parent.transform });
-                // entity.Replace(new HandCard { OrderPosition = i });
+                entity.Replace(new Parent { Value = parent.transform });
+                entity.Replace(new HandCard { OrderPosition = i });
+
+                entity.Replace<HandCardAlign>();
             }
 
             World.Add<ParentToOriginPositionSystem>(ExecutionType.MainThread);
-            // World.Add<EntityToTransformSystem>(ExecutionType.MainThread);
+            World.Add<EntityToTransformSystem>(ExecutionType.MainThread);
 
-            // World.Add<LocalPositionSystem>(ExecutionType.MainThread);
+            World.Add<LocalPositionSystem>();
+            World.Add<HandCardAlignSystem>();
         }
     }
 }

@@ -151,7 +151,7 @@ namespace DesertImage.ECS
 
             ref var spareSet = ref storage.GetSparseSet(componentId);
 
-            for (var i = spareSet.Count - 1; i >= 0; i--)
+            for (var i = 0; i < spareSet.Count; i++)
             {
                 var entityId = spareSet._keys[i];
 
@@ -192,7 +192,7 @@ namespace DesertImage.ECS
             }
 
             count = Count;
-            for (var i = count - 1; i >= 0; i--)
+            for (var i = 0; i < count; i++)
             {
                 FillComponent(_entities->_dense[i], componentId);
             }

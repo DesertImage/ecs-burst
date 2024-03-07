@@ -50,7 +50,10 @@
 
         public static ref T GetStatic<T>(this in Entity entity) where T : unmanaged
         {
-            return ref Components.GetStatic<T>(entity, entity.World->State);
+#if DEBUG_MODE
+            Entities.ThrowIfNotAlive(entity);
+#endif
+            return ref Components.GetStatic<T>(entity.World->State);
         }
     }
 }

@@ -12,18 +12,17 @@ namespace DesertImage.ECS
         [NativeDisableUnsafePtrRestriction] public readonly SystemsState* SystemsState;
 
         //TODO: refactor
-        private ObjectReference<ModuleProvider> _moduleProvider;
+        private readonly ObjectReference<ModuleProvider> _moduleProvider;
 
         public World(byte id, World* ptr)
         {
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.Allocate<WorldState>();
-            *State = new WorldState(512, 1024);
+            State = MemoryUtility.AllocateInstance(new WorldState(512, 1024));
 
-            SystemsState = MemoryUtility.Allocate<SystemsState>();
-            *SystemsState = new SystemsState(20);
+            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(20));
+            SystemsState->Context->World = Ptr;
 
             _moduleProvider = default;
         }
@@ -33,11 +32,10 @@ namespace DesertImage.ECS
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.Allocate<WorldState>();
-            *State = new WorldState(512, 1024);
+            State = MemoryUtility.AllocateInstance(new WorldState(512, 1024));
 
-            SystemsState = MemoryUtility.Allocate<SystemsState>();
-            *SystemsState = new SystemsState(20);
+            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(20));
+            SystemsState->Context->World = Ptr;
 
             _moduleProvider = moduleProvider;
         }
@@ -47,11 +45,10 @@ namespace DesertImage.ECS
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.Allocate<WorldState>();
-            *State = new WorldState(componentsCapacity, entitiesCapacity);
+            State = MemoryUtility.AllocateInstance(new WorldState(componentsCapacity, entitiesCapacity));
 
-            SystemsState = MemoryUtility.Allocate<SystemsState>();
-            *SystemsState = new SystemsState(20);
+            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(20));
+            SystemsState->Context->World = Ptr;
 
             _moduleProvider = default;
         }
@@ -64,10 +61,10 @@ namespace DesertImage.ECS
 
             State->Dispose();
             SystemsState->Dispose();
-            
+
             MemoryUtility.Free(State);
             MemoryUtility.Free(SystemsState);
-            
+
             Id = 0;
         }
     }

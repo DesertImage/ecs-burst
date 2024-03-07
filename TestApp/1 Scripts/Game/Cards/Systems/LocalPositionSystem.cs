@@ -1,4 +1,5 @@
 using DesertImage.ECS;
+using Unity.Mathematics;
 
 namespace Game
 {
@@ -20,23 +21,22 @@ namespace Game
             var handCards = _group.GetComponents<HandCard>();
             var localPositions = _group.GetComponents<LocalPosition>();
 
-            var hand = new Entity(0, context.World).GetStatic<Hand>();
+            var hand = context.World->GetStatic<Hand>();
             var cardCount = hand.Count;
 
             var half = cardCount / 2;
             var isEven = cardCount % 2 == 0;
 
-            var count = _group.Count;
-            for (var i = count - 1; i >= 0; i--)
+            for (var i = _group.Count - 1; i >= 0; i--)
             {
                 var handCard = handCards[i];
 
                 var index = handCard.OrderPosition;
                 var spacing = hand.Spacing;
 
-                var newPos = (index - half) * spacing + (isEven ? spacing * .5f : 0f);
+                var newPosX = (index - half) * spacing + (isEven ? spacing * .5f : 0f);
 
-                localPositions.Get(i).Value = newPos;
+                localPositions.Get(i).Value = new float3(newPosX, 0f, 0f);
             }
         }
     }

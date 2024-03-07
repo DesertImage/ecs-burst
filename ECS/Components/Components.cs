@@ -91,11 +91,8 @@ namespace DesertImage.ECS
             }
         }
 
-        public static ref T GetStatic<T>(in Entity entity, WorldState* state) where T : unmanaged
+        public static ref T GetStatic<T>(WorldState* state) where T : unmanaged
         {
-#if DEBUG_MODE
-            Entities.ThrowIfNotAlive(entity);
-#endif
             var componentId = ComponentTools.GetComponentIdFast<T>();
             return ref *(T*)state->StaticComponents[componentId];
         }
