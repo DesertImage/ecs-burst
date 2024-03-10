@@ -16,8 +16,9 @@ namespace DesertImage.ECS
 
         public void Execute(ref SystemsContext context)
         {
-            foreach (var entity in _group)
+            foreach (var i in _group)
             {
+                var entity = _group.GetEntity(i);
                 var view = entity.Read<View>().Value.Value;
                 var transform = view.transform;
 

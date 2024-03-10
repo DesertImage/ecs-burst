@@ -142,7 +142,7 @@ namespace DesertImage.ECS
                 method.Invoke(wrapper, state->Context);
             }
 
-            // state->Context->Handle.Complete();
+            state->Context->Handle.Complete();
         }
 
         private static void AddInit<T>(IntPtr ptr, World world) where T : unmanaged, IInitSystem

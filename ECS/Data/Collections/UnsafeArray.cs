@@ -69,6 +69,9 @@ namespace DesertImage.Collections
 
         public UnsafeArray(T* ptr, int length, Allocator allocator)
         {
+#if DEBUG_MODE
+            if (ptr == null) throw new NullReferenceException("ptr is null");
+#endif
             Length = length;
 
             Data = ptr;
@@ -140,7 +143,14 @@ namespace DesertImage.Collections
             set => Data[index] = value;
         }
 
-        public readonly ref T Get(int index) => ref Data[index];
+        public readonly ref T Get(int index)
+        {
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException("array is null");
+            if (Data == null) throw new NullReferenceException("ptr is null");
+#endif
+            return ref Data[index];
+        }
 
         public struct Enumerator : IEnumerator<T>
         {

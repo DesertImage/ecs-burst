@@ -11,9 +11,9 @@
 
         public void Execute(ref SystemsContext context)
         {
-            foreach (var entity in _group)
+            foreach (var i in _group)
             {
-                ref var testValueComponent = ref entity.Get<TestReferenceComponent>();
+                ref var testValueComponent = ref _group.GetEntity(i).Get<TestReferenceComponent>();
                 testValueComponent.Rigidbody.Value.mass = 1234;
             }
         }

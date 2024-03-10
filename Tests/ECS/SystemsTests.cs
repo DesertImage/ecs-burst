@@ -101,9 +101,9 @@ namespace DesertImage.ECS.Tests
             world.Add<TestValueJobSystem>();
 
             stopwatch.Restart();
-            
+
             world.Tick(.1f);
-            
+
             stopwatch.Stop();
 
             world.Dispose();

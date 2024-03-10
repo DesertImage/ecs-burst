@@ -167,6 +167,19 @@ namespace DesertImage.Collections
             return _sparseCapacity > key && _sparse[key] > 0;
         }
 
+        public UnsafeUintReadOnlySparseSet<T> ToReadOnly<T>() where T : unmanaged
+        {
+            return new UnsafeUintReadOnlySparseSet<T>
+            (
+                (T*)_dense,
+                _denseCapacity,
+                _sparse,
+                _sparseCapacity,
+                _keys,
+                Count
+            );
+        }
+
         public readonly void Dispose()
         {
 #if DEBUG_MODE

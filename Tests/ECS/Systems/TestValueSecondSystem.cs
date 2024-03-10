@@ -15,9 +15,9 @@
         public void Execute(ref SystemsContext context)
         {
             var testValueComponents = _group.GetComponents<TestValueComponent>();
-            for (var i = 0; i < testValueComponents.Length; i++)
+            foreach (var entityId in _group)
             {
-                testValueComponents.Get(i).Value++;
+                testValueComponents.Get(entityId).Value++;
             }
         }
     }

@@ -14,10 +14,10 @@
 
         public void Execute(ref SystemsContext context)
         {
-            foreach (var entity in _group)
+            foreach (var i in _group)
             {
                 // entity.Replace<TestComponent>();
-                entity.Remove<TestValueComponent>();
+                _group.GetEntity(i).Remove<TestValueComponent>();
             }
         }
     }

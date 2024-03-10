@@ -179,6 +179,11 @@ namespace DesertImage.ECS.Tests
         {
             var world = Worlds.Create();
 
+            var group = Filter.Create(world)
+                .With<TestValueComponent>()
+                .With<TestValueSecondComponent>()
+                .Find();
+
             const int entitiesCount = 2;
             var entities = new UnsafeArray<Entity>(entitiesCount, Allocator.Persistent);
             var results = new UnsafeArray<int>(5, Allocator.Persistent);
@@ -191,48 +196,31 @@ namespace DesertImage.ECS.Tests
                 entity.Replace(new TestValueSecondComponent { Value = 2 });
             }
 
-            var group = Filter.Create(world)
-                .With<TestValueComponent>()
-                .With<TestValueSecondComponent>()
-                .Find();
-
             var values1 = group.GetComponents<TestValueComponent>();
-            for (var i = 0; i < values1.Length; i++)
+            foreach (var entityId in group)
             {
-                values1.Get(i).Value = i;
+                values1.Get(entityId).Value = (int)entityId;
 
-                var ptr = values1.GetPtr(i);
-                var sparsePointer = world.State->Components.GetSparseSet<TestValueComponent>().GetPtr(entities[i].Id);
-
-                var value = world.State->Components.GetSparseSet<TestValueComponent>()
-                    .Get<TestValueComponent>(entities[i].Id).Value;
-
-                // Assert.IsTrue(ptr == sparsePointer);
-
+                var entity = group.GetEntity(entityId);
                 Assert.AreEqual
                 (
-                    i,
-                    entities[i].Read<TestValueComponent>().Value
+                    entityId,
+                    entity.Read<TestValueComponent>().Value
                 );
             }
 
             var values2 = group.GetComponents<TestValueSecondComponent>();
-            for (var i = 0; i < values2.Length; i++)
+            foreach (var entityId in group)
             {
-                values2.Get(i).Value = i;
+                values2.Get(entityId).Value = (int)entityId;
 
-                var ptr = values2.GetPtr(i);
-
-                var sparsePointer = world.State->Components.GetSparseSet<TestValueSecondComponent>()
-                    .GetPtr((uint)(i + 1));
-
-                Assert.IsTrue(ptr == sparsePointer);
-
-                var entityValue = entities[i].Read<TestValueSecondComponent>().Value;
+                var entity = group.GetEntity(entityId);
+                
+                var entityValue = entity.Read<TestValueSecondComponent>().Value;
 
                 Assert.AreEqual
                 (
-                    i,
+                    entityId,
                     entityValue
                 );
             }
@@ -260,9 +248,9 @@ namespace DesertImage.ECS.Tests
 
             var group = Filter.Create(world).With<TestComponent>().Find();
 
-            foreach (var entity in group)
+            foreach (var i in group)
             {
-                var testComponent = entity.Read<TestComponent>();
+                var testComponent = group.GetEntity(i).Read<TestComponent>();
             }
 
             world.Dispose();

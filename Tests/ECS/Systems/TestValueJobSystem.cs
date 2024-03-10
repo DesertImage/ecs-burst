@@ -1,15 +1,19 @@
 ﻿using DesertImage.Collections;
+using Unity.Burst;
 using Unity.Jobs;
+using UnityEngine;
 
 namespace DesertImage.ECS
 {
+    [BurstCompile]
     public struct TestValueJobSystem : IInitSystem, ICalculateSystem
     {
         private EntitiesGroup _group;
 
+        [BurstCompile]
         private struct TestJob : IJob
         {
-            public UnsafeArray<TestValueComponent> Values;
+            public UnsafeReadOnlyArray<TestValueComponent> Values;
 
             public void Execute()
             {
@@ -30,7 +34,8 @@ namespace DesertImage.ECS
 
         public void Execute(ref SystemsContext context)
         {
-            var job = new TestJob { Values = _group.GetComponents<TestValueComponent>() };
+            var unsafeUintReadOnlyArray = _group.GetComponents<TestValueComponent>();
+            var job = new TestJob { Values = unsafeUintReadOnlyArray.Values };
             context.Handle = job.Schedule(context.Handle);
         }
     }

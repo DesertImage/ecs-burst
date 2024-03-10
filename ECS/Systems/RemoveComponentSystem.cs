@@ -11,9 +11,9 @@
 
         public void Execute(ref SystemsContext context)
         {
-            foreach (var entity in _group)
+            foreach (var i in _group)
             {
-                entity.Remove<T>();
+                _group.GetEntity(i).Remove<T>();
             }
         }
     }

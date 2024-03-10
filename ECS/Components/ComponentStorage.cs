@@ -46,10 +46,6 @@ namespace DesertImage.ECS
         {
             var componentId = ComponentTools.GetComponentId<T>();
 
-            if (entityId == 511)
-            {
-            }
-
             if (componentId >= _componentsCapacity)
             {
                 var newCapacity = _componentsCapacity << 1;
@@ -113,15 +109,27 @@ namespace DesertImage.ECS
             return ref ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Get<T>(entityId);
         }
 
+        public UnsafeUintReadOnlySparseSet<T> GetComponents<T>() where T : unmanaged
+        {
+            var componentId = ComponentTools.GetComponentId<T>();
+            return ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->ToReadOnly<T>();
+        }
+        
+        public void* GetPtr<T>(uint entityId) where T : unmanaged
+        {
+            var componentId = ComponentTools.GetComponentId<T>();
+            return GetPtr(entityId, componentId);
+        }
+
         public void* GetPtr(uint entityId, uint componentId)
         {
             return ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->GetPtr(entityId);
         }
 
-        public ref UnsafeUintUnknownTypeSparseSet GetSparseSet<T>() where T : unmanaged
-        {
-            return ref GetSparseSet(ComponentTools.GetComponentIdFast<T>());
-        }
+        // public ref UnsafeUintUnknownTypeSparseSet GetSparseSet<T>() where T : unmanaged
+        // {
+            // return ref GetSparseSet(ComponentTools.GetComponentIdFast<T>());
+        // }
 
         public ref UnsafeUintUnknownTypeSparseSet GetSparseSet(uint componentId)
         {

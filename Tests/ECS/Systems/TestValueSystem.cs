@@ -14,15 +14,10 @@
 
         public void Execute(ref SystemsContext context)
         {
-            // var testValueComponents = _group.GetComponents<TestValueComponent>();
-            // for (var i = 0; i < testValueComponents.Length; i++)
-            // {
-            // testValueComponents.Get(i).Value++;
-            // }
-
-            foreach (var entity in _group)
+            var testValueComponents = _group.GetComponents<TestValueComponent>();
+            foreach (var i in _group)
             {
-                entity.Get<TestValueComponent>().Value++;
+                testValueComponents.Get(i).Value++;
             }
         }
     }

@@ -4,20 +4,21 @@ using System.Collections.Generic;
 using DesertImage.Collections;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using UnityEngine;
 
 namespace DesertImage.ECS
 {
-    public unsafe struct EntitiesGroup : IDisposable, IEnumerable<Entity>
+    public unsafe struct EntitiesGroup : IDisposable, IEnumerable<int>
     {
         public ushort Id;
 
         public int Count => _entities->Count;
         public uint ComponentsHashCode { get; private set; }
 
-        private void** _buffer;
-        private long _bufferSize;
+        // private void** _buffer;
+        // private long _bufferSize;
 
-        private UnsafeUintSparseSet<uint> _componentIndexes;
+        // private UnsafeUintSparseSet<uint> _componentIndexes;
 
         internal UnsafeUintHashSet* _components;
         internal UnsafeList<uint> _with;
@@ -40,10 +41,10 @@ namespace DesertImage.ECS
             _entitiesCapacity = entitiesCapacity;
             _componentsCapacity = componentsCapacity;
 
-            _bufferSize = entitiesCapacity * componentsCapacity * IntPtr.Size;
+            // _bufferSize = entitiesCapacity * componentsCapacity * IntPtr.Size;
 
-            _buffer = (void**)UnsafeUtility.Malloc(_bufferSize, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
-            MemoryUtility.Clear(_buffer, _bufferSize);
+            // _buffer = (void**)UnsafeUtility.Malloc(_bufferSize, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
+            // MemoryUtility.Clear(_buffer, _bufferSize);
 
             var hashSet = new UnsafeUintHashSet(2, Allocator.Persistent);
             _components = MemoryUtility.AllocateInstance
@@ -51,15 +52,14 @@ namespace DesertImage.ECS
                 in hashSet
             );
 
-            _componentIndexes = new UnsafeUintSparseSet<uint>(2);
+            // _componentIndexes = new UnsafeUintSparseSet<uint>(2);
 
             _with = new UnsafeList<uint>(2, Allocator.Persistent);
             _noneOf = new UnsafeList<uint>(2, Allocator.Persistent);
 
-            var sparseSet = new UnsafeUintSparseSet<uint>(entitiesCapacity / 2, entitiesCapacity);
             _entities = MemoryUtility.AllocateInstance
             (
-                in sparseSet
+                new UnsafeUintSparseSet<uint>(entitiesCapacity / 2, entitiesCapacity)
             );
 
             ComponentsHashCode = default;
@@ -67,21 +67,12 @@ namespace DesertImage.ECS
             _isPrimaryFilled = 0;
         }
 
-        public UnsafeArray<T> GetComponents<T>() where T : unmanaged
+        public UnsafeUintReadOnlySparseSet<T> GetComponents<T>() where T : unmanaged
         {
-            var componentId = ComponentTools.GetComponentId<T>();
-#if DEBUG_MODE
-            if (!_componentIndexes.Contains(componentId))
-            {
-                throw new Exception($"Group doesn't store components {typeof(T)} ");
-            }
-#endif
-            var componentIndex = _componentIndexes.Read(componentId);
-            var data = _buffer[componentIndex];
-            return new UnsafeArray<T>((T*)data, Count, Allocator.Persistent);
+            return Count == 0 ? default : _world->State->Components.GetComponents<T>();
         }
 
-        public Entity GetEntity(int index) => new Entity(_entities->_dense[index], _world);
+        public Entity GetEntity(uint id) => new Entity(id, _world);
 
         internal EntitiesGroup With(uint componentId, long componentSize)
         {
@@ -105,32 +96,32 @@ namespace DesertImage.ECS
 
         private void Resize(int entitiesCapacity, int componentsCapacity)
         {
-            long newBufferSize = entitiesCapacity * componentsCapacity * IntPtr.Size;
-
-            var newBuffer = (void**)UnsafeUtility.Malloc
-            (
-                newBufferSize,
-                UnsafeUtility.AlignOf<byte>(),
-                Allocator.Persistent
-            );
-
-            MemoryUtility.Clear(newBuffer, _bufferSize);
-
-            for (var i = 0; i < _componentIndexes.Count; i++)
-            {
-                var componentIndex = _componentIndexes._dense[i];
-                for (var j = 0; j < _entitiesCapacity; j++)
-                {
-                    newBuffer[componentIndex * entitiesCapacity + j] = _buffer[componentIndex * _entitiesCapacity + j];
-                }
-            }
-
-            MemoryUtility.Free(_buffer);
-
-            _buffer = newBuffer;
-            _entitiesCapacity = entitiesCapacity;
-            _componentsCapacity = componentsCapacity;
-            _bufferSize = newBufferSize;
+            // long newBufferSize = entitiesCapacity * componentsCapacity * IntPtr.Size;
+            //
+            // var newBuffer = (void**)UnsafeUtility.Malloc
+            // (
+            //     newBufferSize,
+            //     UnsafeUtility.AlignOf<byte>(),
+            //     Allocator.Persistent
+            // );
+            //
+            // MemoryUtility.Clear(newBuffer, _bufferSize);
+            //
+            // for (var i = 0; i < _componentIndexes.Count; i++)
+            // {
+            //     var componentIndex = _componentIndexes._dense[i];
+            //     for (var j = 0; j < _entitiesCapacity; j++)
+            //     {
+            //         newBuffer[componentIndex * entitiesCapacity + j] = _buffer[componentIndex * _entitiesCapacity + j];
+            //     }
+            // }
+            //
+            // MemoryUtility.Free(_buffer);
+            //
+            // _buffer = newBuffer;
+            // _entitiesCapacity = entitiesCapacity;
+            // _componentsCapacity = componentsCapacity;
+            // _bufferSize = newBufferSize;
         }
 
         #region FILL/FILTER
@@ -141,15 +132,12 @@ namespace DesertImage.ECS
 
             ComponentsHashCode += componentId;
 
-            _componentIndexes.Set(componentId, 0);
+            // _componentIndexes.Set(componentId, 0);
             _components->Add(componentId);
             _with.Add(componentId);
 
             ref var storage = ref _world->State->Components;
-
-            if (!storage.ContainsKey(componentId)) return;
-
-            ref var spareSet = ref storage.GetSparseSet(componentId);
+            ref var spareSet = ref storage.GetSparseSetOrInitialize(componentId, componentSize);
 
             for (var i = 0; i < spareSet.Count; i++)
             {
@@ -160,7 +148,7 @@ namespace DesertImage.ECS
                 Add(entityId);
             }
 
-            InitComponent(componentId, componentSize);
+            // InitComponent(componentId, componentSize);
         }
 
         private void FilterWith(uint componentId, long componentSize)
@@ -173,7 +161,7 @@ namespace DesertImage.ECS
 #endif
             ComponentsHashCode += componentId;
 
-            _componentIndexes.Set(componentId, (uint)_with.Count);
+            // _componentIndexes.Set(componentId, (uint)_with.Count);
             _components->Add(componentId);
             _with.Add(componentId);
 
@@ -191,13 +179,13 @@ namespace DesertImage.ECS
                 Remove(entityId);
             }
 
-            count = Count;
-            for (var i = 0; i < count; i++)
-            {
-                FillComponent(_entities->_dense[i], componentId);
-            }
-
-            InitComponent(componentId, componentSize);
+            // count = Count;
+            // for (var i = 0; i < count; i++)
+            // {
+            //     FillComponent(_entities->_dense[i], componentId);
+            // }
+            //
+            // InitComponent(componentId, componentSize);
         }
 
         private void FilterNone(uint componentId)
@@ -220,19 +208,24 @@ namespace DesertImage.ECS
             }
         }
 
-        private void InitComponent(uint componentId, long componentSize)
-        {
-            var componentIndex = _componentIndexes.Read(componentId);
-            var ptr = _world->State->Components.GetSparseSetOrInitialize(componentId, componentSize).GetPtr();
-            _buffer[componentIndex] = ptr;
-        }
+        // private void InitComponent(uint componentId, long componentSize)
+        // {
+        //     //TODO: refill/init ptr when sparset set resized
+        //     var componentIndex = _componentIndexes.Read(componentId);
+        //     var ptr = _world->State->Components.GetSparseSetOrInitialize(componentId, componentSize).GetPtr();
+        //     _buffer[componentIndex] = ptr;
+        //     var ptr1 = _world->State->Components.GetSparseSet(componentId).GetPtr();
+        // }
 
-        private void FillComponent(uint entityId, uint componentId)
-        {
-            var componentIndex = _componentIndexes.Read(componentId);
-            var ptr = _world->State->Components.GetSparseSet(componentId).GetPtr(entityId);
-            _buffer[componentIndex + entityId] = ptr;
-        }
+        // private void FillComponent(uint entityId, uint componentId)
+        // {
+        //     var componentIndex = _componentIndexes.Read(componentId);
+        //     var ptr = _world->State->Components.GetSparseSet(componentId).GetPtr(entityId);
+        //     // _buffer[componentIndex + entityId] = ptr;
+        //
+        //     var initialPtr = _buffer[componentIndex];
+        //     var targetPtr = _world->State->Components.GetSparseSet(componentId).GetPtr();
+        // }
 
         #endregion
 
@@ -242,30 +235,30 @@ namespace DesertImage.ECS
 
             if (index > _entitiesCapacity) Resize(_entitiesCapacity << 1, _componentsCapacity);
 
-            foreach (var componentId in _with)
-            {
-                FillComponent(entityId, componentId);
-            }
+            // foreach (var componentId in _with)
+            // {
+            //     FillComponent(entityId, componentId);
+            // }
 
             _entities->Set(entityId, entityId);
         }
 
         public void Remove(uint entityId)
         {
-            foreach (var componentId in _with)
-            {
-                var componentIndex = _componentIndexes.Read(componentId) * _entitiesCapacity;
-
-                //TODO recheck. Probably don't work
-                if (Count > 1)
-                {
-                    _buffer[componentIndex + entityId] = _buffer[componentIndex + (Count - 1)];
-                }
-                else
-                {
-                    _buffer[componentIndex + entityId] = (void*)IntPtr.Zero;
-                }
-            }
+            // foreach (var componentId in _with)
+            // {
+            //     var componentIndex = _componentIndexes.Read(componentId) * _entitiesCapacity;
+            //
+            //     //TODO recheck. Probably don't work
+            //     if (Count > 1)
+            //     {
+            //         _buffer[componentIndex + entityId] = _buffer[componentIndex + (Count - 1)];
+            //     }
+            //     else
+            //     {
+            //         _buffer[componentIndex + entityId] = (void*)IntPtr.Zero;
+            //     }
+            // }
 
             _entities->Remove(entityId);
         }
@@ -287,34 +280,34 @@ namespace DesertImage.ECS
             return true;
         }
 
-        public bool ContainsKey(uint componentId) =>
-            componentId < _entitiesCapacity && _componentIndexes.Contains(componentId);
+        // public bool ContainsKey(uint componentId) =>
+        // componentId < _entitiesCapacity && _componentIndexes.Contains(componentId);
 
         public bool Contains(uint entityId) => _entities->Contains(entityId);
 
         public void Dispose()
         {
             _components->Dispose();
-            _componentIndexes.Dispose();
+            // _componentIndexes.Dispose();
             _with.Dispose();
             _noneOf.Dispose();
 
             _entities->Dispose();
 
-            MemoryUtility.Free(_buffer);
+            // MemoryUtility.Free(_buffer);
             MemoryUtility.Free(_components);
             MemoryUtility.Free(_entities);
         }
 
         public Enumerator GetEnumerator() => new Enumerator(this);
-        IEnumerator<Entity> IEnumerable<Entity>.GetEnumerator() => throw new NotImplementedException();
+        IEnumerator<int> IEnumerable<int>.GetEnumerator() => throw new NotImplementedException();
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 
-        public struct Enumerator : IEnumerator<Entity>
+        public struct Enumerator : IEnumerator<uint>
         {
             private EntitiesGroup _group;
 
-            public Entity Current => _group.GetEntity(_index);
+            public uint Current => _group._entities->_dense[_index];
             object IEnumerator.Current => Current;
 
             private int _index;
