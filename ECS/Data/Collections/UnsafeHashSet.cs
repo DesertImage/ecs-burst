@@ -65,8 +65,9 @@ namespace DesertImage.Collections
             {
 #if DEBUG_MODE
                 throw new Exception($"missing {key}");
-#endif
+#else
                 return;
+#endif
             }
 
             var bucketNumber = GetBucketNumber(key);

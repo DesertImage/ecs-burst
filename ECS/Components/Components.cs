@@ -54,7 +54,7 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
             {
-                throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
+                throw new Exception($"Entity: {entity.Id} has not {typeof(T)} ({componentId})");
             }
 #endif
             return ref state->Components.Get<T>(entity.Id, componentId);
@@ -69,7 +69,7 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             if (!state->Components.Contains(entity.Id, componentId))
             {
-                throw new Exception($"Entity: {entity.Id} has not {typeof(T)}");
+                throw new Exception($"Entity: {entity.Id} has not {typeof(T)} ({componentId})");
             }
 #endif
             return state->Components.Read<T>(entity.Id, componentId);
@@ -94,6 +94,12 @@ namespace DesertImage.ECS
         public static ref T GetStatic<T>(WorldState* state) where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentIdFast<T>();
+#if DEBUG_MODE
+            if (!state->StaticComponents.Contains(componentId))
+            {
+                throw new Exception($"hasn't static component {typeof(T)}");
+            }
+#endif
             return ref *(T*)state->StaticComponents[componentId];
         }
 

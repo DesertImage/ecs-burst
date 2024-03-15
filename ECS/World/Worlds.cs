@@ -70,7 +70,11 @@ namespace DesertImage.ECS
 #endif
             }
 
-            MemoryUtility.Free((void*)WorldsStorage.Worlds.Data[id]);
+            var worldPtr = (void*)WorldsStorage.Worlds.Data[id];
+#if DEBUG_MODE
+            if((IntPtr)worldPtr == IntPtr.Zero) throw new NullReferenceException("Ptr is null");
+#endif
+            MemoryUtility.Free(worldPtr);
             WorldsStorage.Worlds.Data[id] = IntPtr.Zero;
             WorldsIds.FreeIds.Data.Enqueue(id);
 

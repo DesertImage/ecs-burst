@@ -112,9 +112,12 @@ namespace DesertImage.ECS
         public UnsafeUintReadOnlySparseSet<T> GetComponents<T>() where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentId<T>();
-            return ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->ToReadOnly<T>();
+
+            return !ContainsKey(componentId)
+                ? InitComponent(componentId, MemoryUtility.SizeOf<T>()).ToReadOnly<T>()
+                : ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->ToReadOnly<T>();
         }
-        
+
         public void* GetPtr<T>(uint entityId) where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentId<T>();
@@ -128,7 +131,7 @@ namespace DesertImage.ECS
 
         // public ref UnsafeUintUnknownTypeSparseSet GetSparseSet<T>() where T : unmanaged
         // {
-            // return ref GetSparseSet(ComponentTools.GetComponentIdFast<T>());
+        // return ref GetSparseSet(ComponentTools.GetComponentIdFast<T>());
         // }
 
         public ref UnsafeUintUnknownTypeSparseSet GetSparseSet(uint componentId)

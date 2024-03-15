@@ -27,7 +27,7 @@ namespace DesertImage.ECS
         public static void* Allocate(long size, int alignment, Allocator allocator)
         {
 #if DEBUG_MODE
-            return UnsafeUtility.MallocTracked(size, alignment, allocator, 1);
+            return UnsafeUtility.MallocTracked(size, alignment, allocator, 0);
 #else
             return UnsafeUtility.Malloc(size, alignment, allocator);
 #endif
@@ -104,7 +104,7 @@ namespace DesertImage.ECS
 
             var newPtr = AllocateClear<T>(newSize, allocator);
 
-            MemoryUtility.Copy(newPtr, ptr, oldSize);
+            Copy(newPtr, ptr, oldSize);
             Free(ptr, allocator);
 
             return newPtr;

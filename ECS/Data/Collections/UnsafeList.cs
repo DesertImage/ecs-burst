@@ -11,7 +11,7 @@ namespace DesertImage.Collections
 {
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(UnsafeListDebugView<>))]
-    public unsafe struct UnsafeList<T> : IDisposable, IEnumerable<T> where T : unmanaged
+    public unsafe struct UnsafeList<T> : IDisposable, IEnumerable<T> where T : unmanaged, IEquatable<T>
     {
         public bool IsNotNull { get; private set; }
 
@@ -167,7 +167,7 @@ namespace DesertImage.Collections
         }
     }
 
-    internal sealed class UnsafeListDebugView<T> where T : unmanaged
+    internal sealed class UnsafeListDebugView<T> where T : unmanaged, IEquatable<T>
     {
         private UnsafeList<T> _data;
 

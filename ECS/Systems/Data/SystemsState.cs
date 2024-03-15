@@ -4,41 +4,44 @@ using Unity.Collections;
 
 namespace DesertImage.ECS
 {
-    public unsafe struct SystemsState : IDisposable
+    public struct SystemsState : IDisposable
     {
         public UnsafeList<ExecuteSystemData> EarlyMainThreadSystems;
         public UnsafeList<ExecuteSystemData> MultiThreadSystems;
+        public UnsafeList<ExecuteSystemData> LateMainThreadSystems;
+        public UnsafeList<ExecuteSystemData> RemoveTagsSystems;
         public UnsafeUintSparseSet<uint> SystemsHash;
 
-        public SystemsContext* Context;
+        public SystemsContext Context;
 
         public SystemsState(int capacity)
         {
             EarlyMainThreadSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             MultiThreadSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
+            LateMainThreadSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
+            RemoveTagsSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             SystemsHash = new UnsafeUintSparseSet<uint>(capacity);
-            Context = MemoryUtility.AllocateInstance(new SystemsContext());
+            Context = new SystemsContext();
+        }
+
+        private static void DisposeSystems(UnsafeList<ExecuteSystemData> values)
+        {
+            for (var i = 0; i < values.Count; i++)
+            {
+                values[i].Dispose();
+            }
+
+            values.Dispose();
         }
 
         public void Dispose()
         {
-            for (var i = 0; i < EarlyMainThreadSystems.Count; i++)
-            {
-                EarlyMainThreadSystems[i].Dispose();
-            }
-            
-            EarlyMainThreadSystems.Dispose();
-            
-            for (var i = 0; i < MultiThreadSystems.Count; i++)
-            {
-                MultiThreadSystems[i].Dispose();
-            }
-            
-            MultiThreadSystems.Dispose();
+            DisposeSystems(EarlyMainThreadSystems);
+            DisposeSystems(MultiThreadSystems);
+            DisposeSystems(LateMainThreadSystems);
+            DisposeSystems(RemoveTagsSystems);
 
             SystemsHash.Dispose();
-
-            MemoryUtility.Free(Context);
         }
     }
 }

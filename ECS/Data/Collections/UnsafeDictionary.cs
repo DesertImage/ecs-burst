@@ -16,13 +16,15 @@ namespace DesertImage.Collections
     public unsafe struct UnsafeDictionary<TKey, TValue> : IDisposable, IEnumerable<Pair<TKey, TValue>>
         where TKey : unmanaged where TValue : unmanaged
     {
-        internal struct Entry
+        internal struct Entry : IEquatable<Entry>
         {
             public bool IsNotNull;
 
             public int HashCode;
             public TKey Key;
             public TValue Value;
+
+            public bool Equals(Entry other) => other.HashCode == HashCode;
         }
 
         public bool IsNotNull { get; }

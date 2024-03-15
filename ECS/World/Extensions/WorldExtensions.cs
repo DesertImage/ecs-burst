@@ -7,10 +7,17 @@ namespace DesertImage.ECS
             return Entities.GetNew(world.Ptr);
         }
 
-        public static void Add<T>(this in World world, ExecutionType type = ExecutionType.MultiThread)
+        public static void Add<T>(this in World world, ExecutionOrder order = ExecutionOrder.MultiThread)
             where T : unmanaged, ISystem
         {
-            Systems.Add<T>(world, type);
+            Systems.Add<T>(world, order);
+        }
+
+        public static void AddRemoveComponentSystem<T>(this in World world,
+            ExecutionOrder order = ExecutionOrder.RemoveTags)
+            where T : unmanaged
+        {
+            Systems.Add<RemoveComponentSystem<T>>(world, order);
         }
 
         public static void AddFeature<T>(this in World world) where T : unmanaged, IFeature => new T().Link(world);
@@ -44,5 +51,7 @@ namespace DesertImage.ECS
         {
             return Worlds.Get(id);
         }
+
+        public static EntitiesGroup GetNewGroup(this in World world) => Groups.GetNewGroup(world.Ptr);
     }
 }

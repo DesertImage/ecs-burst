@@ -1,5 +1,6 @@
 using DesertImage.Collections;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.ECS
 {
@@ -9,15 +10,15 @@ namespace DesertImage.ECS
         private UnsafeList<uint> _withSizes;
         private UnsafeList<uint> _none;
         private uint _componentsHash;
-        private World* _world;
+        [NativeDisableUnsafePtrRestriction] private World* _world;
 
         public Filter(in World world)
         {
             _world = world.Ptr;
 
-            _with = new UnsafeList<uint>(3, Allocator.Temp);
-            _withSizes = new UnsafeList<uint>(3, Allocator.Temp);
-            _none = new UnsafeList<uint>(1, Allocator.Temp);
+            _with = new UnsafeList<uint>(3, Allocator.Persistent);
+            _withSizes = new UnsafeList<uint>(3, Allocator.Persistent);
+            _none = new UnsafeList<uint>(1, Allocator.Persistent);
             _componentsHash = 0;
         }
 
@@ -54,12 +55,12 @@ namespace DesertImage.ECS
             {
                 var group = groups[i];
                 if (group.ComponentsHashCode != _componentsHash) continue;
-                if (group._noneOf.Count != _none.Count) continue;
-                if (group._with.Count != _with.Count) continue;
+                if (group._noneOf->Count != _none.Count) continue;
+                if (group._with->Count != _with.Count) continue;
 
                 var isNoneEquals = true;
 
-                foreach (var componentId in group._noneOf)
+                foreach (var componentId in *group._noneOf)
                 {
                     if (!_none.Contains(componentId))
                     {
@@ -72,7 +73,7 @@ namespace DesertImage.ECS
 
                 var isWithEquals = true;
 
-                foreach (var componentId in group._with)
+                foreach (var componentId in *group._with)
                 {
                     if (!_with.Contains(componentId))
                     {

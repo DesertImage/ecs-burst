@@ -1,4 +1,3 @@
-using System;
 using DesertImage.Collections;
 using Unity.Collections;
 
@@ -10,7 +9,7 @@ namespace DesertImage.ECS
         {
             var state = world->State;
             var id = ++state->GroupIdCounter;
-            state->Groups.Set(id, new EntitiesGroup(id, world, 20, 256));
+            state->Groups.Set(id, new EntitiesGroup(id, world, 20));
             return ref state->Groups.Get(id);
         }
 

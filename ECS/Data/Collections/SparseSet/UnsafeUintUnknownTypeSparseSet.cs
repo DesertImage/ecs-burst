@@ -14,13 +14,15 @@ namespace DesertImage.Collections
     {
         public bool IsNotNull { get; private set; }
 
-        public int Count { get; private set; }
+        public int Count => *_count;
 
         public void* Values => _dense;
 
         [NativeDisableUnsafePtrRestriction] internal byte* _dense;
         [NativeDisableUnsafePtrRestriction] internal uint* _sparse;
         [NativeDisableUnsafePtrRestriction] internal uint* _keys;
+
+        [NativeDisableUnsafePtrRestriction] private int* _count;
 
         internal int _denseCapacity;
         internal int _sparseCapacity;
@@ -34,11 +36,10 @@ namespace DesertImage.Collections
             _dense = MemoryUtility.AllocateClear<byte>(denseCapacity * elementSize);
             _sparse = MemoryUtility.AllocateClear<uint>(sparseCapacity * uintSize);
             _keys = MemoryUtility.AllocateClear<uint>(denseCapacity * uintSize);
+            _count = MemoryUtility.AllocateInstance(0);
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
-
-            Count = 0;
 
             IsNotNull = true;
 
@@ -74,7 +75,7 @@ namespace DesertImage.Collections
             ((T*)_dense)[targetIndex] = value;
             _keys[targetIndex] = key;
 
-            Count++;
+            (*_count)++;
 
             if (Count <= _denseCapacity - 1) return;
 
@@ -104,24 +105,34 @@ namespace DesertImage.Collections
             if (sparseIndex == 0) throw new IndexOutOfRangeException();
 #endif
             var denseIndex = sparseIndex - 1;
+            var lastIndex = Count - 1;
 
-            if (Count > 1)
+            var densePtrIndex = denseIndex * _elementSize;
+            var lastPtrIndex = lastIndex * _elementSize;
+
+            if (Count > 1 && denseIndex < lastIndex)
             {
-                var lastIndex = Count - 1;
+                for (var i = 0; i < _elementSize; i++)
+                {
+                    _dense[densePtrIndex + i] = _dense[lastPtrIndex + i];
+                }
 
-                _dense[denseIndex] = _dense[lastIndex];
-                _sparse[_keys[denseIndex]] = denseIndex + 1;
+                _sparse[_keys[lastIndex]] = denseIndex + 1;
                 _keys[denseIndex] = _keys[lastIndex];
             }
             else
             {
-                _dense[denseIndex] = default;
+                for (var i = 0; i < _elementSize; i++)
+                {
+                    _dense[densePtrIndex + i] = default;
+                }
+
                 _keys[denseIndex] = default;
             }
 
             _sparse[key] = 0;
 
-            Count--;
+            (*_count)--;
         }
 
         public bool TryGetValue<T>(uint key, out T value) where T : unmanaged
@@ -135,7 +146,13 @@ namespace DesertImage.Collections
             return true;
         }
 
-        public readonly ref T Get<T>(uint key) where T : unmanaged => ref ((T*)_dense)[_sparse[key] - 1];
+        public ref T Get<T>(uint key) where T : unmanaged
+        {
+#if DEBUG_MODE
+            if (!Contains(key)) throw new Exception($"Sparse {typeof(T)} not contains key {key}");
+#endif
+            return ref ((T*)_dense)[_sparse[key] - 1];
+        }
 
         public void* GetPtr(uint key)
         {
@@ -148,11 +165,17 @@ namespace DesertImage.Collections
 
         public void* GetPtr() => _dense;
 
-        public readonly T Read<T>(uint key) where T : unmanaged => ((T*)_dense)[_sparse[key] - 1];
+        public T Read<T>(uint key) where T : unmanaged
+        {
+#if DEBUG_MODE
+            if (!Contains(key)) throw new Exception($"Sparse {typeof(T)} not contains key {key}");
+#endif
+            return ((T*)_dense)[_sparse[key] - 1];
+        }
 
         public void Clear()
         {
-            Count = 0;
+            *_count = 0;
 
             var intSize = MemoryUtility.SizeOf<uint>();
 
@@ -163,7 +186,6 @@ namespace DesertImage.Collections
 
         public bool Contains(uint key)
         {
-            if (key >= _sparseCapacity) return false;
             return _sparseCapacity > key && _sparse[key] > 0;
         }
 
@@ -176,11 +198,11 @@ namespace DesertImage.Collections
                 _sparse,
                 _sparseCapacity,
                 _keys,
-                Count
+                _count
             );
         }
 
-        public readonly void Dispose()
+        public void Dispose()
         {
 #if DEBUG_MODE
             if (!IsNotNull) throw new NullReferenceException("Sparse set is null");
@@ -188,6 +210,12 @@ namespace DesertImage.Collections
             MemoryUtility.Free(_dense);
             MemoryUtility.Free(_sparse);
             MemoryUtility.Free(_keys);
+            MemoryUtility.Free(_count);
+
+            _dense = null;
+            _sparse = null;
+            _keys = null;
+            _count = null;
         }
 
         public struct Enumerator : IEnumerator<IntPtr>

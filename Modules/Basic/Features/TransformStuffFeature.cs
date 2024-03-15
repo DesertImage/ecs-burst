@@ -4,8 +4,8 @@ namespace DesertImage.ECS
     {
         public void Link(World world)
         {
-            world.Add<TransformToEntitySystem>(ExecutionType.MainThread);
-            world.Add<EntityToTransformSystem>(ExecutionType.MainThread);
+            world.Add<TransformToEntitySystem>(ExecutionOrder.EarlyMainThread);
+            world.Add<EntityToTransformSystem>(ExecutionOrder.EarlyMainThread);
         }
     }
 }

@@ -17,7 +17,7 @@ namespace DesertImage.ECS.Tests
 
             entity.Replace(new TestValueComponent { Value = 2 });
 
-            world.Add<TestValueSystem>(ExecutionType.MainThread);
+            world.Add<TestValueSystem>(ExecutionOrder.EarlyMainThread);
 
             world.Tick(.1f);
 
@@ -62,7 +62,7 @@ namespace DesertImage.ECS.Tests
 
             entity.Replace(new TestValueComponent { Value = 1 });
 
-            const ExecutionType executionType = ExecutionType.MultiThread;
+            const ExecutionOrder executionType = ExecutionOrder.MultiThread;
             world.Add<TestValueRemoveSystem>(executionType);
             world.Add<TestValueSystem>(executionType);
 
@@ -87,7 +87,7 @@ namespace DesertImage.ECS.Tests
                 entity.Replace<TestValueComponent>();
             }
 
-            world.Add<TestValueSystem>(ExecutionType.MainThread);
+            world.Add<TestValueSystem>(ExecutionOrder.EarlyMainThread);
 
             stopwatch.Start();
 
@@ -132,7 +132,7 @@ namespace DesertImage.ECS.Tests
                 entity.Replace<TestValueComponent>();
             }
 
-            const ExecutionType executionType = ExecutionType.MultiThread;
+            const ExecutionOrder executionType = ExecutionOrder.MultiThread;
             world.Add<TestValueSystem>(executionType);
             world.Add<TestValueSecondSystem>(executionType);
 

@@ -9,7 +9,7 @@ namespace DesertImage.ECS
 
         [SerializeField] private MonoEntityLinkable[] linkables;
 
-        public void Initialize(in Entity entity)
+        public virtual void Initialize(in Entity entity)
         {
             Entity = entity;
 

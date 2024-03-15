@@ -19,6 +19,7 @@ namespace DesertImage.Collections
 
         [NativeDisableUnsafePtrRestriction] internal T* _dense;
         [NativeDisableUnsafePtrRestriction] internal ushort* _sparse;
+        [NativeDisableUnsafePtrRestriction] internal ushort* _keys;
 
         internal int _denseCapacity;
         internal int _sparseCapacity;
@@ -31,6 +32,7 @@ namespace DesertImage.Collections
 
             _dense = MemoryUtility.AllocateClear<T>(denseCapacity * MemoryUtility.SizeOf<T>());
             _sparse = MemoryUtility.AllocateClear<ushort>(sparseCapacity * ushortSize);
+            _keys = MemoryUtility.AllocateClear<ushort>(denseCapacity * ushortSize);
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
@@ -46,6 +48,7 @@ namespace DesertImage.Collections
 
             _dense = MemoryUtility.AllocateClear<T>(capacity * MemoryUtility.SizeOf<T>());
             _sparse = MemoryUtility.AllocateClear<ushort>(capacity * ushortSize);
+            _keys = MemoryUtility.AllocateClear<ushort>(capacity * ushortSize);
 
             _denseCapacity = capacity;
             _sparseCapacity = capacity;
@@ -79,6 +82,7 @@ namespace DesertImage.Collections
 
             _sparse[key] = (ushort)(targetIndex + 1);
             _dense[targetIndex] = value;
+            _keys[targetIndex] = key;
 
             Count++;
 
@@ -86,6 +90,7 @@ namespace DesertImage.Collections
             {
                 var newDenseCapacity = _denseCapacity << 1;
                 _dense = MemoryUtility.Resize(_dense, _denseCapacity, newDenseCapacity);
+                _keys = MemoryUtility.Resize(_keys, _denseCapacity, newDenseCapacity);
                 _denseCapacity = newDenseCapacity;
             }
         }
@@ -97,10 +102,16 @@ namespace DesertImage.Collections
 #if DEBUG_MODE
             if (sparseIndex == 0) throw new IndexOutOfRangeException();
 #endif
-            if (Count > 1)
+            var denseIndex = sparseIndex - 1;
+            var lastIndex = Count - 1;
+
+            if (Count > 1 && denseIndex < lastIndex)
             {
-                _dense[sparseIndex - 1] = _dense[Count - 1];
-                _sparse[Count - 1] = sparseIndex;
+                _dense[denseIndex] = _dense[lastIndex];
+
+                var lastKey = _keys[lastIndex];
+                _sparse[lastKey] = (ushort)(denseIndex + 1);
+                _keys[denseIndex] = lastKey;
             }
             else
             {
@@ -133,6 +144,7 @@ namespace DesertImage.Collections
             for (var i = 0; i < _denseCapacity; i++)
             {
                 _dense[i] = default;
+                _keys[i] = default;
             }
 
             for (var i = 0; i < _sparseCapacity; i++)
@@ -147,10 +159,15 @@ namespace DesertImage.Collections
             return _sparseCapacity > key && _sparse[key] > 0;
         }
 
-        public readonly void Dispose()
+        public void Dispose()
         {
             MemoryUtility.Free(_dense);
             MemoryUtility.Free(_sparse);
+            MemoryUtility.Free(_keys);
+
+            _dense = null;
+            _sparse = null;
+            _keys = null;
         }
 
         public struct Enumerator : IEnumerator<T>

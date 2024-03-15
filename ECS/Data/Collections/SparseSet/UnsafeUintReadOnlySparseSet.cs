@@ -14,7 +14,7 @@ namespace DesertImage.Collections
     {
         public bool IsNotNull { get; private set; }
 
-        public int Count { get; private set; }
+        public int Count => *_count;
 
         public UnsafeReadOnlyArray<T> Values => new UnsafeReadOnlyArray<T>(_dense, Count);
         public UnsafeReadOnlyArray<uint> Keys => new UnsafeReadOnlyArray<uint>(_keys, Count);
@@ -23,19 +23,21 @@ namespace DesertImage.Collections
         [NativeDisableUnsafePtrRestriction] internal uint* _sparse;
         [NativeDisableUnsafePtrRestriction] internal uint* _keys;
 
+        [NativeDisableUnsafePtrRestriction]private int* _count;
+
         internal int _denseCapacity;
         internal int _sparseCapacity;
 
         public readonly T this[uint index] => _dense[_sparse[index] - 1];
 
         public UnsafeUintReadOnlySparseSet(T* dense, int denseCapacity, uint* sparse, int sparseCapacity, uint* keys,
-            int count)
+            int* count)
         {
             _dense = dense;
             _sparse = sparse;
             _keys = keys;
 
-            Count = count;
+            _count = count;
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
@@ -54,8 +56,21 @@ namespace DesertImage.Collections
             return true;
         }
 
-        public readonly ref T Get(uint key) => ref _dense[_sparse[key] - 1];
-        public readonly T Read(uint key) => _dense[_sparse[key] - 1];
+        public ref T Get(uint key)
+        {
+#if DEBUG_MODE
+            if (!Contains(key)) throw new Exception($"Sparse set doesn't contains key: {key}");
+#endif
+            return ref _dense[_sparse[key] - 1];
+        }
+
+        public readonly T Read(uint key)
+        {
+#if DEBUG_MODE
+            if (!Contains(key)) throw new Exception($"Sparse set doesn't contains key: {key}");
+#endif
+            return _dense[_sparse[key] - 1];
+        }
 
         public bool Contains(uint key)
         {

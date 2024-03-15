@@ -3,6 +3,7 @@ using System.Diagnostics;
 using NUnit.Framework;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 namespace DesertImage.Collections
@@ -126,6 +127,42 @@ namespace DesertImage.Collections
             data.Dispose();
 
             Assert.IsFalse(result);
+        }
+
+        [Test]
+        public unsafe void SparseSet()
+        {
+            var data = new UnsafeUintSparseSet<uint>(10);
+
+            var count = 10;
+
+            var array = new uint[count];
+
+            for (uint i = 0; i < count; i++)
+            {
+                data.Set(i, i);
+                array[i] = i;
+            }
+
+            for (var i = 0; i < count; i++)
+            {
+                var random = Random.Range(0, count);
+                (array[random], array[i]) = (array[i], array[random]);
+            }
+
+            for (var i = 0; i < count; i++)
+            {
+                Debug.Log($"{i}");
+                var valueToRemove = array[i];
+                data.Remove(valueToRemove);
+
+                for (var j = 0; j < data.Count; j++)
+                {
+                    Assert.AreNotEqual(valueToRemove, data.Values[j]);
+                }
+            }
+
+            data.Dispose();
         }
     }
 }

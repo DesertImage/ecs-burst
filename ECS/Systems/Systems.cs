@@ -7,7 +7,7 @@ namespace DesertImage.ECS
 {
     public static unsafe class Systems
     {
-        public static void Add<T>(in World world, ExecutionType type) where T : unmanaged, ISystem
+        public static void Add<T>(in World world, ExecutionOrder order) where T : unmanaged, ISystem
         {
             var systemType = typeof(T);
             var systemId = SystemsTools.GetId<T>();
@@ -35,7 +35,7 @@ namespace DesertImage.ECS
                     BindingFlags.Static | BindingFlags.NonPublic
                 );
 
-                var gMethod = methodInfo.MakeGenericMethod(systemType);
+                var gMethod = methodInfo!.MakeGenericMethod(systemType);
 
                 var targetDelegate = Delegate.CreateDelegate(typeof(Action<IntPtr, World>), default, gMethod);
                 var converted = (Action<IntPtr, World>)targetDelegate;
@@ -55,18 +55,18 @@ namespace DesertImage.ECS
                     BindingFlags.Static | BindingFlags.NonPublic
                 );
 
-                var gMethod = methodInfo.MakeGenericMethod(systemType);
+                var gMethod = methodInfo!.MakeGenericMethod(systemType);
 
                 var targetDelegate = Delegate.CreateDelegate
                 (
-                    typeof(Action<IntPtr, IntPtr, ExecutionType>),
+                    typeof(Action<IntPtr, IntPtr, ExecutionOrder>),
                     default,
                     gMethod
                 );
 
-                var converted = (Action<IntPtr, IntPtr, ExecutionType>)targetDelegate;
+                var converted = (Action<IntPtr, IntPtr, ExecutionOrder>)targetDelegate;
 
-                converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr, type);
+                converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr, order);
             }
 
             state->SystemsHash.Set(systemId, systemId);
@@ -78,27 +78,28 @@ namespace DesertImage.ECS
             {
 #if DEBUG_MODE
                 throw new Exception($"system {typeof(T)} haven't been added");
-#endif
+#else
                 return;
+#endif
             }
 
             var systemId = SystemsTools.GetId<T>();
 
             state->SystemsHash.Remove(systemId);
 
-            for (var i = 0; i < state->EarlyMainThreadSystems.Count; i++)
-            {
-                var systemData = state->EarlyMainThreadSystems[i];
-                if (systemData.Id != systemId) continue;
-                state->EarlyMainThreadSystems.RemoveAt(i);
-                return;
-            }
+            Remove(ref state->EarlyMainThreadSystems, systemId);
+            Remove(ref state->MultiThreadSystems, systemId);
+            Remove(ref state->LateMainThreadSystems, systemId);
+            Remove(ref state->RemoveTagsSystems, systemId);
+        }
 
-            for (var i = 0; i < state->MultiThreadSystems.Count; i++)
+        private static void Remove(ref UnsafeList<ExecuteSystemData> values, uint systemId)
+        {
+            for (var i = values.Count - 1; i >= 0; i--)
             {
-                var systemData = state->MultiThreadSystems[i];
+                var systemData = values[i];
                 if (systemData.Id != systemId) continue;
-                state->MultiThreadSystems.RemoveAt(i);
+                values.RemoveAt(i);
                 break;
             }
         }
@@ -113,10 +114,12 @@ namespace DesertImage.ECS
         {
             var state = world->SystemsState;
 
-            state->Context->DeltaTime = deltaTime;
+            state->Context.DeltaTime = deltaTime;
 
             ExecuteMainThread(ref state->EarlyMainThreadSystems, state);
             ExecuteMultiThread(ref state->MultiThreadSystems, state);
+            ExecuteMainThread(ref state->LateMainThreadSystems, state);
+            ExecuteMainThread(ref state->RemoveTagsSystems, state);
         }
 
         private static void ExecuteMainThread(ref UnsafeList<ExecuteSystemData> systems, SystemsState* state)
@@ -127,7 +130,7 @@ namespace DesertImage.ECS
 
                 var wrapper = systemData.Wrapper;
                 var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
-                method.Invoke(wrapper, state->Context);
+                method.Invoke(wrapper, ref state->Context);
             }
         }
 
@@ -139,10 +142,10 @@ namespace DesertImage.ECS
 
                 var wrapper = systemData.Wrapper;
                 var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
-                method.Invoke(wrapper, state->Context);
-            }
+                method.Invoke(wrapper, ref state->Context);
 
-            state->Context->Handle.Complete();
+                state->Context.Handle.Complete();
+            }
         }
 
         private static void AddInit<T>(IntPtr ptr, World world) where T : unmanaged, IInitSystem
@@ -150,7 +153,7 @@ namespace DesertImage.ECS
             (*(T*)ptr).Initialize(world);
         }
 
-        private static void AddExecute<T>(IntPtr worldPtr, IntPtr wrapperPtr, ExecutionType type)
+        private static void AddExecute<T>(IntPtr worldPtr, IntPtr wrapperPtr, ExecutionOrder order)
             where T : unmanaged, IExecuteSystem
         {
             var systemId = SystemsTools.GetId<T>();
@@ -167,10 +170,16 @@ namespace DesertImage.ECS
                 Wrapper = wrapper
             };
 
-            switch (type)
+            switch (order)
             {
-                case ExecutionType.MainThread:
+                case ExecutionOrder.EarlyMainThread:
                     state->EarlyMainThreadSystems.Add(data);
+                    break;
+                case ExecutionOrder.LateMainThread:
+                    state->LateMainThreadSystems.Add(data);
+                    break;
+                case ExecutionOrder.RemoveTags:
+                    state->RemoveTagsSystems.Add(data);
                     break;
                 default:
                     state->MultiThreadSystems.Add(data);

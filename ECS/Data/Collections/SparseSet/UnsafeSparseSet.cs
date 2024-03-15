@@ -114,11 +114,10 @@ namespace DesertImage.Collections
         public void Remove(int key)
         {
             var denseIndex = _sparse[key];
-
-            if (Count > 1)
+            var lastIndex = Count - 1;
+            
+            if (Count > 1 && denseIndex < lastIndex)
             {
-                var lastIndex = Count - 1;
-
                 _dense[denseIndex] = _dense[lastIndex];
                 _sparse[_keys[denseIndex]] = denseIndex;
                 _keys[denseIndex] = _keys[lastIndex];

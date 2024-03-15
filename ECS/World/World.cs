@@ -20,11 +20,11 @@ namespace DesertImage.ECS
             Ptr = ptr;
 
             State = MemoryUtility.AllocateInstance(new WorldState(512, 1024));
-
-            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(20));
-            SystemsState->Context->World = Ptr;
-
+            
             _moduleProvider = default;
+            
+            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(100));
+            SystemsState->Context.World = this;
         }
 
         public World(byte id, World* ptr, ModuleProvider moduleProvider)
@@ -34,10 +34,10 @@ namespace DesertImage.ECS
 
             State = MemoryUtility.AllocateInstance(new WorldState(512, 1024));
 
-            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(20));
-            SystemsState->Context->World = Ptr;
-
             _moduleProvider = moduleProvider;
+            
+            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(100));
+            SystemsState->Context.World = this;
         }
 
         public World(byte id, World* ptr, int componentsCapacity, int entitiesCapacity)
@@ -47,10 +47,10 @@ namespace DesertImage.ECS
 
             State = MemoryUtility.AllocateInstance(new WorldState(componentsCapacity, entitiesCapacity));
 
-            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(20));
-            SystemsState->Context->World = Ptr;
-
             _moduleProvider = default;
+            
+            SystemsState = MemoryUtility.AllocateInstance(new SystemsState(100));
+            SystemsState->Context.World = this;
         }
 
         public readonly T GetModule<T>() => _moduleProvider.Value.Get<T>();

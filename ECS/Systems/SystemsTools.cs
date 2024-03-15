@@ -8,7 +8,7 @@ namespace DesertImage.ECS
     {
         private static uint _idCounter;
 
-        public delegate void Execute(void* wrapper, SystemsContext* context);
+        public delegate void Execute(void* wrapper, ref SystemsContext context);
 
         public delegate void Destroy();
 
@@ -45,10 +45,10 @@ namespace DesertImage.ECS
 
         [BurstCompile]
         [MonoPInvokeCallback(typeof(SystemsTools.Execute))]
-        private static void MakeExecute(void* wrapper, SystemsContext* context)
+        private static void MakeExecute(void* wrapper, ref SystemsContext context)
         {
             var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
-            ptr.Execute(ref *context);
+            ptr.Execute(ref context);
         }
     }
 }
