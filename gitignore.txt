@@ -14,6 +14,9 @@
 /[Aa]ssets/TestApp/
 /[Aa]ssets/TestApp*
 
+/TestApp/
+/TestApp*
+
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 
