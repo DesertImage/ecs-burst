@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace DesertImage.ECS
 {
     public struct EntityToTransformSystem : IInitSystem, IExecuteSystem
@@ -25,7 +23,7 @@ namespace DesertImage.ECS
                 var transform = view.transform;
 
                 transform.position = entity.Read<Position>().Value;
-                transform.rotation = Quaternion.Euler(entity.Read<Rotation>().Value);
+                transform.rotation = entity.Read<Rotation>().Value;
                 transform.localScale = entity.Read<Scale>().Value;
             }
         }

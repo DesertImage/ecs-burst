@@ -3,7 +3,6 @@ using DesertImage.ECS;
 using Game.Input;
 using Unity.Burst;
 using Unity.Jobs;
-using UnityEngine;
 
 namespace Game.DragAndDrop
 {
@@ -15,14 +14,14 @@ namespace Game.DragAndDrop
         {
             public EntitiesGroup Group;
             public UnsafeReadOnlyArray<Drag> Data;
-            public MousePosition MousePosition;
+            public MouseWorldPosition MouseWorldPosition;
 
             public void Execute()
             {
                 var drags = Group.GetComponents<Drag>();
                 foreach (var i in Group)
                 {
-                    drags.Get(i).Position = MousePosition.WorldPosition;
+                    drags.Get(i).Position = MouseWorldPosition.Value;
                 }
             }
         }
@@ -41,9 +40,9 @@ namespace Game.DragAndDrop
             var job = new DragMousePositionJob
             {
                 Group = _group,
-                MousePosition = context.World.GetStatic<MousePosition>()
+                MouseWorldPosition = context.World.ReadStatic<MouseWorldPosition>()
             };
-            
+
             context.Handle = job.Schedule(context.Handle);
         }
     }

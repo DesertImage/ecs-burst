@@ -7,17 +7,13 @@ namespace Game
     {
         private Entity _entity;
 
-        public override void Link(Entity entity) => _entity = entity;
-
-
-        public void OnPointerEnter(PointerEventData eventData)
+        public override void Link(Entity entity)
         {
-            _entity.Replace<Hover>();
+            _entity = entity;
+            _entity.Replace<Hoverable>();
         }
 
-        public void OnPointerExit(PointerEventData eventData)
-        {
-            _entity.Replace<Unhover>();
-        }
+        public void OnPointerEnter(PointerEventData eventData) => _entity.Replace<Hover>();
+        public void OnPointerExit(PointerEventData eventData) => _entity.Replace<Unhover>();
     }
 }

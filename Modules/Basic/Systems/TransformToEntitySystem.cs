@@ -24,7 +24,7 @@ namespace DesertImage.ECS
 
                 entity.Replace(new Position { Value = transform.position });
                 entity.Replace(new LocalPosition { Value = transform.localPosition });
-                entity.Replace(new Rotation { Value = transform.rotation.eulerAngles });
+                entity.Replace(new Rotation { Value = transform.rotation });
                 entity.Replace(new Scale { Value = transform.localScale });
             }
         }

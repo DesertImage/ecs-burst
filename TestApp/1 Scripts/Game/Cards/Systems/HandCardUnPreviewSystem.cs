@@ -15,6 +15,7 @@ namespace Game
                 .With<LocalRotation>()
                 .With<UnPreviewTag>()
                 .None<DropTag>()
+                .None<HoverBlocked>()
                 .Find();
         }
 

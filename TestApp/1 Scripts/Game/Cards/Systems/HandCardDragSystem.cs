@@ -1,5 +1,6 @@
 using DesertImage.ECS;
 using Game.DragAndDrop;
+using Game.Tween;
 
 namespace Game
 {
@@ -20,7 +21,9 @@ namespace Game
             foreach (var entityId in _group)
             {
                 var entity = _group.GetEntity(entityId);
-                entity.Remove<HandCard>();
+
+                entity.Replace<HoverBlocked>();
+                entity.TweenScale(1f, .2f);
             }
         }
     }

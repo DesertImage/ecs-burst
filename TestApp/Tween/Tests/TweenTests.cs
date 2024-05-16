@@ -84,7 +84,7 @@ public class TweenTests
             (
                 new TweenRotation
                 {
-                    End = new float3(1f),
+                    End = quaternion.EulerXYZ(1f),
                     Time = 1f
                 }
             );
@@ -104,7 +104,7 @@ public class TweenTests
         {
             var entity = entities[i];
 
-            results[i] = entity.Read<Rotation>().Value;
+            results[i] = math.Euler(entity.Read<Rotation>().Value);
 
             entity.Replace<TweenRotationCancel>();
         }
@@ -113,7 +113,7 @@ public class TweenTests
 
         for (var i = 0; i < entitiesCount; i++)
         {
-            secondResults[i] = entities[i].Read<Rotation>().Value;
+            secondResults[i] = math.Euler(entities[i].Read<Rotation>().Value);
         }
 
         world.Dispose();

@@ -8,7 +8,7 @@ using Camera = UnityEngine.Camera;
 
 namespace Game
 {
-    public class TestStarter : EcsStarter
+    public class CardgeonStarter : EcsStarter
     {
         protected override void InitModules()
         {
@@ -18,7 +18,13 @@ namespace Game
 
         protected override void InitSystems()
         {
-            var parent = new GameObject("Hand");
+            var parent = new GameObject("Hand")
+            {
+                transform =
+                {
+                    position = new Vector3(0f, -2.55f, -2f)
+                }
+            };
 
             const int cardsCount = 10;
 
@@ -27,7 +33,9 @@ namespace Game
                 var entity = World.GetNewEntity();
 
                 entity.ReplaceStatic(new Hand { Count = cardsCount, });
-                entity.ReplaceStatic(new MousePosition { ZOffset = 10f });
+                entity.ReplaceStatic(new MousePosition());
+                entity.ReplaceStatic(new MouseWorldPosition { ZOffset = 10f });
+                entity.ReplaceStatic(new MouseRelativePosition());
                 entity.ReplaceStatic(new Cameras.Camera { Value = Camera.main });
 
                 entity.Replace<OriginPosition>();
@@ -44,25 +52,31 @@ namespace Game
             }
 
             World.Add<MousePositionSystem>(ExecutionOrder.EarlyMainThread);
+            World.Add<MouseWorldPositionSystem>(ExecutionOrder.EarlyMainThread);
+            World.Add<MouseRelativePositionSystem>(ExecutionOrder.EarlyMainThread);
 
             World.AddFeature<TweenLocalPositionFeature>();
             World.AddFeature<TweenLocalRotationFeature>();
             World.AddFeature<TweenScaleFeature>();
-            //
             World.AddFeature<HoverPreviewFeature>();
-            //
+
             World.Add<HandCardPreviewSystem>();
             World.Add<HandCardUnPreviewSystem>();
-            World.Add<HandCardAlignSystem>();
-            //
+
             World.AddFeature<OriginsFeature>();
             World.AddFeature<DragAndDropFeature>();
-            
+
             World.Add<HandCardDragSystem>();
+            World.Add<HandCardPlaySystem>();
+            World.Add<HandRemoveCardSystem>();
+            World.Add<HandCardReturnToHandSystem>();
+            World.Add<HandCardAlignSystem>();
 
             World.Add<EntityToTransformSystem>(ExecutionOrder.LateMainThread);
 
             World.AddRemoveComponentSystem<HandCardAlignTag>();
+            World.AddRemoveComponentSystem<HandRemoveCard>();
+            World.AddRemoveComponentSystem<PlayedTag>();
         }
     }
 }

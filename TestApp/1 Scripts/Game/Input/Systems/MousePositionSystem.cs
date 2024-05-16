@@ -1,5 +1,4 @@
 using DesertImage.ECS;
-using Camera = Game.Cameras.Camera;
 
 namespace Game.Input
 {
@@ -9,13 +8,10 @@ namespace Game.Input
         {
             var world = context.World;
 
-            var mousePosition = world.GetStatic<MousePosition>();
-            var camera = world.GetStatic<Camera>().Value.Value;
+            var mousePosition = world.ReadStatic<MousePosition>();
             var position = UnityEngine.Input.mousePosition;
-            position.z = mousePosition.ZOffset;
             
             mousePosition.Value = position;
-            mousePosition.WorldPosition = camera.ScreenToWorldPoint(position);
 
             world.ReplaceStatic(mousePosition);
         }

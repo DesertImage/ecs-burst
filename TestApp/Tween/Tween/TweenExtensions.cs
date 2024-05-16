@@ -44,7 +44,7 @@ namespace Game.Tween
                 new TweenRotation
                 {
                     Start = entity.Read<Rotation>().Value,
-                    End = target,
+                    End = quaternion.EulerXYZ(target),
                     Time = time,
                     Ease = easeType
                 }
@@ -59,7 +59,7 @@ namespace Game.Tween
                 new TweenLocalRotation
                 {
                     Start = entity.Read<LocalRotation>().Value,
-                    End = target,
+                    End = quaternion.EulerXYZ(target),
                     Time = time,
                     Ease = easeType
                 }

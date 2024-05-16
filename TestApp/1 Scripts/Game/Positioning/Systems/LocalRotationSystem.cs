@@ -23,7 +23,7 @@ namespace Game
 
             foreach (var entityId in _group)
             {
-                rotations.Get(entityId).Value = origins[entityId].Value + localRotations[entityId].Value;
+                // rotations.Get(entityId).Value = origins[entityId].Value + localRotations[entityId].Value;
             }
         }
     }

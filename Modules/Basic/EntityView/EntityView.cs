@@ -15,7 +15,7 @@ namespace DesertImage.ECS
 
             entity.Replace(new View { Value = this });
             entity.Replace(new Position { Value = transform.position });
-            entity.Replace(new Rotation { Value = transform.rotation.eulerAngles });
+            entity.Replace(new Rotation { Value = transform.rotation });
             entity.Replace(new Scale { Value = transform.localScale });
 
             for (var i = 0; i < linkables.Length; i++)
@@ -26,7 +26,7 @@ namespace DesertImage.ECS
 
         protected virtual void OnDestroy() => linkables = null;
 
-        private void OnValidate()
+        protected virtual void OnValidate()
         {
             if (linkables == null || linkables.Length > 0) return;
             linkables = GetComponents<MonoEntityLinkable>();

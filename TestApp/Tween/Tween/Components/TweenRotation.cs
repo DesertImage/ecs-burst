@@ -4,8 +4,8 @@ namespace Game.Tween
 {
     public struct TweenRotation
     {
-        public float3 Start;
-        public float3 End;
+        public quaternion Start;
+        public quaternion End;
         
         public float Time;
         public float ElapsedTime;

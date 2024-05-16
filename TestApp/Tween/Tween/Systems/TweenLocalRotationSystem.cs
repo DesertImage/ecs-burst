@@ -25,7 +25,7 @@ namespace Game.Tween
             {
                 var tween = tweenLocalRotations[i];
 
-                localRotations.Get(i).Value = math.lerp
+                localRotations.Get(i).Value = math.slerp
                 (
                     tween.Start,
                     tween.End,

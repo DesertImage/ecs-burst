@@ -13,8 +13,6 @@ namespace Game
             _group = Filter.Create(world)
                 .With<HandCard>()
                 .With<HandCardAlignTag>()
-                .With<LocalPosition>()
-                .With<LocalRotation>()
                 .Find();
         }
 
@@ -22,7 +20,7 @@ namespace Game
         {
             var handCards = _group.GetComponents<HandCard>();
 
-            var hand = context.World.GetStatic<Hand>();
+            var hand = context.World.ReadStatic<Hand>();
             var cardsCount = hand.Count;
 
             const float tau = math.PI * 2;
@@ -37,7 +35,9 @@ namespace Game
 
             foreach (var entityId in _group)
             {
-                var index = handCards[entityId].OrderPosition;
+                ref var handCard = ref handCards.Get(entityId);
+
+                var index = handCard.OrderPosition;
 
                 var radians = step * (index + .5f) - halfTotalWidth + radiansCenter;
                 var radiansOffset = radiansCenter - radians;
@@ -46,6 +46,8 @@ namespace Game
                 var horizontal = math.cos(radians * tau) * radius;
 
                 var position = new float3(horizontal, vertical, index * .01f);
+
+                handCard.AlignPosition = position;
 
                 var entity = _group.GetEntity(entityId);
 
