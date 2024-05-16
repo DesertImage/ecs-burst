@@ -41,6 +41,11 @@ namespace DesertImage.ECS
             }
         }
 
+        protected virtual void FixedUpdate()
+        {
+            World.PhysicsTick(Time.deltaTime);
+        }
+
         protected virtual void Initialize()
         {
             InitModules();

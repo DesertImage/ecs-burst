@@ -166,6 +166,11 @@ namespace DesertImage.ECS
             var componentId = ComponentTools.GetComponentIdFast<T>();
             ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Remove(entityId);
         }
+        
+        public void Clear(uint entityId, uint componentId)
+        {
+            ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Remove(entityId);
+        }
 
         public void ClearAll(uint entityId)
         {

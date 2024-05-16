@@ -5,7 +5,7 @@ namespace DesertImage.ECS
 {
     [Serializable]
     [DebuggerTypeProxy(typeof(EntityDebugView))]
-    public unsafe struct Entity
+    public unsafe struct Entity : IEquatable<Entity>
     {
         public readonly uint Id;
         public readonly World* World;
@@ -18,5 +18,7 @@ namespace DesertImage.ECS
             World = world;
             IsAliveFlag = 1;
         }
+
+        public bool Equals(Entity other) => Id == other.Id;
     }
 }

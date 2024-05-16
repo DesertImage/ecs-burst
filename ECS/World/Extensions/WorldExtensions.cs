@@ -2,10 +2,8 @@ namespace DesertImage.ECS
 {
     public static unsafe class WorldExtensions
     {
-        public static Entity GetNewEntity(this in World world)
-        {
-            return Entities.GetNew(world.Ptr);
-        }
+        public static Entity GetNewEntity(this in World world) => Entities.GetNew(world.Ptr);
+        public static Entity GetEntity(this in World world, uint id) => new(id, world.Ptr);
 
         public static void Add<T>(this in World world, ExecutionOrder order = ExecutionOrder.MultiThread)
             where T : unmanaged, ISystem
@@ -32,9 +30,14 @@ namespace DesertImage.ECS
             Systems.Contains<T>(world.SystemsState);
         }
 
-        public static T GetStatic<T>(this in World world) where T : unmanaged
+        public static T ReadStatic<T>(this in World world) where T : unmanaged
         {
-            return Components.GetStatic<T>(world.State);
+            return Components.ReadStatic<T>(world.State);
+        }
+
+        public static ref T GetStatic<T>(this in World world) where T : unmanaged
+        {
+            return ref Components.GetStatic<T>(world.State);
         }
 
         public static void ReplaceStatic<T>(this in World world, T instance) where T : unmanaged
@@ -47,10 +50,12 @@ namespace DesertImage.ECS
             Systems.Execute(Worlds.GetPtr(world.Id), deltaTime);
         }
 
-        public static World GetWorldWithThisId(this ushort id)
+        public static void PhysicsTick(this in World world, float deltaTime)
         {
-            return Worlds.Get(id);
+            Systems.ExecutePhysics(Worlds.GetPtr(world.Id), deltaTime);
         }
+
+        public static World GetWorldWithThisId(this ushort id) => Worlds.Get(id);
 
         public static EntitiesGroup GetNewGroup(this in World world) => Groups.GetNewGroup(world.Ptr);
     }

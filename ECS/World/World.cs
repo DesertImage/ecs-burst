@@ -1,9 +1,14 @@
+using DesertImage.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.ECS
 {
     public unsafe struct World
     {
+        private const int CollectionsBufferSize = 2048;
+        private const int ComponentsCapacity = 512;
+        private const int EntitiesCapacity = 1024;
+
         public byte Id;
 
         [NativeDisableUnsafePtrRestriction] public readonly World* Ptr;
@@ -19,10 +24,10 @@ namespace DesertImage.ECS
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.AllocateInstance(new WorldState(512, 1024));
-            
+            State = MemoryUtility.AllocateInstance(new WorldState(ComponentsCapacity, EntitiesCapacity));
+
             _moduleProvider = default;
-            
+
             SystemsState = MemoryUtility.AllocateInstance(new SystemsState(100));
             SystemsState->Context.World = this;
         }
@@ -32,10 +37,10 @@ namespace DesertImage.ECS
             Id = id;
             Ptr = ptr;
 
-            State = MemoryUtility.AllocateInstance(new WorldState(512, 1024));
+            State = MemoryUtility.AllocateInstance(new WorldState(ComponentsCapacity, EntitiesCapacity));
 
             _moduleProvider = moduleProvider;
-            
+
             SystemsState = MemoryUtility.AllocateInstance(new SystemsState(100));
             SystemsState->Context.World = this;
         }
@@ -48,7 +53,7 @@ namespace DesertImage.ECS
             State = MemoryUtility.AllocateInstance(new WorldState(componentsCapacity, entitiesCapacity));
 
             _moduleProvider = default;
-            
+
             SystemsState = MemoryUtility.AllocateInstance(new SystemsState(100));
             SystemsState->Context.World = this;
         }

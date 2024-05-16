@@ -114,7 +114,16 @@ namespace DesertImage.ECS
             where T : unmanaged
         {
             var newPtr = AllocateClear<T>(newSize, allocator);
-            MemoryUtility.Copy(newPtr, ptr, oldSize);
+            Copy(newPtr, ptr, oldSize);
+            Free(ptr, allocator);
+
+            return newPtr;
+        }
+        
+        public static void* Resize(void* ptr, long oldSize, long newSize, Allocator allocator = Allocator.Persistent)
+        {
+            var newPtr = AllocateClear<byte>(newSize, allocator);
+            Copy(newPtr, ptr, oldSize);
             Free(ptr, allocator);
 
             return newPtr;
@@ -148,6 +157,17 @@ namespace DesertImage.ECS
         public static T[] ToArray<T>(T* ptr, int capacity) where T : unmanaged
         {
             var array = new T[capacity];
+            for (var i = 0; i < capacity; i++)
+            {
+                array[i] = ptr[i];
+            }
+
+            return array;
+        }
+        
+        public static T*[] ToArray<T>(T** ptr, int capacity) where T : unmanaged
+        {
+            var array = new T*[capacity];
             for (var i = 0; i < capacity; i++)
             {
                 array[i] = ptr[i];

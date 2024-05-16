@@ -121,6 +121,15 @@ namespace DesertImage.ECS
             ExecuteMainThread(ref state->LateMainThreadSystems, state);
             ExecuteMainThread(ref state->RemoveTagsSystems, state);
         }
+        
+        public static void ExecutePhysics(World* world, float deltaTime)
+        {
+            var state = world->SystemsState;
+
+            state->Context.DeltaTime = deltaTime;
+
+            ExecuteMainThread(ref state->PhysicsSystems, state);
+        }
 
         private static void ExecuteMainThread(ref UnsafeList<ExecuteSystemData> systems, SystemsState* state)
         {
@@ -180,6 +189,9 @@ namespace DesertImage.ECS
                     break;
                 case ExecutionOrder.RemoveTags:
                     state->RemoveTagsSystems.Add(data);
+                    break;
+                case ExecutionOrder.Physics:
+                    state->PhysicsSystems.Add(data);
                     break;
                 default:
                     state->MultiThreadSystems.Add(data);

@@ -22,6 +22,7 @@ namespace DesertImage.ECS
             _isInitialized = true;
         }
 
+        //TODO: Refactor
         public static World Create()
         {
             if (!_isInitialized) Initialize();
@@ -49,8 +50,6 @@ namespace DesertImage.ECS
             var worldPtr = (World*)MemoryUtility.AllocateClear(MemoryUtility.SizeOf<World>(), Allocator.Persistent);
 
             *worldPtr = new World(id, worldPtr, moduleProvider);
-            WorldsStorage.Worlds.Data[id] = (IntPtr)worldPtr;
-
             WorldsStorage.Worlds.Data[id] = (IntPtr)worldPtr;
 
             return *worldPtr;

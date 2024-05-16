@@ -17,6 +17,9 @@ namespace DesertImage.ECS
         public UnsafeUshortSparseSet<EntitiesGroup> Groups;
         public UnsafeUintSparseSet<UnsafeList<ushort>> EntityToGroups;
         public UnsafeUintSparseSet<UnsafeList<ushort>> ComponentToGroups;
+        public UnsafeUintSparseSet<UnsafeUintSparseSet<UnsafeList<Ptr>>> ComponentAllocations;
+
+        public MemoryAllocator MemoryAllocator;
 
         public WorldState(int componentsCapacity, int entitiesCapacity)
         {
@@ -34,6 +37,10 @@ namespace DesertImage.ECS
 
             EntityToGroups = new UnsafeUintSparseSet<UnsafeList<ushort>>(entitiesCapacity);
             ComponentToGroups = new UnsafeUintSparseSet<UnsafeList<ushort>>(componentsCapacity);
+
+            ComponentAllocations = new UnsafeUintSparseSet<UnsafeUintSparseSet<UnsafeList<Ptr>>>(entitiesCapacity);
+
+            MemoryAllocator = new MemoryAllocator(componentsCapacity);
         }
 
         public unsafe void Dispose()
@@ -64,7 +71,7 @@ namespace DesertImage.ECS
             }
 
             ComponentToGroups.Dispose();
-            
+
             Components.Dispose();
 
             for (var i = 0; i < StaticComponents.Count; i++)
@@ -73,6 +80,20 @@ namespace DesertImage.ECS
             }
 
             StaticComponents.Dispose();
+
+            foreach (var componentsSparseSet in ComponentAllocations)
+            {
+                foreach (var unsafeList in componentsSparseSet)
+                {
+                    unsafeList.Dispose();
+                }
+
+                componentsSparseSet.Dispose();
+            }
+
+            ComponentAllocations.Dispose();
+            
+            MemoryAllocator.Dispose();
         }
     }
 }

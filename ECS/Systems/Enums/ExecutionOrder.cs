@@ -5,6 +5,7 @@ namespace DesertImage.ECS
         EarlyMainThread,
         MultiThread,
         LateMainThread,
-        RemoveTags
+        RemoveTags,
+        Physics
     }
 }
