@@ -28,7 +28,7 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
         public Ptr AsPtr(byte* buffer) => new Ptr(Id, Size);
 #else
-        public Ptr AsPtr(byte* buffer) => new Ptr(Id, buffer + Offset);
+        public Ptr AsPtr(byte* buffer) => new Ptr(Id);
 #endif
 
     }
