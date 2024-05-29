@@ -1,6 +1,6 @@
 namespace DesertImage.ECS
 {
-    public struct EntityToTransformSystem : IInitSystem, IExecuteSystem
+    public struct EntityToTransformSystem : IInitialize, IExecute
     {
         private EntitiesGroup _group;
 

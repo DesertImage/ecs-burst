@@ -23,7 +23,7 @@ namespace DesertImage.ECS
         {
             for (var i = _destroyables.Count - 1; i >= 0; i--)
             {
-                _destroyables[i].OnDestroy();
+                _destroyables[i].OnDestroy(World);
             }
 
             World.Dispose();

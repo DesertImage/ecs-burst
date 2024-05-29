@@ -1,6 +1,6 @@
 ﻿namespace DesertImage.ECS
 {
-    public struct RemoveComponentSystem<T> : IInitSystem, IExecuteSystem where T : unmanaged
+    public struct RemoveComponentSystem<T> : IInitialize, IExecute where T : unmanaged
     {
         private EntitiesGroup _group;
 

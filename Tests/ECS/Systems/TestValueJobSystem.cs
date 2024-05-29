@@ -6,7 +6,7 @@ using UnityEngine;
 namespace DesertImage.ECS
 {
     [BurstCompile]
-    public struct TestValueJobSystem : IInitSystem, IExecuteSystem
+    public struct TestValueJobSystem : IInitialize, IExecute
     {
         private EntitiesGroup _group;
 

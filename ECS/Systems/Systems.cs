@@ -26,7 +26,7 @@ namespace DesertImage.ECS
             var system = default(T);
             var instance = MemoryUtility.AllocateInstance(in system);
 
-            var isInit = typeof(IInitSystem).IsAssignableFrom(systemType);
+            var isInit = typeof(IInitialize).IsAssignableFrom(systemType);
             if (isInit)
             {
                 var methodInfo = typeof(Systems).GetMethod
@@ -43,7 +43,7 @@ namespace DesertImage.ECS
                 converted.Invoke((IntPtr)instance, world);
             }
 
-            var isExecute = typeof(IExecuteSystem).IsAssignableFrom(systemType);
+            var isExecute = typeof(IExecute).IsAssignableFrom(systemType);
             if (isExecute)
             {
                 var wrapper = new ExecuteSystemWrapper { Value = instance };
@@ -157,13 +157,13 @@ namespace DesertImage.ECS
             }
         }
 
-        private static void AddInit<T>(IntPtr ptr, World world) where T : unmanaged, IInitSystem
+        private static void AddInit<T>(IntPtr ptr, World world) where T : unmanaged, IInitialize
         {
             (*(T*)ptr).Initialize(world);
         }
 
         private static void AddExecute<T>(IntPtr worldPtr, IntPtr wrapperPtr, ExecutionOrder order)
-            where T : unmanaged, IExecuteSystem
+            where T : unmanaged, IExecute
         {
             var systemId = SystemsTools.GetId<T>();
 

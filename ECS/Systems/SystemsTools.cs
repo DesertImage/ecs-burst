@@ -32,7 +32,7 @@ namespace DesertImage.ECS
     }
 
     [BurstCompile]
-    public static unsafe class SystemsToolsExecute<T> where T : unmanaged, IExecuteSystem
+    public static unsafe class SystemsToolsExecute<T> where T : unmanaged, IExecute
     {
         public static void* MakeExecuteMethod()
         {

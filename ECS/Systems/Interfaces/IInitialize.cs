@@ -1,6 +1,6 @@
 namespace DesertImage.ECS
 {
-    public interface IInitSystem : ISystem
+    public interface IInitialize : ISystem
     {
         void Initialize(in World world);
     }

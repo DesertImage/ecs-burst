@@ -1,6 +1,6 @@
 namespace DesertImage.ECS
 {
-    public unsafe interface IExecuteSystem : ISystem
+    public unsafe interface IExecute : ISystem
     {
         void Execute(ref SystemsContext context);
     }

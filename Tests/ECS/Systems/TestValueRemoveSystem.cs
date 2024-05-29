@@ -1,6 +1,6 @@
 ﻿namespace DesertImage.ECS
 {
-    public struct TestValueRemoveSystem : IInitSystem, IExecuteSystem
+    public struct TestValueRemoveSystem : IInitialize, IExecute
     {
         private EntitiesGroup _group;
 
