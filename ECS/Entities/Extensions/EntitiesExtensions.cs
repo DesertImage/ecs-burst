@@ -8,7 +8,6 @@ namespace DesertImage.ECS
 
         public static bool IsAlive(this in Entity entity) => entity.IsAliveFlag == 1;
 
-        
         public static BufferArray<T> CreateBufferArray<T>(this in Entity entity, int length)
             where T : unmanaged
         {
@@ -20,7 +19,7 @@ namespace DesertImage.ECS
                 entity.World->State
             );
         }
-        
+
         public static BufferList<T> CreateBufferList<T>(this in Entity entity, int capacity = 10)
             where T : unmanaged
         {
@@ -45,7 +44,19 @@ namespace DesertImage.ECS
             );
         }
 
-        public static BufferUintSparseSet<T> CreateSparseSetList<T>(this in Entity entity, int capacity = 10)
+        public static BufferQueue<T> CreateBufferQueue<T>(this in Entity entity, int capacity = 10)
+            where T : unmanaged
+        {
+            return Components.CreateBufferQueue<T>
+            (
+                entity.Id,
+                0,
+                capacity,
+                entity.World->State
+            );
+        }
+
+        public static BufferUintSparseSet<T> CreateBufferSparseSet<T>(this in Entity entity, int capacity = 10)
             where T : unmanaged
         {
             return Components.CreateBufferSparseList<T>
@@ -57,7 +68,7 @@ namespace DesertImage.ECS
             );
         }
 
-        public static BufferUintSparseSet<T> CreateSparseSetList<T, TComponent>(this in Entity entity,
+        public static BufferUintSparseSet<T> CreateBufferSparseSet<T, TComponent>(this in Entity entity,
             int capacity = 10)
             where T : unmanaged where TComponent : struct
         {

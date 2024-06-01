@@ -153,7 +153,7 @@ namespace DesertImage.ECS
 
             return buffer;
         }
-        
+
         public static BufferList<T> CreateBufferList<T>(uint entityId, uint componentId, int capacity,
             WorldState* state)
             where T : unmanaged
@@ -209,15 +209,41 @@ namespace DesertImage.ECS
             return buffer;
         }
 
+        public static BufferQueue<T> CreateBufferQueue<T>(uint entityId, uint componentId, int capacity,
+            WorldState* state)
+            where T : unmanaged
+        {
+            var buffer = new BufferQueue<T>(capacity, state);
+            ref var allocations = ref state->ComponentAllocations;
+
+            if (!allocations.TryGetValue(entityId, out var componentBindings))
+            {
+                componentBindings = new UnsafeUintSparseSet<UnsafeList<Ptr>>(ECSSettings.EntitiesCapacity);
+            }
+
+            if (!componentBindings.TryGetValue(componentId, out var ptrQueue))
+            {
+                var newPtrList = new UnsafeList<Ptr>(3, Allocator.Persistent);
+                componentBindings.Set(componentId, newPtrList);
+                ptrQueue = newPtrList;
+            }
+
+            ptrQueue.Add(buffer.GetPtr());
+
+            allocations.Set(entityId, componentBindings);
+
+            return buffer;
+        }
+
         public static void OnEntityDestroyed(in Entity entity, WorldState* state)
         {
             var entityId = entity.Id;
 
             state->Components.ClearAll(entityId);
 
-            if (!state->ComponentAllocations.TryGetValue(entityId, out var componentsSparseSet)) return;
+            if (!state->ComponentAllocations.TryGetValue(entityId, out var allocations)) return;
 
-            foreach (var ptrList in componentsSparseSet)
+            foreach (var ptrList in allocations)
             {
                 foreach (var ptr in ptrList)
                 {
