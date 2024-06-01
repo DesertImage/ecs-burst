@@ -15,24 +15,19 @@ namespace DesertImage.Collections
         private readonly MemoryAllocator _memoryAllocator => _state->MemoryAllocator;
         private WorldState* _state;
 
-        private int _length;
-
         public BufferArray(int length, WorldState* state)
         {
             _ptr = state->MemoryAllocator.Allocate(length * MemoryUtility.SizeOf<T>());
 
-            _length = length;
-
             _state = state;
             
-            _length = length;
-            Length = 0;
+            Length = length;
         }
 
         public readonly T Read(int index)
         {
 #if DEBUG_MODE
-            if (index >= _length) throw new ArgumentOutOfRangeException();
+            if (index >= Length) throw new ArgumentOutOfRangeException();
 #endif
             return _ptr.GetPtr<T>(_memoryAllocator)[index];
         }
@@ -40,7 +35,7 @@ namespace DesertImage.Collections
         public ref T Get(int index)
         {
 #if DEBUG_MODE
-            if (index >= _length) throw new ArgumentOutOfRangeException();
+            if (index >= Length) throw new ArgumentOutOfRangeException();
 #endif
             return ref _ptr.GetPtr<T>(_memoryAllocator)[index];
         }
@@ -49,9 +44,9 @@ namespace DesertImage.Collections
 
         public T[] ToArray()
         {
-            var array = new T[_length];
+            var array = new T[Length];
 
-            for (var i = 0; i < _length; i++)
+            for (var i = 0; i < Length; i++)
             {
                 array[i] = _ptr.GetPtr<T>(_memoryAllocator)[i];
             }
