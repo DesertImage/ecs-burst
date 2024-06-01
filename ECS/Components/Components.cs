@@ -209,11 +209,11 @@ namespace DesertImage.ECS
             return buffer;
         }
 
-        public static BufferQueue<T> CreateBufferQueue<T>(uint entityId, uint componentId, int capacity,
+        public static BufferStack<T> CreateBufferStack<T>(uint entityId, uint componentId, int capacity,
             WorldState* state)
             where T : unmanaged
         {
-            var buffer = new BufferQueue<T>(capacity, state);
+            var buffer = new BufferStack<T>(capacity, state);
             ref var allocations = ref state->ComponentAllocations;
 
             if (!allocations.TryGetValue(entityId, out var componentBindings))

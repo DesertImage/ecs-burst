@@ -44,10 +44,10 @@ namespace DesertImage.ECS
             );
         }
 
-        public static BufferQueue<T> CreateBufferQueue<T>(this in Entity entity, int capacity = 10)
+        public static BufferStack<T> CreateBufferStack<T>(this in Entity entity, int capacity = 10)
             where T : unmanaged
         {
-            return Components.CreateBufferQueue<T>
+            return Components.CreateBufferStack<T>
             (
                 entity.Id,
                 0,

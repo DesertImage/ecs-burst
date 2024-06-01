@@ -5,8 +5,8 @@ using DesertImage.ECS;
 namespace DesertImage.Collections
 {
     [DebuggerDisplay("Count = {Count}")]
-    [DebuggerTypeProxy(typeof(BufferQueueDebugView<>))]
-    public unsafe struct BufferQueue<T> : IDisposable where T : unmanaged
+    [DebuggerTypeProxy(typeof(BufferStackDebugView<>))]
+    public unsafe struct BufferStack<T> : IDisposable where T : unmanaged
     {
         public int Count { get; private set; }
 
@@ -17,7 +17,7 @@ namespace DesertImage.Collections
 
         private int _capacity;
 
-        public BufferQueue(int capacity, WorldState* state)
+        public BufferStack(int capacity, WorldState* state)
         {
             _ptr = state->MemoryAllocator.Allocate(capacity * MemoryUtility.SizeOf<T>());
 
@@ -41,7 +41,7 @@ namespace DesertImage.Collections
 #if DEBUG_MODE
             if (Count == 0) throw new ArgumentOutOfRangeException();
 #endif
-            var instance = _ptr.GetPtr<T>(MemoryAllocator)[Count];
+            var instance = _ptr.GetPtr<T>(MemoryAllocator)[Count - 1];
 
             Count--;
 
@@ -80,11 +80,11 @@ namespace DesertImage.Collections
         public void Dispose() => MemoryAllocator.Free(_ptr);
     }
 
-    internal sealed class BufferQueueDebugView<T> where T : unmanaged, IEquatable<T>
+    internal sealed class BufferStackDebugView<T> where T : unmanaged, IEquatable<T>
     {
-        private BufferQueue<T> _data;
+        private BufferStack<T> _data;
 
-        public BufferQueueDebugView(BufferQueue<T> array) => _data = array;
+        public BufferStackDebugView(BufferStack<T> array) => _data = array;
 
         public T[] Items => _data.ToArray();
     }
