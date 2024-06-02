@@ -47,7 +47,13 @@ namespace DesertImage.ECS
             World.PhysicsTick(Time.deltaTime);
         }
 
-        private void OnDrawGizmos() => World.GizmosTick();
+        private void OnDrawGizmos()
+        {
+#if DEBUG_MODE || UNITY_EDITOR
+            if(!Application.isPlaying) return;
+#endif
+            World.GizmosTick();
+        }
 
         protected virtual void Initialize() => InitModules();
 
