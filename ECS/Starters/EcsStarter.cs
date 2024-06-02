@@ -54,7 +54,7 @@ namespace DesertImage.ECS
 #endif
             World.GizmosTick();
         }
-
+        
         protected virtual void Initialize() => InitModules();
 
         protected virtual void InitModules() => AddModules(modules);

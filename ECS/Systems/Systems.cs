@@ -85,14 +85,14 @@ namespace DesertImage.ECS
 
                 var targetDelegate = Delegate.CreateDelegate
                 (
-                    typeof(Action<IntPtr>),
+                    typeof(Action<IntPtr, IntPtr>),
                     default,
                     gMethod
                 );
 
-                var converted = (Action<IntPtr>)targetDelegate;
+                var converted = (Action<IntPtr, IntPtr>)targetDelegate;
 
-                converted.Invoke((IntPtr)wrapperPtr);
+                converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr);
             }
 
             state->SystemsHash.Set(systemId, systemId);
@@ -244,12 +244,20 @@ namespace DesertImage.ECS
             }
         }
 
-        private static void AddDrawGizmos<T>(IntPtr wrapperPtr) where T : unmanaged, IDrawGizmos
+        private static void AddDrawGizmos<T>(IntPtr worldPtr, IntPtr wrapperPtr) where T : unmanaged, IDrawGizmos
         {
             var systemId = SystemsTools.GetId<T>();
 
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
             wrapper->MethodPtr = SystemsToolsDrawGizmos<T>.MakeDrawGizmosMethod();
+
+            var data = new ExecuteSystemData
+            {
+                Id = systemId,
+                Wrapper = wrapper
+            };
+
+            ((World*)worldPtr)->SystemsState->DrawGizmosSystems.Add(data);
         }
     }
 }
