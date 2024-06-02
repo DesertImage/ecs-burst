@@ -166,7 +166,7 @@ namespace DesertImage.ECS
             {
                 var wrapper = systems[i].Wrapper;
                 var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.DrawGizmos>((IntPtr)wrapper->MethodPtr);
-                method.Invoke(wrapper);
+                method.Invoke(wrapper, world);
             }
         }
 
@@ -189,16 +189,6 @@ namespace DesertImage.ECS
                 method.Invoke(wrapper, ref state->Context);
 
                 state->Context.Handle.Complete();
-            }
-        }
-
-        public static void ExecuteGizmos(ref UnsafeList<ExecuteSystemData> systems, SystemsState* state)
-        {
-            for (var i = 0; i < systems.Count; i++)
-            {
-                var wrapper = systems[i].Wrapper;
-                var method = Marshal.GetDelegateForFunctionPointer<Action>((IntPtr)wrapper->MethodPtr);
-                method.Invoke();
             }
         }
 

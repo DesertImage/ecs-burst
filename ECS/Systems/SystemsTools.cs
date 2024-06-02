@@ -11,7 +11,7 @@ namespace DesertImage.ECS
 
         public delegate void Execute(void* wrapper, ref SystemsContext context);
 
-        public delegate void DrawGizmos(void* wrapper);
+        public delegate void DrawGizmos(void* wrapper, void* world);
 
         public delegate void Destroy();
 
@@ -44,10 +44,10 @@ namespace DesertImage.ECS
 
         [BurstCompile]
         [MonoPInvokeCallback(typeof(SystemsTools.Execute))]
-        private static void MakeDrawGizmos(void* wrapper)
+        private static void MakeDrawGizmos(void* wrapper, void* world)
         {
             var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
-            ptr.DrawGizmos();
+            ptr.DrawGizmos(*(World*)world);
         }
     }
 
