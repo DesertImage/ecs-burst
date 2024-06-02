@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using AOT;
 using Unity.Burst;
@@ -9,6 +10,8 @@ namespace DesertImage.ECS
         private static uint _idCounter;
 
         public delegate void Execute(void* wrapper, ref SystemsContext context);
+
+        public delegate void DrawGizmos(void* wrapper);
 
         public delegate void Destroy();
 
@@ -29,6 +32,23 @@ namespace DesertImage.ECS
     public static class SystemsTools<T> where T : ISystem
     {
         public static uint Id;
+    }
+
+    [BurstCompile]
+    public static unsafe class SystemsToolsDrawGizmos<T> where T : unmanaged, IDrawGizmos
+    {
+        public static void* MakeDrawGizmosMethod()
+        {
+            return (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.DrawGizmos(MakeDrawGizmos));
+        }
+
+        [BurstCompile]
+        [MonoPInvokeCallback(typeof(SystemsTools.Execute))]
+        private static void MakeDrawGizmos(void* wrapper)
+        {
+            var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
+            ptr.DrawGizmos();
+        }
     }
 
     [BurstCompile]

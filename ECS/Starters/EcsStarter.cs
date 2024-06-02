@@ -17,6 +17,7 @@ namespace DesertImage.ECS
         {
             World = Worlds.Create(this);
             Initialize();
+            InitSystems();
         }
 
         protected virtual void OnDestroy()
@@ -46,16 +47,13 @@ namespace DesertImage.ECS
             World.PhysicsTick(Time.deltaTime);
         }
 
-        protected virtual void Initialize()
-        {
-            InitModules();
-            InitSystems();
-        }
+        private void OnDrawGizmos() => World.GizmosTick();
+
+        protected virtual void Initialize() => InitModules();
 
         protected virtual void InitModules() => AddModules(modules);
 
         protected abstract void InitSystems();
-
 
         protected void AddModule<T>(T module) where T : class
         {

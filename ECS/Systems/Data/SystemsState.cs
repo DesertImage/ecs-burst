@@ -11,6 +11,7 @@ namespace DesertImage.ECS
         public UnsafeList<ExecuteSystemData> LateMainThreadSystems;
         public UnsafeList<ExecuteSystemData> RemoveTagsSystems;
         public UnsafeList<ExecuteSystemData> PhysicsSystems;
+        public UnsafeList<ExecuteSystemData> DrawGizmosSystems;
         public UnsafeUintSparseSet<uint> SystemsHash;
 
         public SystemsContext Context;
@@ -22,6 +23,7 @@ namespace DesertImage.ECS
             LateMainThreadSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             PhysicsSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             RemoveTagsSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
+            DrawGizmosSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             SystemsHash = new UnsafeUintSparseSet<uint>(capacity);
             Context = new SystemsContext();
         }
@@ -43,6 +45,7 @@ namespace DesertImage.ECS
             DisposeSystems(LateMainThreadSystems);
             DisposeSystems(PhysicsSystems);
             DisposeSystems(RemoveTagsSystems);
+            DisposeSystems(DrawGizmosSystems);
 
             SystemsHash.Dispose();
         }

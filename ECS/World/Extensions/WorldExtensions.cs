@@ -55,6 +55,11 @@ namespace DesertImage.ECS
             Systems.ExecutePhysics(Worlds.GetPtr(world.Id), deltaTime);
         }
 
+        public static void GizmosTick(this in World world)
+        {
+            Systems.ExecuteGizmos(Worlds.GetPtr(world.Id));
+        }
+
         public static World GetWorldWithThisId(this ushort id) => Worlds.Get(id);
 
         public static EntitiesGroup GetNewGroup(this in World world) => Groups.GetNewGroup(world.Ptr);

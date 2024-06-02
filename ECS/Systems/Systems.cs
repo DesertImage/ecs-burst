@@ -69,6 +69,32 @@ namespace DesertImage.ECS
                 converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr, order);
             }
 
+            var isGizmos = typeof(IDrawGizmos).IsAssignableFrom(systemType);
+            if (isGizmos)
+            {
+                var wrapper = new ExecuteSystemWrapper { Value = instance };
+                var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
+
+                var methodInfo = typeof(Systems).GetMethod
+                (
+                    nameof(AddDrawGizmos),
+                    BindingFlags.Static | BindingFlags.NonPublic
+                );
+
+                var gMethod = methodInfo!.MakeGenericMethod(systemType);
+
+                var targetDelegate = Delegate.CreateDelegate
+                (
+                    typeof(Action<IntPtr>),
+                    default,
+                    gMethod
+                );
+
+                var converted = (Action<IntPtr>)targetDelegate;
+
+                converted.Invoke((IntPtr)wrapperPtr);
+            }
+
             state->SystemsHash.Set(systemId, systemId);
         }
 
@@ -121,7 +147,7 @@ namespace DesertImage.ECS
             ExecuteMainThread(ref state->LateMainThreadSystems, state);
             ExecuteMainThread(ref state->RemoveTagsSystems, state);
         }
-        
+
         public static void ExecutePhysics(World* world, float deltaTime)
         {
             var state = world->SystemsState;
@@ -131,13 +157,24 @@ namespace DesertImage.ECS
             ExecuteMainThread(ref state->PhysicsSystems, state);
         }
 
+        public static void ExecuteGizmos(World* world)
+        {
+            var state = world->SystemsState;
+
+            var systems = state->DrawGizmosSystems;
+            for (var i = 0; i < systems.Count; i++)
+            {
+                var wrapper = systems[i].Wrapper;
+                var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.DrawGizmos>((IntPtr)wrapper->MethodPtr);
+                method.Invoke(wrapper);
+            }
+        }
+
         private static void ExecuteMainThread(ref UnsafeList<ExecuteSystemData> systems, SystemsState* state)
         {
             for (var i = 0; i < systems.Count; i++)
             {
-                var systemData = systems[i];
-
-                var wrapper = systemData.Wrapper;
+                var wrapper = systems[i].Wrapper;
                 var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
                 method.Invoke(wrapper, ref state->Context);
             }
@@ -147,13 +184,21 @@ namespace DesertImage.ECS
         {
             for (var i = 0; i < systems.Count; i++)
             {
-                var systemData = systems[i];
-
-                var wrapper = systemData.Wrapper;
+                var wrapper = systems[i].Wrapper;
                 var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.Execute>((IntPtr)wrapper->MethodPtr);
                 method.Invoke(wrapper, ref state->Context);
 
                 state->Context.Handle.Complete();
+            }
+        }
+
+        public static void ExecuteGizmos(ref UnsafeList<ExecuteSystemData> systems, SystemsState* state)
+        {
+            for (var i = 0; i < systems.Count; i++)
+            {
+                var wrapper = systems[i].Wrapper;
+                var method = Marshal.GetDelegateForFunctionPointer<Action>((IntPtr)wrapper->MethodPtr);
+                method.Invoke();
             }
         }
 
@@ -197,6 +242,14 @@ namespace DesertImage.ECS
                     state->MultiThreadSystems.Add(data);
                     break;
             }
+        }
+
+        private static void AddDrawGizmos<T>(IntPtr wrapperPtr) where T : unmanaged, IDrawGizmos
+        {
+            var systemId = SystemsTools.GetId<T>();
+
+            var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
+            wrapper->MethodPtr = SystemsToolsDrawGizmos<T>.MakeDrawGizmosMethod();
         }
     }
 }
