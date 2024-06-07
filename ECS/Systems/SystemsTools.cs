@@ -43,7 +43,7 @@ namespace DesertImage.ECS
         }
 
         [BurstCompile]
-        [MonoPInvokeCallback(typeof(SystemsTools.Execute))]
+        [MonoPInvokeCallback(typeof(SystemsTools.DrawGizmos))]
         private static void MakeDrawGizmos(void* wrapper, void* world)
         {
             var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;

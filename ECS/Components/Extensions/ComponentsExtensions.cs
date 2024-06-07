@@ -38,7 +38,7 @@
             return Components.Has<T>(entity, entity.World->State);
         }
 
-        internal static bool Has(this in Entity entity, uint componentId)
+        public static bool Has(this in Entity entity, uint componentId)
         {
             return Components.Has(entity, entity.World->State, componentId);
         }
