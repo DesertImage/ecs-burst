@@ -5,7 +5,7 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.Collections
 {
-    public unsafe struct UnsafeQueue<T> : IDisposable where T : unmanaged
+    public unsafe struct UnsafeStack<T> : IDisposable where T : unmanaged
     {
         public int Count { get; private set; }
 
@@ -15,7 +15,7 @@ namespace DesertImage.Collections
         private int _capacity;
         private readonly Allocator _allocator;
 
-        public UnsafeQueue(int capacity, Allocator allocator) : this()
+        public UnsafeStack(int capacity, Allocator allocator) : this()
         {
             _size = capacity * UnsafeUtility.SizeOf<T>();
             _allocator = allocator;
@@ -26,21 +26,22 @@ namespace DesertImage.Collections
             _capacity = capacity;
         }
 
-        public void Enqueue(T element)
+        public void Push(T element)
         {
-            if (_capacity - Count <= 0)
+            if (Count + 1 >= _capacity)
             {
                 Resize(Count << 1);
             }
 
-            _ptr[_capacity - Count] = element;
+            _ptr[Count] = element;
+            Count++;
         }
 
-        public T Dequeue()
+        public T Pull()
         {
-            if (Count == 0) throw new Exception("No elements in queue");
+            if (Count == 0) throw new Exception("No elements in Stack");
 
-            var element = _ptr[_capacity - Count];
+            var element = _ptr[Count - 1];
             Count--;
 
             return element;
@@ -50,17 +51,12 @@ namespace DesertImage.Collections
         {
             var oldPtr = _ptr;
 
-            var elementSize = UnsafeUtility.SizeOf<T>();
-            long newSize = newCapacity * elementSize;
+            long newSize = newCapacity * UnsafeUtility.SizeOf<T>();
             _ptr = MemoryUtility.AllocateClear<T>(newSize, _allocator);
 
             UnsafeUtility.MemClear(_ptr, newSize);
+            MemoryUtility.Copy(_ptr, oldPtr, _size);
 
-            for (var i = 0; i < _capacity; i++)
-            {
-                _ptr[newCapacity - i] = oldPtr[_capacity - i];
-            }
-            
             _size = newSize;
             _capacity = newCapacity;
 
