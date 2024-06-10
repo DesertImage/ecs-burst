@@ -89,7 +89,8 @@ namespace DesertImage.Collections
             if (Count == 0) return false;
 
             var bucketNumber = GetBucketNumber(key);
-            return _entries[bucketNumber].HashCode >= 0;
+            var entry = _entries[bucketNumber];
+            return entry.HashCode >= 0f && entry.HashCode == key.GetHashCode();
         }
 
         public void Resize(int newSize)
