@@ -23,12 +23,12 @@ namespace DesertImage.Collections
 
         public int Count { get; private set; }
 
-        [NativeDisableUnsafePtrRestriction] private int* _buckets;
-        [NativeDisableUnsafePtrRestriction] private Entry* _entries;
+        [NativeDisableUnsafePtrRestriction] internal int* _buckets;
+        [NativeDisableUnsafePtrRestriction] internal Entry* _entries;
         [NativeDisableUnsafePtrRestriction] private int* _lockIndexes;
 
-        private int _capacity;
-        private int _entriesCapacity;
+        internal int _capacity;
+        internal int _entriesCapacity;
         private Allocator _allocator;
 
         public UnsafeHashSet(int capacity, Allocator allocator) : this()
@@ -228,8 +228,8 @@ namespace DesertImage.Collections
 
             public bool MoveNext()
             {
-                if(_data.Count == 0) return false;
-                
+                if (_data.Count == 0) return false;
+
                 ++_counter;
 
                 while (_data._entries[_counter].HashCode < 0)
@@ -259,7 +259,7 @@ namespace DesertImage.Collections
 
         public UnsafeHashSetDebugView(UnsafeHashSet<T> array) => _data = array;
 
-        // public int[] Buckets => _data._buckets->ToArray();
-        // public UnsafeHashSet<T>.Entry[] Entries => _data._entries->ToArray();
+        public int[] Buckets => MemoryUtility.ToArray(_data._buckets, _data._capacity);
+        public UnsafeHashSet<T>.Entry[] Entries => MemoryUtility.ToArray(_data._entries, _data._entriesCapacity);
     }
 }
