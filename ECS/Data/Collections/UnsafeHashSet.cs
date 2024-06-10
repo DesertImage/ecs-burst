@@ -5,7 +5,6 @@ using System.Diagnostics;
 using DesertImage.ECS;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using Debug = UnityEngine.Debug;
 
 namespace DesertImage.Collections
 {
@@ -15,6 +14,7 @@ namespace DesertImage.Collections
     {
         internal struct Entry
         {
+            public byte IsNotNull;
             public int HashCode;
             public T Value;
         }
@@ -24,8 +24,9 @@ namespace DesertImage.Collections
         public int Count { get; private set; }
 
         [NativeDisableUnsafePtrRestriction] internal int* _buckets;
+
         [NativeDisableUnsafePtrRestriction] internal Entry* _entries;
-        [NativeDisableUnsafePtrRestriction] private int* _lockIndexes;
+        // [NativeDisableUnsafePtrRestriction] private int* _lockIndexes;
 
         internal int _capacity;
         internal int _entriesCapacity;
@@ -46,7 +47,7 @@ namespace DesertImage.Collections
                 capacity * _entriesCapacity * MemoryUtility.SizeOf<Entry>(),
                 allocator
             );
-            _lockIndexes = MemoryUtility.AllocateClear<int>(fullIntSize, allocator);
+            // _lockIndexes = MemoryUtility.AllocateClear<int>(fullIntSize, allocator);
 
             IsNotNull = true;
 
@@ -72,16 +73,16 @@ namespace DesertImage.Collections
 
             var bucketNumber = GetBucketNumber(key);
 
-            _lockIndexes[bucketNumber].Lock();
-            {
-                var entryNumber = _buckets[bucketNumber];
+            // _lockIndexes[bucketNumber].Lock();
+            // {
+            var entryNumber = _buckets[bucketNumber];
 
-                _entries[entryNumber] = default;
-                _buckets[bucketNumber] = -1;
+            _entries[entryNumber] = default;
+            _buckets[bucketNumber] = -1;
 
-                Count--;
-            }
-            _lockIndexes[bucketNumber].Unlock();
+            Count--;
+            // }
+            // _lockIndexes[bucketNumber].Unlock();
         }
 
         public bool Contains(T key)
@@ -126,17 +127,17 @@ namespace DesertImage.Collections
                 var newEntryNumber = GetFreeEntryIndex(newBucketNumber);
 
                 bucketNew[newBucketNumber] = newEntryNumber;
-                lockIndexesNew[newBucketNumber] = _lockIndexes[newBucketNumber];
+                // lockIndexesNew[newBucketNumber] = _lockIndexes[newBucketNumber];
                 _entries[newEntryNumber] = entry;
             }
 
             MemoryUtility.Free(_buckets, _allocator);
             MemoryUtility.Free(_entries, _allocator);
-            MemoryUtility.Free(_lockIndexes, _allocator);
+            // MemoryUtility.Free(_lockIndexes, _allocator);
 
             _buckets = bucketNew;
             _entries = entriesNew;
-            _lockIndexes = lockIndexesNew;
+            // _lockIndexes = lockIndexesNew;
 
             _capacity = newSize;
         }
@@ -145,11 +146,11 @@ namespace DesertImage.Collections
         {
             MemoryUtility.Free(_buckets, _allocator);
             MemoryUtility.Free(_entries, _allocator);
-            MemoryUtility.Free(_lockIndexes, _allocator);
+            // MemoryUtility.Free(_lockIndexes, _allocator);
 
             _buckets = null;
             _entries = null;
-            _lockIndexes = null;
+            // _lockIndexes = null;
         }
 
         private void Insert(T value)
@@ -160,20 +161,21 @@ namespace DesertImage.Collections
             var hashCode = value.GetHashCode();
             var bucketNumber = (hashCode & int.MaxValue) % _capacity;
 
-            _lockIndexes[bucketNumber].Lock();
+            // _lockIndexes[bucketNumber].Lock();
+            // {
+            var freeEntryIndex = GetFreeEntryIndex(bucketNumber);
+
+            _buckets[bucketNumber] = freeEntryIndex;
+            _entries[freeEntryIndex] = new Entry
             {
-                var freeEntryIndex = GetFreeEntryIndex(bucketNumber);
+                IsNotNull = 1,
+                HashCode = hashCode,
+                Value = value,
+            };
 
-                _buckets[bucketNumber] = freeEntryIndex;
-                _entries[freeEntryIndex] = new Entry
-                {
-                    HashCode = hashCode,
-                    Value = value,
-                };
-
-                Count++;
-            }
-            _lockIndexes[bucketNumber].Unlock();
+            Count++;
+            // }
+            // _lockIndexes[bucketNumber].Unlock();
         }
 
         private int GetFreeEntryIndex(int bucketNumber)
@@ -232,7 +234,7 @@ namespace DesertImage.Collections
 
                 ++_counter;
 
-                while (_data._entries[_counter].HashCode < 0)
+                while (_data._entries[_counter].IsNotNull == 0)
                 {
                     _counter++;
                 }
