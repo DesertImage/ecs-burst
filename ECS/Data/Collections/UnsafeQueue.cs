@@ -46,6 +46,8 @@ namespace DesertImage.Collections
             return element;
         }
 
+        public void* GetPtr() => _ptr;
+        
         public void Resize(int newCapacity)
         {
             var oldPtr = _ptr;
