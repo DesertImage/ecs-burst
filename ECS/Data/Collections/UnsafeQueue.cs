@@ -34,6 +34,7 @@ namespace DesertImage.Collections
             }
 
             _ptr[_capacity - Count] = element;
+            Count++;
         }
 
         public T Dequeue()
