@@ -15,7 +15,7 @@ namespace DesertImage.Collections
         [NativeDisableUnsafePtrRestriction] private T* _ptr;
 
         private long _size;
-        private int _capacity;
+        internal int _capacity;
         private readonly Allocator _allocator;
 
         public UnsafeQueue(int capacity, Allocator allocator) : this()
@@ -44,7 +44,13 @@ namespace DesertImage.Collections
         {
             if (Count == 0) throw new Exception("No elements in queue");
 
-            var element = _ptr[_capacity - 1 - Count];
+            var element = _ptr[(_capacity - 1)- (Count - 1)];
+
+            for (var i = 0; i < _capacity; i++)
+            {
+                var val = _ptr[i];
+            }
+            
             Count--;
 
             return element;
@@ -82,12 +88,13 @@ namespace DesertImage.Collections
         public void Dispose() => MemoryUtility.Free(_ptr, _allocator);
     }
     
-    internal sealed class UnsafeQueueDebugView<T> where T : unmanaged
+    internal unsafe sealed class UnsafeQueueDebugView<T> where T : unmanaged
     {
         private UnsafeQueue<T> _data;
 
         public UnsafeQueueDebugView(UnsafeQueue<T> array) => _data = array;
 
         public T[] Items => _data.ToArray();
+        public T[] FullArray => MemoryUtility.ToArray((T*)_data.GetPtr(), _data._capacity);
     }
 }
