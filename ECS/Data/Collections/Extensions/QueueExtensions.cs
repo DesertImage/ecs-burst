@@ -8,7 +8,21 @@ namespace DesertImage.Collections
         {
             var array = new UnsafeArray<T>(data.Count, allocator);
 
-            for (var i = 0; i < data.Count; i++)
+            var count = data.Count;
+            for (var i = 0; i < count; i++)
+            {
+                array[i] = data.Dequeue();
+            }
+
+            return array;
+        }
+        
+        public static T[] ToArray<T>(this ref UnsafeQueue<T> data) where T : unmanaged
+        {
+            var array = new T[data.Count];
+
+            var count = data.Count;
+            for (var i = 0; i < count; i++)
             {
                 array[i] = data.Dequeue();
             }

@@ -1,10 +1,13 @@
 using System;
+using System.Diagnostics;
 using DesertImage.ECS;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.Collections
 {
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(UnsafeQueueDebugView<>))]
     public unsafe struct UnsafeQueue<T> : IDisposable where T : unmanaged
     {
         public int Count { get; private set; }
@@ -77,5 +80,14 @@ namespace DesertImage.Collections
         }
 
         public void Dispose() => MemoryUtility.Free(_ptr, _allocator);
+    }
+    
+    internal sealed class UnsafeQueueDebugView<T> where T : unmanaged
+    {
+        private UnsafeQueue<T> _data;
+
+        public UnsafeQueueDebugView(UnsafeQueue<T> array) => _data = array;
+
+        public T[] Items => _data.ToArray();
     }
 }
