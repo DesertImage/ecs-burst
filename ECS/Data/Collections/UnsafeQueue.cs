@@ -36,7 +36,7 @@ namespace DesertImage.Collections
                 Resize(Count << 1);
             }
 
-            _ptr[_capacity - Count] = element;
+            _ptr[_capacity - 1 - Count] = element;
             Count++;
         }
 
@@ -44,7 +44,7 @@ namespace DesertImage.Collections
         {
             if (Count == 0) throw new Exception("No elements in queue");
 
-            var element = _ptr[_capacity - Count];
+            var element = _ptr[_capacity - 1 - Count];
             Count--;
 
             return element;
@@ -64,7 +64,7 @@ namespace DesertImage.Collections
 
             for (var i = 0; i < _capacity; i++)
             {
-                _ptr[newCapacity - i] = oldPtr[_capacity - i];
+                _ptr[newCapacity - 1 - i] = oldPtr[_capacity - 1 - i];
             }
             
             _size = newSize;
