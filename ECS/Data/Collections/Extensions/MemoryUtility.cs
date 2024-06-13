@@ -17,6 +17,14 @@ namespace DesertImage.ECS
                 array[i] = array[i + 1];
             }
         }
+        
+        public static void ShiftRight<T>(ref T* array, int startIndex, int length) where T : unmanaged
+        {
+            for (var i = length - 1; i > startIndex; i--)
+            {
+                array[i] = array[i - 1];
+            }
+        }
 
         public static bool IsNull(byte* data, int offset, uint index, long elementSize)
         {

@@ -31,12 +31,14 @@ namespace DesertImage.Collections
 
         public void Enqueue(T element)
         {
-            if (_capacity - Count <= 0)
+            if (Count >= _capacity)
             {
                 Resize(Count << 1);
             }
 
-            _ptr[_capacity - 1 - Count] = element;
+            // _ptr[_capacity - 1 - Count] = element;
+            _ptr[Count] = element;
+            
             Count++;
         }
 
@@ -44,12 +46,10 @@ namespace DesertImage.Collections
         {
             if (Count == 0) throw new Exception("No elements in queue");
 
-            var element = _ptr[(_capacity - 1)- (Count - 1)];
+            // var index = (_capacity - 1) - (Count - 1);
+            var element = _ptr[0];
 
-            for (var i = 0; i < _capacity; i++)
-            {
-                var val = _ptr[i];
-            }
+            MemoryUtility.ShiftLeft(ref _ptr, 0, Count);
             
             Count--;
 
@@ -57,7 +57,7 @@ namespace DesertImage.Collections
         }
 
         public void* GetPtr() => _ptr;
-        
+
         public void Resize(int newCapacity)
         {
             var oldPtr = _ptr;
@@ -70,9 +70,9 @@ namespace DesertImage.Collections
 
             for (var i = 0; i < _capacity; i++)
             {
-                _ptr[newCapacity - 1 - i] = oldPtr[_capacity - 1 - i];
+                _ptr[i] = oldPtr[i];
             }
-            
+
             _size = newSize;
             _capacity = newCapacity;
 
@@ -87,7 +87,7 @@ namespace DesertImage.Collections
 
         public void Dispose() => MemoryUtility.Free(_ptr, _allocator);
     }
-    
+
     internal unsafe sealed class UnsafeQueueDebugView<T> where T : unmanaged
     {
         private UnsafeQueue<T> _data;
