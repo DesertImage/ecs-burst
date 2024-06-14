@@ -1,10 +1,13 @@
 using System;
+using System.Diagnostics;
 using DesertImage.ECS;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.Collections
 {
+    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(UnsafeStackDebugView<>))]
     public unsafe struct UnsafeStack<T> : IDisposable where T : unmanaged
     {
         public int Count { get; private set; }
@@ -12,7 +15,7 @@ namespace DesertImage.Collections
         [NativeDisableUnsafePtrRestriction] private T* _ptr;
 
         private long _size;
-        private int _capacity;
+        internal int _capacity;
         private readonly Allocator _allocator;
 
         public UnsafeStack(int capacity, Allocator allocator) : this()
@@ -62,6 +65,8 @@ namespace DesertImage.Collections
 
             MemoryUtility.Free(oldPtr, _allocator);
         }
+        
+        public void* GetPtr() => _ptr;
 
         public void Clear()
         {
@@ -70,5 +75,15 @@ namespace DesertImage.Collections
         }
 
         public void Dispose() => MemoryUtility.Free(_ptr, _allocator);
+    }
+
+    internal unsafe sealed class UnsafeStackDebugView<T> where T : unmanaged
+    {
+        private UnsafeStack<T> _data;
+
+        public UnsafeStackDebugView(UnsafeStack<T> array) => _data = array;
+
+        public T[] Items => _data.ToArray();
+        public T[] FullArray => MemoryUtility.ToArray((T*)_data.GetPtr(), _data._capacity);
     }
 }
