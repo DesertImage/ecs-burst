@@ -17,14 +17,14 @@ namespace DesertImage.Collections
             return array;
         }
         
-        public static T[] ToArray<T>(this ref UnsafeQueue<T> data) where T : unmanaged
+        public unsafe static T[] ToArray<T>(this ref UnsafeQueue<T> data) where T : unmanaged
         {
             var array = new T[data.Count];
 
             var count = data.Count;
             for (var i = 0; i < count; i++)
             {
-                array[i] = data.Dequeue();
+                array[i] = ((T*)data.GetPtr())[i];
             }
 
             return array;

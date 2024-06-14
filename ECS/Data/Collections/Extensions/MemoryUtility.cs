@@ -1,3 +1,4 @@
+using DesertImage.Collections;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
@@ -12,9 +13,13 @@ namespace DesertImage.ECS
 
         public static void ShiftLeft<T>(ref T* array, int startIndex, int length) where T : unmanaged
         {
+            var test = new UnsafeArray<T>(array, length, Allocator.Temp);
+            
             for (var i = startIndex; i < length - 1; i++)
             {
-                array[i] = array[i + 1];
+                var value = array[i + 1];
+                
+                array[i] = value;
             }
         }
         
