@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using DesertImage.Collections;
 using Unity.Collections;
 
@@ -12,6 +13,7 @@ namespace DesertImage.ECS
         public UnsafeList<ExecuteSystemData> RemoveTagsSystems;
         public UnsafeList<ExecuteSystemData> PhysicsSystems;
         public UnsafeList<ExecuteSystemData> DrawGizmosSystems;
+        public UnsafeList<ExecuteSystemData> DestroySystems;
         public UnsafeUintSparseSet<uint> SystemsHash;
 
         public SystemsContext Context;
@@ -24,6 +26,7 @@ namespace DesertImage.ECS
             PhysicsSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             RemoveTagsSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             DrawGizmosSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
+            DestroySystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             SystemsHash = new UnsafeUintSparseSet<uint>(capacity);
             Context = new SystemsContext();
         }
@@ -38,7 +41,7 @@ namespace DesertImage.ECS
             values.Dispose();
         }
 
-        public void Dispose()
+        public unsafe void Dispose()
         {
             DisposeSystems(EarlyMainThreadSystems);
             DisposeSystems(MultiThreadSystems);
@@ -46,6 +49,16 @@ namespace DesertImage.ECS
             DisposeSystems(PhysicsSystems);
             DisposeSystems(RemoveTagsSystems);
             DisposeSystems(DrawGizmosSystems);
+            
+            foreach (var data in DestroySystems)
+            {
+                var wrapper = data.Wrapper;
+
+                var method = Marshal.GetDelegateForFunctionPointer<SystemsTools.Destroy>((IntPtr)wrapper->MethodPtr);
+                method.Invoke(wrapper, ref Context);
+            }
+            
+            DisposeSystems(DestroySystems);
 
             SystemsHash.Dispose();
         }

@@ -10,10 +10,9 @@ namespace DesertImage.ECS
         private static uint _idCounter;
 
         public delegate void Execute(void* wrapper, ref SystemsContext context);
+        public delegate void Destroy(void* wrapper, ref SystemsContext context);
 
         public delegate void DrawGizmos(void* wrapper, void* world);
-
-        public delegate void Destroy();
 
         public static uint GetId<T>() where T : ISystem
         {
@@ -54,7 +53,7 @@ namespace DesertImage.ECS
     [BurstCompile]
     public static unsafe class SystemsToolsExecute<T> where T : unmanaged, IExecute
     {
-        public static void* MakeExecuteMethod()
+        public static void* MakeMethod()
         {
             return (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.Execute(MakeExecute));
 
@@ -69,6 +68,27 @@ namespace DesertImage.ECS
         {
             var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
             ptr.Execute(ref context);
+        }
+    }
+    
+    [BurstCompile]
+    public static unsafe class SystemsToolsDestroy<T> where T : unmanaged, IDestroy
+    {
+        public static void* MakeMethod()
+        {
+            return (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.Destroy(MakeDestroy));
+
+            // return isBurst
+            // ? (void*)BurstCompiler.CompileFunctionPointer<SystemsTools.Execute>(MakeExecute).Value
+            // : (void*)Marshal.GetFunctionPointerForDelegate(new SystemsTools.Execute(MakeExecute));
+        }
+
+        [BurstCompile]
+        [MonoPInvokeCallback(typeof(SystemsTools.Execute))]
+        private static void MakeDestroy(void* wrapper, ref SystemsContext context)
+        {
+            var ptr = *(T*)((ExecuteSystemWrapper*)wrapper)->Value;
+            ptr.OnDestroy(context.World);
         }
     }
 }

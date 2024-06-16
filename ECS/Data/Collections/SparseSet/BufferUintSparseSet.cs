@@ -66,6 +66,9 @@ namespace DesertImage.Collections
 
         public void Set(uint key, in T value)
         {
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException();
+#endif
             if (Contains(key))
             {
                 _dense[_sparse[key] - 1] = value;
@@ -172,6 +175,10 @@ namespace DesertImage.Collections
 
         public bool Contains(uint key)
         {
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException();
+#endif
+            if(Count == 0) return false;
             if (key >= _sparseCapacity) return false;
             return _sparseCapacity > key && _sparse[key] > 0;
         }

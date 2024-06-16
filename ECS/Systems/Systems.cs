@@ -94,6 +94,32 @@ namespace DesertImage.ECS
 
                 converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr);
             }
+            
+            var isDestroy = typeof(IDestroy).IsAssignableFrom(systemType);
+            if (isDestroy)
+            {
+                var wrapper = new ExecuteSystemWrapper { Value = instance };
+                var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
+
+                var methodInfo = typeof(Systems).GetMethod
+                (
+                    nameof(AddDestroy),
+                    BindingFlags.Static | BindingFlags.NonPublic
+                );
+
+                var gMethod = methodInfo!.MakeGenericMethod(systemType);
+
+                var targetDelegate = Delegate.CreateDelegate
+                (
+                    typeof(Action<IntPtr, IntPtr>),
+                    default,
+                    gMethod
+                );
+
+                var converted = (Action<IntPtr, IntPtr>)targetDelegate;
+
+                converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr);
+            }
 
             state->SystemsHash.Set(systemId, systemId);
         }
@@ -203,7 +229,7 @@ namespace DesertImage.ECS
             var systemId = SystemsTools.GetId<T>();
 
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
-            wrapper->MethodPtr = SystemsToolsExecute<T>.MakeExecuteMethod();
+            wrapper->MethodPtr = SystemsToolsExecute<T>.MakeMethod();
 
             var world = (World*)worldPtr;
             var state = world->SystemsState;
@@ -234,6 +260,26 @@ namespace DesertImage.ECS
             }
         }
 
+        private static void AddDestroy<T>(IntPtr worldPtr, IntPtr wrapperPtr)
+            where T : unmanaged, IDestroy, ISystem
+        {
+            var systemId = SystemsTools.GetId<T>();
+
+            var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
+            wrapper->MethodPtr = SystemsToolsDestroy<T>.MakeMethod();
+
+            var world = (World*)worldPtr;
+            var state = world->SystemsState;
+
+            var data = new ExecuteSystemData
+            {
+                Id = systemId,
+                Wrapper = wrapper
+            };
+
+            state->DestroySystems.Add(data);
+        }
+        
         private static void AddDrawGizmos<T>(IntPtr worldPtr, IntPtr wrapperPtr) where T : unmanaged, IDrawGizmos
         {
             var systemId = SystemsTools.GetId<T>();

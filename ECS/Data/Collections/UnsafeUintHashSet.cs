@@ -12,7 +12,7 @@ namespace DesertImage.Collections
     [DebuggerTypeProxy(typeof(UnsafeUintHashSetDebugView))]
     public unsafe struct UnsafeUintHashSet : IDisposable, IEnumerable<uint>
     {
-        public bool IsNotNull { get; }
+        public bool IsNotNull { get; private set; }
 
         public int Count { get; private set; }
 
@@ -75,6 +75,7 @@ namespace DesertImage.Collections
 
         public void Dispose()
         {
+            IsNotNull = false;
             MemoryUtility.Free(_entries, _allocator);
             _entries = null;
         }

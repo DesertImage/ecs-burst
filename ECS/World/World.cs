@@ -62,10 +62,10 @@ namespace DesertImage.ECS
 
         public void Dispose()
         {
-            Worlds.Destroy(Id);
-
-            State->Dispose();
             SystemsState->Dispose();
+            State->Dispose();
+
+            Worlds.Destroy(Id);
 
             MemoryUtility.Free(State);
             MemoryUtility.Free(SystemsState);
