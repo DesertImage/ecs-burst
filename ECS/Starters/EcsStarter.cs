@@ -5,7 +5,7 @@ namespace DesertImage.ECS
 {
     public abstract class EcsStarter : ModuleProvider
     {
-        protected World World;
+        public World World;
 
         [SerializeField] private List<ScriptableObject> modules;
 

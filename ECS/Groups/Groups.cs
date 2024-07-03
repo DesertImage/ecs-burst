@@ -18,7 +18,7 @@ namespace DesertImage.ECS
         internal static void OnEntityCreated(uint entityId, WorldState* state)
         {
             if (state->EntityToGroups.Contains(entityId)) return;
-            state->EntityToGroups.Set(entityId, new UnsafeList<ushort>(20, Allocator.Persistent));
+            state->EntityToGroups.Add(entityId, new UnsafeList<ushort>(20, Allocator.Persistent));
         }
 
         internal static void OnEntityDestroyed(uint entityId, WorldState* state)
@@ -119,7 +119,7 @@ namespace DesertImage.ECS
                 groupsList.Add(group.Id);
             }
 
-            state->ComponentToGroups.Set(componentId, groupsList);
+            state->ComponentToGroups.Add(componentId, groupsList);
 
             return ref state->ComponentToGroups.Get(componentId);
         }

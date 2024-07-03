@@ -25,6 +25,8 @@ namespace DesertImage.ECS
 
             var system = default(T);
             var instance = MemoryUtility.AllocateInstance(in system);
+            
+            var autoDisposeInstance = true;
 
             var isInit = typeof(IInitialize).IsAssignableFrom(systemType);
             if (isInit)
@@ -46,6 +48,7 @@ namespace DesertImage.ECS
             var isExecute = typeof(IExecute).IsAssignableFrom(systemType);
             if (isExecute)
             {
+                autoDisposeInstance = false;
                 var wrapper = new ExecuteSystemWrapper { Value = instance };
                 var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
 
@@ -72,6 +75,8 @@ namespace DesertImage.ECS
             var isGizmos = typeof(IDrawGizmos).IsAssignableFrom(systemType);
             if (isGizmos)
             {
+                autoDisposeInstance = false;
+
                 var wrapper = new ExecuteSystemWrapper { Value = instance };
                 var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
 
@@ -94,10 +99,12 @@ namespace DesertImage.ECS
 
                 converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr);
             }
-            
+
             var isDestroy = typeof(IDestroy).IsAssignableFrom(systemType);
             if (isDestroy)
             {
+                autoDisposeInstance = false;
+
                 var wrapper = new ExecuteSystemWrapper { Value = instance };
                 var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
 
@@ -121,7 +128,12 @@ namespace DesertImage.ECS
                 converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr);
             }
 
-            state->SystemsHash.Set(systemId, systemId);
+            if (autoDisposeInstance)
+            {
+                MemoryUtility.Free(instance);
+            }
+
+            state->SystemsHash.AddOrUpdate(systemId, systemId);
         }
 
         public static void Remove<T>(SystemsState* state) where T : ISystem
@@ -229,6 +241,7 @@ namespace DesertImage.ECS
             var systemId = SystemsTools.GetId<T>();
 
             var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
+
             wrapper->MethodPtr = SystemsToolsExecute<T>.MakeMethod();
 
             var world = (World*)worldPtr;
@@ -279,7 +292,7 @@ namespace DesertImage.ECS
 
             state->DestroySystems.Add(data);
         }
-        
+
         private static void AddDrawGizmos<T>(IntPtr worldPtr, IntPtr wrapperPtr) where T : unmanaged, IDrawGizmos
         {
             var systemId = SystemsTools.GetId<T>();

@@ -83,7 +83,7 @@ namespace DesertImage.Collections
         private void Insert(uint value)
         {
 #if DEBUG_MODE
-            if (!IsNotNull) throw new Exception("Dictionary is null");
+            if (!IsNotNull) throw new Exception("HashSet is null");
 #endif
             if (value >= _capacity)
             {

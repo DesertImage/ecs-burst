@@ -152,6 +152,12 @@ namespace DesertImage.ECS
         {
             UnsafeUtility.MemCpy(destination, source, size);
         }
+        
+        // public static void Copy<T>(T* destination, T* source, int count) where T : unmanaged
+        // {
+        //     var elementSize = SizeOf<T>();
+        //     UnsafeUtility.MemCpy(destination, source, count * elementSize);
+        // }
 
         public static void Free<T>(T* ptr, Allocator allocator = Allocator.Persistent) where T : unmanaged
         {

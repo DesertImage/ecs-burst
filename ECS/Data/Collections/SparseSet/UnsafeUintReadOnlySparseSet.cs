@@ -72,7 +72,7 @@ namespace DesertImage.Collections
             return _dense[_sparse[key] - 1];
         }
 
-        public bool Contains(uint key)
+        public readonly bool Contains(uint key)
         {
             if (key >= _sparseCapacity) return false;
             return _sparseCapacity > key && _sparse[key] > 0;

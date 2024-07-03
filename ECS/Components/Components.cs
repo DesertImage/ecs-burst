@@ -100,7 +100,7 @@ namespace DesertImage.ECS
             else
             {
                 var componentPTr = (IntPtr)MemoryUtility.AllocateInstance(in component);
-                state->StaticComponents.Set(componentId, componentPTr);
+                state->StaticComponents.AddOrUpdate(componentId, componentPTr);
             }
         }
 
@@ -143,13 +143,13 @@ namespace DesertImage.ECS
             if (!componentBindings.TryGetValue(componentId, out var ptrArray))
             {
                 var newPtrList = new UnsafeList<Ptr>(3, Allocator.Persistent);
-                componentBindings.Set(componentId, newPtrList);
+                componentBindings.Add(componentId, newPtrList);
                 ptrArray = newPtrList;
             }
 
             ptrArray.Add(buffer.GetPtr());
 
-            allocations.Set(entityId, componentBindings);
+            allocations.AddOrUpdate(entityId, componentBindings);
 
             return buffer;
         }
@@ -169,13 +169,13 @@ namespace DesertImage.ECS
             if (!componentBindings.TryGetValue(componentId, out var ptrList))
             {
                 var newPtrList = new UnsafeList<Ptr>(3, Allocator.Persistent);
-                componentBindings.Set(componentId, newPtrList);
+                componentBindings.Add(componentId, newPtrList);
                 ptrList = newPtrList;
             }
 
             ptrList.Add(buffer.GetPtr());
 
-            allocations.Set(entityId, componentBindings);
+            allocations.AddOrUpdate(entityId, componentBindings);
 
             return buffer;
         }
@@ -195,7 +195,7 @@ namespace DesertImage.ECS
             if (!componentBindings.TryGetValue(componentId, out var ptrList))
             {
                 var newPtrList = new UnsafeList<Ptr>(3, Allocator.Persistent);
-                componentBindings.Set(componentId, newPtrList);
+                componentBindings.Add(componentId, newPtrList);
                 ptrList = newPtrList;
             }
 
@@ -203,8 +203,8 @@ namespace DesertImage.ECS
             ptrList.Add(buffer.GetSparsePtr());
             ptrList.Add(buffer.GetKeysPtr());
 
-            componentBindings.Set(componentId, ptrList);
-            allocations.Set(entityId, componentBindings);
+            componentBindings.AddOrUpdate(componentId, ptrList);
+            allocations.AddOrUpdate(entityId, componentBindings);
 
             return buffer;
         }
@@ -224,13 +224,13 @@ namespace DesertImage.ECS
             if (!componentBindings.TryGetValue(componentId, out var ptrQueue))
             {
                 var newPtrList = new UnsafeList<Ptr>(3, Allocator.Persistent);
-                componentBindings.Set(componentId, newPtrList);
+                componentBindings.Add(componentId, newPtrList);
                 ptrQueue = newPtrList;
             }
 
             ptrQueue.Add(buffer.GetPtr());
 
-            allocations.Set(entityId, componentBindings);
+            allocations.AddOrUpdate(entityId, componentBindings);
 
             return buffer;
         }

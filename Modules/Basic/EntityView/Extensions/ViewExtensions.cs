@@ -1,31 +1,62 @@
 using System;
-using DesertImage.Assets;
+using Unity.Mathematics;
 
 namespace DesertImage.ECS
 {
     public unsafe static class ViewExtensions
     {
-        public static EntityView InstantiateView(this ref Entity entity, uint id)
+        public static void InstantiateView(this in Entity entity, uint id)
         {
 #if DEBUG_MODE
             if (!entity.IsAlive()) throw new Exception("Entity is not alive");
 #endif
-            var view = entity.World->GetModule<SpawnManager>().SpawnAs<EntityView>(id);
-            view.Initialize(entity);
-
-            return view;
+            entity.Replace
+            (
+                new InstantiateView
+                {
+                    Id = id
+                }
+            );
+        }
+        
+        public static void InstantiateView(this in Entity entity, uint id, float3 position)
+        {
+#if DEBUG_MODE
+            if (!entity.IsAlive()) throw new Exception("Entity is not alive");
+#endif
+            entity.Replace
+            (
+                new InstantiateView
+                {
+                    Id = id,
+                    Position = position
+                }
+            );
+        }
+        
+        public static void InstantiateView(this in Entity entity, uint id, float3 position, float3 rotation)
+        {
+#if DEBUG_MODE
+            if (!entity.IsAlive()) throw new Exception("Entity is not alive");
+#endif
+            entity.Replace
+            (
+                new InstantiateView
+                {
+                    Id = id,
+                    Position = position,
+                    Rotation = rotation
+                }
+            );
         }
 
-        public static void DestroyView(this ref Entity entity)
+        public static void DestroyView(this in Entity entity)
         {
 #if DEBUG_MODE
             if (!entity.IsAlive()) throw new Exception("Entity is not alive");
             if (!entity.Has<View>()) throw new Exception("Entity has not view");
 #endif
-            var view = entity.Get<View>().Value.Value;
-            
-            entity.Remove<View>();
-            entity.World->GetModule<SpawnManager>().Release(view);
+            entity.Replace<DestroyView>();
         }
     }
 }

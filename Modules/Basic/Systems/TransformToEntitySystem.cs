@@ -1,3 +1,7 @@
+using DesertImage.Collections;
+using Unity.Burst;
+using UnityEngine.Jobs;
+
 namespace DesertImage.ECS
 {
     public struct TransformToEntitySystem : IInitialize, IExecute
@@ -7,7 +11,6 @@ namespace DesertImage.ECS
         public void Initialize(in World world)
         {
             _group = Filter.Create(world)
-                .With<View>()
                 .With<Position>()
                 .With<Rotation>()
                 .With<Scale>()
@@ -16,16 +19,39 @@ namespace DesertImage.ECS
 
         public void Execute(ref SystemsContext context)
         {
-            foreach (var i in _group)
-            {
-                var entity = _group.GetEntity(i);
-                var view = entity.Read<View>().Value.Value;
-                var transform = view.transform;
+            var viewTransforms = context.World.GetStatic<ViewTransforms>();
 
-                entity.Replace(new Position { Value = transform.position });
-                entity.Replace(new LocalPosition { Value = transform.localPosition });
-                entity.Replace(new Rotation { Value = transform.rotation });
-                entity.Replace(new Scale { Value = transform.localScale });
+            var positions = _group.GetComponents<Position>();
+            var rotations = _group.GetComponents<Rotation>();
+            var scales = _group.GetComponents<Scale>();
+
+            var job = new TransformToEntityJob
+            {
+                EntityIndexes = viewTransforms.Indexes,
+                Positions = positions.Values,
+                Rotations = rotations.Values,
+                Scales = scales.Values
+            };
+            
+            context.Handle = job.Schedule(viewTransforms.Values, context.Handle);
+        }
+
+        [BurstCompile]
+        private struct TransformToEntityJob : IJobParallelForTransform
+        {
+            public UnsafeUintSparseSet<int> EntityIndexes;
+
+            public UnsafeReadOnlyArray<Position> Positions;
+            public UnsafeReadOnlyArray<Rotation> Rotations;
+            public UnsafeReadOnlyArray<Scale> Scales;
+
+            public void Execute(int index, TransformAccess transform)
+            {
+                var entityId = (int)EntityIndexes.ReadInvert(index);
+
+                Positions.Get(entityId).Value = transform.position;
+                Rotations.Get(entityId).Value = transform.rotation;
+                Scales.Get(entityId).Value = transform.localScale;
             }
         }
     }

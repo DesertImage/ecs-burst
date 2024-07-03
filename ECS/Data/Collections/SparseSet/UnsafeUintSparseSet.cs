@@ -5,18 +5,18 @@ using System.Diagnostics;
 using DesertImage.ECS;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using UnityEngine;
-using Debug = UnityEngine.Debug;
 
 namespace DesertImage.Collections
 {
-    [DebuggerDisplay("Count = {Count}")]
+    [DebuggerDisplay("_count = {_count}")]
     [DebuggerTypeProxy(typeof(UnsafeUintSparseSetDebugView<>))]
-    public unsafe struct UnsafeUintSparseSet<T> : IDisposable, IEnumerable<T> where T : unmanaged
+    public unsafe struct UnsafeUintSparseSet<T> : IDisposable where T : unmanaged
     {
-        public bool IsNotNull { get; private set; }
+        public bool IsNotNull => _isNotNull;
+        private bool _isNotNull;
 
-        public int Count { get; private set; }
+        public int Count => _count;
+        private int _count;
 
         public T* Values => _dense;
 
@@ -27,52 +27,55 @@ namespace DesertImage.Collections
         internal int _denseCapacity;
         internal int _sparseCapacity;
 
+        private Allocator _allocator;
+
         public readonly T this[uint index] => _dense[_sparse[index] - 1];
 
-        public UnsafeUintSparseSet(int denseCapacity, int sparseCapacity)
+        public UnsafeUintSparseSet(int denseCapacity, int sparseCapacity, Allocator allocator = Allocator.Persistent)
         {
             var uintSize = MemoryUtility.SizeOf<uint>();
             var denseSize = denseCapacity * MemoryUtility.SizeOf<T>();
 
-            _dense = MemoryUtility.AllocateClear<T>(denseSize);
-            _sparse = MemoryUtility.AllocateClear<uint>(sparseCapacity * uintSize);
-            _keys = MemoryUtility.AllocateClear<uint>(denseCapacity * uintSize);
+            _dense = MemoryUtility.AllocateClear<T>(denseSize, allocator);
+            _sparse = MemoryUtility.AllocateClear<uint>(sparseCapacity * uintSize, allocator);
+            _keys = MemoryUtility.AllocateClear<uint>(denseCapacity * uintSize, allocator);
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
 
-            Count = 0;
+            _count = 0;
 
-            IsNotNull = true;
+            _isNotNull = true;
+
+            _allocator = allocator;
         }
 
-        public UnsafeUintSparseSet(int capacity)
+        public UnsafeUintSparseSet(int capacity, Allocator allocator = Allocator.Persistent)
         {
             var uintSize = MemoryUtility.SizeOf<uint>();
             var fullUintSize = capacity * uintSize;
             var denseSize = capacity * MemoryUtility.SizeOf<T>();
 
-            _dense = MemoryUtility.AllocateClear<T>(denseSize);
-            _sparse = MemoryUtility.AllocateClear<uint>(fullUintSize);
-            _keys = MemoryUtility.AllocateClear<uint>(fullUintSize);
+            _dense = MemoryUtility.AllocateClear<T>(denseSize, allocator);
+            _sparse = MemoryUtility.AllocateClear<uint>(fullUintSize, allocator);
+            _keys = MemoryUtility.AllocateClear<uint>(fullUintSize, allocator);
 
             _denseCapacity = capacity;
             _sparseCapacity = capacity;
 
-            Count = 0;
+            _count = 0;
 
-            IsNotNull = true;
+            _isNotNull = true;
+
+            _allocator = allocator;
         }
 
-        public void Set(uint key, in T value)
+        public void Add(uint key, in T value)
         {
-            if (Contains(key))
-            {
-                _dense[_sparse[key] - 1] = value;
-                return;
-            }
-
-            var targetIndex = (uint)Count;
+#if DEBUG_MODE
+            if (_count >= _denseCapacity) throw new IndexOutOfRangeException();
+#endif
+            var targetIndex = (uint)_count;
 
             if (key >= _sparseCapacity)
             {
@@ -82,7 +85,7 @@ namespace DesertImage.Collections
                     newSparseCapacity = (int)(key + 1);
                 }
 
-                _sparse = MemoryUtility.Resize(_sparse, _sparseCapacity, newSparseCapacity);
+                _sparse = MemoryUtility.Resize(_sparse, _sparseCapacity, newSparseCapacity, _allocator);
                 _sparseCapacity = newSparseCapacity;
             }
 
@@ -90,28 +93,72 @@ namespace DesertImage.Collections
             _dense[targetIndex] = value;
             _keys[targetIndex] = key;
 
-            Count++;
+            _count++;
 
-            if (Count >= _denseCapacity)
+            if (_count >= _denseCapacity)
             {
                 var newDenseCapacity = _denseCapacity << 1;
-                _dense = MemoryUtility.Resize(_dense, _denseCapacity, newDenseCapacity);
-                _keys = MemoryUtility.Resize(_keys, _denseCapacity, newDenseCapacity);
+                _dense = MemoryUtility.Resize(_dense, _denseCapacity, newDenseCapacity, _allocator);
+                _keys = MemoryUtility.Resize(_keys, _denseCapacity, newDenseCapacity, _allocator);
                 _denseCapacity = newDenseCapacity;
             }
+        }
+        
+        public void AddOrUpdate(uint key, in T value)
+        {
+            if (Contains(key))
+            {
+                _dense[_sparse[key] - 1] = value;
+                return;
+            }
+
+#if DEBUG_MODE
+            if (_count >= _denseCapacity) throw new IndexOutOfRangeException();
+#endif
+            var targetIndex = (uint)_count;
+
+            if (key >= _sparseCapacity)
+            {
+                var newSparseCapacity = _sparseCapacity << 1;
+                if (newSparseCapacity <= key)
+                {
+                    newSparseCapacity = (int)(key + 1);
+                }
+
+                _sparse = MemoryUtility.Resize(_sparse, _sparseCapacity, newSparseCapacity, _allocator);
+                _sparseCapacity = newSparseCapacity;
+            }
+
+            _sparse[key] = targetIndex + 1;
+            _dense[targetIndex] = value;
+            _keys[targetIndex] = key;
+
+            _count++;
+
+            if (_count >= _denseCapacity)
+            {
+                var newDenseCapacity = _denseCapacity << 1;
+                _dense = MemoryUtility.Resize(_dense, _denseCapacity, newDenseCapacity, _allocator);
+                _keys = MemoryUtility.Resize(_keys, _denseCapacity, newDenseCapacity, _allocator);
+                _denseCapacity = newDenseCapacity;
+            }
+        }
+
+        public void Update(uint key, in T value)
+        {
+            _dense[_sparse[key] - 1] = value;
         }
 
         public void Remove(uint key)
         {
             var sparseIndex = _sparse[key];
-
 #if DEBUG_MODE
-            if (sparseIndex == 0) throw new IndexOutOfRangeException();
+            if (sparseIndex == 0) throw new IndexOutOfRangeException($"Key: {key}");
 #endif
             var denseIndex = sparseIndex - 1;
-            var lastIndex = Count - 1;
+            var lastIndex = _count - 1;
 
-            if (Count > 1 && denseIndex < lastIndex)
+            if (_count > 1 && denseIndex < lastIndex)
             {
                 _dense[denseIndex] = _dense[lastIndex];
 
@@ -127,7 +174,7 @@ namespace DesertImage.Collections
 
             _sparse[key] = 0;
 
-            Count--;
+            _count--;
         }
 
         public bool TryGetValue(uint key, out T value)
@@ -143,10 +190,11 @@ namespace DesertImage.Collections
 
         public readonly ref T Get(uint key) => ref _dense[_sparse[key] - 1];
         public readonly T Read(uint key) => _dense[_sparse[key] - 1];
+        public readonly uint ReadInvert(int key) => _sparse[_keys[key]];
 
         public void Clear()
         {
-            Count = 0;
+            _count = 0;
 
             for (var i = 0; i < _denseCapacity; i++)
             {
@@ -163,28 +211,43 @@ namespace DesertImage.Collections
         public bool Contains(uint key)
         {
 #if DEBUG_MODE
-            if(!IsNotNull) throw new NullReferenceException();
+            if (!IsNotNull) throw new NullReferenceException("Sparse set is null");
 #endif
-            if(Count == 0) return false;
+            if (_count == 0) return false;
             if (key >= _sparseCapacity) return false;
             return _sparseCapacity > key && _sparse[key] > 0;
+        }
+
+        public UnsafeArray<T> ToUnsafeArray(Allocator allocator)
+        {
+            var array = new UnsafeArray<T>(_count, allocator);
+
+            for (var i = 0; i < _count; i++)
+            {
+                array[i] = _dense[i];
+            }
+
+            return array;
         }
 
         public void Dispose()
         {
 #if DEBUG_MODE
             if (!IsNotNull) throw new NullReferenceException("Sparse set is null ");
+            if (_dense == null) throw new NullReferenceException("Sparse set is null ");
+            if (_sparse == null) throw new NullReferenceException("Sparse set is null ");
+            if (_keys == null) throw new NullReferenceException("Sparse set is null ");
 #endif
-            MemoryUtility.Free(_dense);
-            MemoryUtility.Free(_sparse);
-            MemoryUtility.Free(_keys);
-            
+            MemoryUtility.Free(_dense, _allocator);
+            MemoryUtility.Free(_sparse, _allocator);
+            MemoryUtility.Free(_keys, _allocator);
+
             _dense = null;
             _sparse = null;
             _keys = null;
 
-            IsNotNull = false;
-            Count = 0;
+            _isNotNull = false;
+            _count = 0;
 
             _denseCapacity = 0;
             _sparseCapacity = 0;
@@ -210,7 +273,7 @@ namespace DesertImage.Collections
             public bool MoveNext()
             {
                 ++_index;
-                return _index - 1 < _sparseSet.Count;
+                return _index - 1 < _sparseSet._count;
             }
 
             public void Reset() => _index = 0;
@@ -221,9 +284,6 @@ namespace DesertImage.Collections
         }
 
         public Enumerator GetEnumerator() => new Enumerator(ref this);
-
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
-        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 
     internal sealed unsafe class UnsafeUintSparseSetDebugView<T> where T : unmanaged

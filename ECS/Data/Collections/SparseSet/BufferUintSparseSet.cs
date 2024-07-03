@@ -3,10 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using DesertImage.ECS;
-using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
-using UnityEngine;
-using Debug = UnityEngine.Debug;
 
 namespace DesertImage.Collections
 {
@@ -18,15 +14,10 @@ namespace DesertImage.Collections
 
         public int Count { get; private set; }
 
-        // public T* Values => _dense;
         public T* Values => _dense;
 
-        // [NativeDisableUnsafePtrRestriction] internal T* _dense;
-        // [NativeDisableUnsafePtrRestriction] internal uint* _sparse;
-        // [NativeDisableUnsafePtrRestriction] internal uint* _keys;
-
-        internal T* _dense => _densePtr.GetPtr<T>(_allocator);
-        internal uint* _sparse => _sparsePtr.GetPtr<uint>(_allocator);
+        internal readonly T* _dense => _densePtr.GetPtr<T>(_allocator);
+        internal readonly uint* _sparse => _sparsePtr.GetPtr<uint>(_allocator);
         internal uint* _keys => _keysPtr.GetPtr<uint>(_allocator);
 
         private Ptr _densePtr;
@@ -46,13 +37,8 @@ namespace DesertImage.Collections
             var denseSize = denseCapacity * MemoryUtility.SizeOf<T>();
 
             _densePtr = allocator.Allocate(denseSize);
-            // _dense = _densePtr.GetPtr<T>(in allocator);
-
             _sparsePtr = allocator.Allocate(sparseCapacity * uintSize);
-            // _sparse = (uint*)_sparsePtr.Value;
-
             _keysPtr = allocator.Allocate(denseCapacity * uintSize);
-            // _keys = (uint*)_keysPtr.Value;
 
             _denseCapacity = denseCapacity;
             _sparseCapacity = sparseCapacity;
@@ -86,7 +72,6 @@ namespace DesertImage.Collections
                 }
 
                 _allocator.Resize(ref _sparsePtr, newSparseCapacity * MemoryUtility.SizeOf<uint>());
-                // _sparse = (uint*)_sparsePtr.Value;
 
                 _sparseCapacity = newSparseCapacity;
             }
@@ -102,10 +87,7 @@ namespace DesertImage.Collections
             var newDenseCapacity = _denseCapacity << 1;
 
             _allocator.Resize(ref _densePtr, newDenseCapacity * MemoryUtility.SizeOf<T>());
-            // _dense = (T*)_densePtr.Value;
-
             _allocator.Resize(ref _keysPtr, newDenseCapacity * MemoryUtility.SizeOf<uint>());
-            // _keys = (uint*)_keysPtr.Value;
 
             _denseCapacity = newDenseCapacity;
         }

@@ -3,18 +3,22 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using DesertImage.ECS;
+using NUnit.Framework;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.Collections
 {
-    [DebuggerDisplay("Length = {Length}")]
+    [DebuggerDisplay("_length = {Length}")]
     [DebuggerTypeProxy(typeof(UnsafeArrayDebugView<>))]
     public unsafe struct UnsafeArray<T> : IDisposable, IEnumerable<T> where T : unmanaged
     {
-        public bool IsNotNull { get; private set; }
+        public bool IsNotNull => _isNotNull;
+        private bool _isNotNull;
 
-        public int Length { get; private set; }
+        public int Length => _length;
+        private int _length;
 
         [NativeDisableUnsafePtrRestriction] internal T* Data;
 
@@ -23,19 +27,19 @@ namespace DesertImage.Collections
 
         public UnsafeArray(int length, Allocator allocator) : this()
         {
-            Length = length;
+            _length = length;
 
             _elementSize = UnsafeUtility.SizeOf<T>();
             Data = (T*)UnsafeUtility.Malloc(length * _elementSize, 0, allocator);
 
             _allocator = allocator;
 
-            IsNotNull = true;
+            _isNotNull = true;
         }
 
         public UnsafeArray(int length, bool clearMemory, Allocator allocator) : this()
         {
-            Length = length;
+            _length = length;
 
             _elementSize = UnsafeUtility.SizeOf<T>();
             var fullSize = length * _elementSize;
@@ -47,12 +51,12 @@ namespace DesertImage.Collections
 
             UnsafeUtility.MemClear(Data, fullSize);
 
-            IsNotNull = true;
+            _isNotNull = true;
         }
 
         public UnsafeArray(int length, Allocator allocator, T defaultValue) : this()
         {
-            Length = length;
+            _length = length;
 
             _elementSize = UnsafeUtility.SizeOf<T>();
             Data = (T*)UnsafeUtility.Malloc(length * _elementSize, UnsafeUtility.AlignOf<T>(), allocator);
@@ -63,7 +67,7 @@ namespace DesertImage.Collections
                 Data[i] = defaultValue;
             }
 
-            IsNotNull = true;
+            _isNotNull = true;
         }
 
         public UnsafeArray(T* ptr, int length, Allocator allocator)
@@ -71,14 +75,14 @@ namespace DesertImage.Collections
 #if DEBUG_MODE
             if (ptr == null) throw new NullReferenceException("ptr is null");
 #endif
-            Length = length;
+            _length = length;
 
             Data = ptr;
 
             _elementSize = MemoryUtility.SizeOf<T>();
             _allocator = allocator;
 
-            IsNotNull = true;
+            _isNotNull = true;
         }
 
         public UnsafeArray<T> Resize(int length, bool clear = true)
@@ -98,7 +102,7 @@ namespace DesertImage.Collections
             MemoryUtility.Copy(Data, oldData, Length * _elementSize);
             MemoryUtility.Free(oldData, _allocator);
 
-            Length = length;
+            _length = length;
 
             return this;
         }
@@ -108,7 +112,7 @@ namespace DesertImage.Collections
 
         public void Clear()
         {
-            MemoryUtility.Clear(Data, Length * UnsafeUtility.SizeOf(typeof(T)));
+            MemoryUtility.Clear(Data, Length * MemoryUtility.SizeOf<T>());
         }
 
         public void CopyTo(UnsafeArray<T> target)
@@ -116,11 +120,14 @@ namespace DesertImage.Collections
             MemoryUtility.Copy(target.Data, Data, Length * _elementSize);
         }
 
-        public readonly void Dispose()
+        public void Dispose()
         {
 #if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException();
             if (Data == null) throw new NullReferenceException();
 #endif
+            _isNotNull = false;
+            _length = 0;
             MemoryUtility.Free(Data, _allocator);
         }
 
@@ -145,7 +152,7 @@ namespace DesertImage.Collections
         public readonly ref T Get(int index)
         {
 #if DEBUG_MODE
-            if (!IsNotNull) throw new NullReferenceException("array is null");
+            if (!_isNotNull) throw new NullReferenceException("array is null");
             if (Data == null) throw new NullReferenceException("ptr is null");
 #endif
             return ref Data[index];

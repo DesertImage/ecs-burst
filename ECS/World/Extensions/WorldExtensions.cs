@@ -57,7 +57,9 @@ namespace DesertImage.ECS
 
         public static void GizmosTick(this in World world)
         {
+#if UNITY_EDITOR
             Systems.ExecuteGizmos(Worlds.GetPtr(world.Id));
+#endif
         }
 
         public static World GetWorldWithThisId(this ushort id) => Worlds.Get(id);

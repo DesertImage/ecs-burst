@@ -15,7 +15,9 @@ namespace DesertImage.Collections
     {
         public bool IsNotNull { get; private set; }
 
-        public int Count { get; private set; }
+        public int Count => _count;
+
+        private int _count;
 
         [NativeDisableUnsafePtrRestriction] private T* _data;
         private int _capacity;
@@ -30,14 +32,20 @@ namespace DesertImage.Collections
             _capacity = capacity;
 
             IsNotNull = true;
-            Count = 0;
+            _count = 0;
             _allocator = allocator;
         }
 
-        public UnsafeList(int capacity, Allocator allocator, T defaultValue) : this()
+        public UnsafeList(int capacity, Allocator allocator, T defaultValue) 
         {
+            _size = capacity * UnsafeUtility.SizeOf<T>();
+
             _data = MemoryUtility.AllocateClear(capacity * UnsafeUtility.SizeOf<T>(), defaultValue, allocator);
             _capacity = capacity;
+            _allocator = allocator;
+
+            IsNotNull = true;
+            _count = 0;
         }
 
         public void Add(T element)
@@ -45,7 +53,7 @@ namespace DesertImage.Collections
 #if DEBUG_MODE
             if (Contains(element)) Debug.LogWarning($"List already contains {element}");
 #endif
-            if (Count >= _capacity)
+            if (_count >= _capacity)
             {
                 var oldCapacity = _capacity;
                 _capacity <<= 1;
@@ -53,11 +61,34 @@ namespace DesertImage.Collections
                 _data = MemoryUtility.Resize(_data, oldCapacity, _capacity, _allocator);
             }
 
-            _data[Count] = element;
+            _data[_count] = element;
 
-            Count++;
+            _count++;
         }
 
+        public void AddRange(UnsafeList<T> other) => CopyFrom(other._data, other._count);
+
+        public void CopyFrom(T* ptr, int count)
+        {
+            if (_capacity - Count < count)
+            {
+                var oldCapacity = _capacity;
+                _capacity <<= 1;
+                if (_capacity - Count < count)
+                {
+                    _capacity = count + Count;
+                }
+                
+                _size = _capacity * UnsafeUtility.SizeOf<T>();
+                _data = MemoryUtility.Resize(_data, oldCapacity, _capacity, _allocator); 
+            }
+            
+            var size = MemoryUtility.SizeOf<T>() * count;
+            MemoryUtility.Copy(_data + Count, ptr, size);
+
+            _count += count;
+        }
+        
         public void Remove(T element)
         {
             if (!Contains(element))
@@ -76,13 +107,13 @@ namespace DesertImage.Collections
         {
             _data[index] = default;
             MemoryUtility.ShiftLeft(ref _data, index, _capacity);
-            Count--;
+            _count--;
         }
 
         public void Clear()
         {
             MemoryUtility.Clear(_data, _capacity);
-            Count = 0;
+            _count = 0;
         }
 
         public bool Contains(T element)
@@ -106,6 +137,8 @@ namespace DesertImage.Collections
         }
 
         public ref T GetByRef(int index) => ref _data[index];
+
+        public UnsafeArray<T> ToUnsafeArray() => new(_data, _count, _allocator);
 
         public T[] ToArray()
         {
@@ -137,7 +170,7 @@ namespace DesertImage.Collections
             public bool MoveNext()
             {
                 ++_index;
-                return _index < _list.Count;
+                return _index < _list._count;
             }
 
             public void Reset() => _index = -1;
@@ -152,11 +185,12 @@ namespace DesertImage.Collections
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => throw new NotImplementedException();
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 
-        public readonly void Dispose()
+        public void Dispose()
         {
 #if DEBUG_MODE
             if (!IsNotNull) throw new NullReferenceException();
 #endif
+            IsNotNull = false;
             MemoryUtility.Free(_data, _allocator);
         }
 

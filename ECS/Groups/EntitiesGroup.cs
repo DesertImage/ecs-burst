@@ -147,7 +147,7 @@ namespace DesertImage.ECS
 
         public void Add(uint entityId)
         {
-            _entities->Set(entityId, entityId);
+            _entities->Add(entityId, entityId);
         }
 
         public void Remove(uint entityId)
