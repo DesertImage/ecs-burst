@@ -13,7 +13,7 @@ namespace DesertImage.ECS
         public UnsafeList<ExecuteSystemData> RemoveTagsSystems;
         public UnsafeList<ExecuteSystemData> PhysicsSystems;
         public UnsafeList<ExecuteSystemData> DrawGizmosSystems;
-        public UnsafeList<ExecuteSystemData> DestroySystems;
+        public UnsafeList<DestroySystemData> DestroySystems;
         public UnsafeUintSparseSet<uint> SystemsHash;
 
         public SystemsContext Context;
@@ -26,12 +26,22 @@ namespace DesertImage.ECS
             PhysicsSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             RemoveTagsSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
             DrawGizmosSystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
-            DestroySystems = new UnsafeList<ExecuteSystemData>(capacity, Allocator.Persistent);
+            DestroySystems = new UnsafeList<DestroySystemData>(capacity, Allocator.Persistent);
             SystemsHash = new UnsafeUintSparseSet<uint>(capacity);
             Context = new SystemsContext();
         }
 
         private static void DisposeSystems(UnsafeList<ExecuteSystemData> values)
+        {
+            for (var i = 0; i < values.Count; i++)
+            {
+                values[i].Dispose();
+            }
+
+            values.Dispose();
+        }
+        
+        private static void DisposeSystems(UnsafeList<DestroySystemData> values)
         {
             for (var i = 0; i < values.Count; i++)
             {

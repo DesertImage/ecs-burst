@@ -25,7 +25,7 @@ namespace DesertImage.ECS
 
             var system = default(T);
             var instance = MemoryUtility.AllocateInstance(in system);
-            
+
             var autoDisposeInstance = true;
 
             var isInit = typeof(IInitialize).IsAssignableFrom(systemType);
@@ -105,7 +105,7 @@ namespace DesertImage.ECS
             {
                 autoDisposeInstance = false;
 
-                var wrapper = new ExecuteSystemWrapper { Value = instance };
+                var wrapper = new DestroySystemWrapper { Value = instance, DoNotFree = (byte)(isExecute ? 1 : 0) };
                 var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
 
                 var methodInfo = typeof(Systems).GetMethod
@@ -278,13 +278,13 @@ namespace DesertImage.ECS
         {
             var systemId = SystemsTools.GetId<T>();
 
-            var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
+            var wrapper = (DestroySystemWrapper*)wrapperPtr;
             wrapper->MethodPtr = SystemsToolsDestroy<T>.MakeMethod();
 
             var world = (World*)worldPtr;
             var state = world->SystemsState;
 
-            var data = new ExecuteSystemData
+            var data = new DestroySystemData
             {
                 Id = systemId,
                 Wrapper = wrapper
