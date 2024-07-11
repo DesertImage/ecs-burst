@@ -6,12 +6,22 @@ namespace DesertImage.ECS
     public struct ViewsSystem : IInitialize, IExecute, IDestroy
     {
         private EntitiesGroup _group;
+        private EntitiesGroup _addGroup;
+        private EntitiesGroup _removeGroup;
         private EntitiesGroup _destroyGroup;
 
         public void Initialize(in World world)
         {
             _group = Filter.Create(world)
                 .With<InstantiateView>()
+                .Find();
+
+            _addGroup = Filter.Create(world)
+                .With<ViewAdd>()
+                .Find();
+
+            _removeGroup = Filter.Create(world)
+                .With<ViewRemove>()
                 .Find();
 
             _destroyGroup = Filter.Create(world)
@@ -24,6 +34,7 @@ namespace DesertImage.ECS
         {
             ref var viewTransforms = ref context.World.GetStatic<ViewTransforms>();
             var views = _group.GetComponents<View>();
+            var viewAdds = _group.GetComponents<ViewAdd>();
             var instantiateViews = _group.GetComponents<InstantiateView>();
 
             foreach (var entityId in _group)
@@ -43,10 +54,25 @@ namespace DesertImage.ECS
 #if UNITY_EDITOR
                 view.name = $"Entity {entityId}";
 #endif
-                viewTransforms.Values.Add(transform);
-                viewTransforms.Indexes.Add(entityId, viewTransforms.Indexes.Count);
 
+                entity.Replace(new ViewAdd { Value = transform });
                 entity.Replace(new View { Value = view });
+            }
+
+            foreach (var entityId in _addGroup)
+            {
+                var viewAdd = viewAdds.Read(entityId);
+
+                viewTransforms.Values.Add(viewAdd.Value);
+                viewTransforms.Indexes.Add(entityId, viewTransforms.Indexes.Count);
+                
+                _addGroup.GetEntity(entityId).Remove<ViewAdd>();
+            }
+
+            foreach (var entityId in _removeGroup)
+            {
+                viewTransforms.Values.RemoveAtSwapBack(viewTransforms.Indexes.Read(entityId));
+                _removeGroup.GetEntity(entityId).Remove<ViewRemove>();
             }
 
             foreach (var entityId in _destroyGroup)
@@ -58,7 +84,7 @@ namespace DesertImage.ECS
                 entity.Remove<View>();
                 context.World.GetModule<SpawnManager>().Release(view);
 
-                viewTransforms.Values.RemoveAtSwapBack(viewTransforms.Indexes.Read(entityId));
+                entity.Replace<ViewRemove>();
             }
         }
 

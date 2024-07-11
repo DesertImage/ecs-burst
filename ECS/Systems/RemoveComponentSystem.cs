@@ -1,6 +1,9 @@
-﻿namespace DesertImage.ECS
+﻿using DesertImage.Collections;
+using Unity.Jobs;
+
+namespace DesertImage.ECS
 {
-    public struct RemoveComponentSystem<T> : IInitialize, IExecute where T : unmanaged
+    public unsafe struct RemoveComponentSystem<T> : IInitialize, IExecute where T : unmanaged
     {
         private EntitiesGroup _group;
 
@@ -11,9 +14,27 @@
 
         public void Execute(ref SystemsContext context)
         {
-            foreach (var i in _group)
+            var job = new RemoveComponentJob
             {
-                _group.GetEntity(i).Remove<T>();
+                Entities = _group.Values,
+                World = context.World
+            };
+
+            context.Handle = job.Schedule(context.Handle);
+        }
+
+        private struct RemoveComponentJob : IJob
+        {
+            public UnsafeReadOnlyArray<uint> Entities;
+            public World World;
+
+            public void Execute()
+            {
+                for (var i = 0; i < Entities.Length; i++)
+                {
+                    var entity = new Entity(Entities[i], World.Ptr);
+                    entity.Remove<T>();
+                }
             }
         }
     }
