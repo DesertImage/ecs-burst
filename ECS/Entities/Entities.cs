@@ -11,6 +11,8 @@ namespace DesertImage.ECS
             var id = pool.Count > 0 ? pool.Dequeue() : ++state->EntityIdCounter;
 
             state->AliveEntities.Add(id, id);
+            state->EntityComponentsCount.Add(id, 0);
+            
             Groups.OnEntityCreated(id, state);
 
             return new Entity(id, world);
@@ -29,6 +31,16 @@ namespace DesertImage.ECS
 
             state->EntitiesPool.Enqueue(entityId);
             state->AliveEntities.Remove(entityId);
+            state->EntityComponentsCount.Remove(entityId);
+        }
+        
+        internal static void DestroyEntity(uint entityId, WorldState* state)
+        {
+            Groups.OnEntityDestroyed(entityId, state);
+            Components.OnEntityDestroyed(entityId, state);
+
+            state->EntitiesPool.Enqueue(entityId);
+            state->AliveEntities.Remove(entityId);
         }
 
         internal static Entity GetEntity(uint id, World* world) => new Entity(id, world);
@@ -36,7 +48,7 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
         internal static void ThrowIfNotAlive(in Entity entity)
         {
-            if (!entity.IsAlive()) throw new Exception($"Entity {entity} is not alive");
+            if (!entity.IsAlive()) throw new Exception($"Entity {entity.Id} is not alive");
         }
 #endif
     }

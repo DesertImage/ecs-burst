@@ -46,17 +46,25 @@ namespace DesertImage.Collections
             _elementSize = elementSize;
         }
 
-        public void Set<T>(uint key, in T value) where T : unmanaged
+        public void AddOrSet<T>(uint key, in T value) where T : unmanaged
         {
 #if DEBUG_MODE
             if (!IsNotNull) throw new NullReferenceException();
 #endif
             if (Contains(key))
             {
-                ((T*)_dense)[_sparse[key] - 1] = value;
+                Update(key, value);
                 return;
             }
 
+            Add(key, value);
+        }
+
+        public void Add<T>(uint key, in T value) where T : unmanaged
+        {
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException();
+#endif
             if (key >= _sparseCapacity)
             {
                 var newSparseCapacity = _sparseCapacity << 1;
@@ -97,11 +105,21 @@ namespace DesertImage.Collections
             _denseCapacity = newDenseCapacity;
         }
 
+        public void Update<T>(uint key, in T value) where T : unmanaged
+        {
+#if DEBUG_MODE
+            if (!IsNotNull) throw new NullReferenceException();
+#endif
+            ((T*)_dense)[_sparse[key] - 1] = value;
+        }
+
         public void Remove(uint key)
         {
             var sparseIndex = _sparse[key];
 
 #if DEBUG_MODE
+            if (*_count == 0) throw new IndexOutOfRangeException();
+            if(!IsNotNull) throw new NullReferenceException();
             if (sparseIndex == 0) throw new IndexOutOfRangeException();
 #endif
             var denseIndex = sparseIndex - 1;

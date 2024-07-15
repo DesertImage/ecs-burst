@@ -10,20 +10,6 @@ namespace DesertImage.ECS
     {
         private EntitiesGroup _group;
 
-        [BurstCompile]
-        private struct TestJob : IJob
-        {
-            public UnsafeReadOnlyArray<TestValueComponent> Values;
-
-            public void Execute()
-            {
-                for (var i = 0; i < Values.Length; i++)
-                {
-                    Values.Get(i).Value++;
-                }
-            }
-        }
-
         public void Initialize(in World world)
         {
             _group = Filter.Create(world)
@@ -37,6 +23,20 @@ namespace DesertImage.ECS
             var unsafeUintReadOnlyArray = _group.GetComponents<TestValueComponent>();
             var job = new TestJob { Values = unsafeUintReadOnlyArray.Values };
             context.Handle = job.Schedule(context.Handle);
+        }
+
+        [BurstCompile]
+        private struct TestJob : IJob
+        {
+            public UnsafeReadOnlyArray<TestValueComponent> Values;
+
+            public void Execute()
+            {
+                for (var i = 0; i < Values.Length; i++)
+                {
+                    Values.Get(i).Value++;
+                }
+            }
         }
     }
 }

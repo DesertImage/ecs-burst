@@ -7,7 +7,7 @@ namespace DesertImage.ECS
 {
     public static unsafe class Components
     {
-        public static void Remove<T>(in Entity entity, WorldState* state) where T : unmanaged
+        public static void Remove<T>(in Entity entity, WorldState* state, bool doNotDestroyOnEmpty, out bool isDestroyed) where T : unmanaged
         {
             if (!Has<T>(entity, state))
             {
@@ -23,13 +23,25 @@ namespace DesertImage.ECS
 
             state->Components.Clear(entityId, componentId);
 
-            if (!state->ComponentAllocations.TryGetValue(entityId, out var componentsSparseSet)) return;
-            if (!componentsSparseSet.TryGetValue(componentId, out var ptrList)) return;
-
-            foreach (var ptr in ptrList)
+            if (state->ComponentAllocations.TryGetValue(entityId, out var componentsSparseSet))
             {
-                state->MemoryAllocator.Free(ptr);
+                if (componentsSparseSet.TryGetValue(componentId, out var ptrList))
+                    foreach (var ptr in ptrList)
+                    {
+                        state->MemoryAllocator.Free(ptr);
+                    }
             }
+
+            state->EntityComponentsCount.Get(entityId)--;
+
+            if (doNotDestroyOnEmpty || state->EntityComponentsCount.Read(entityId) > 0)
+            {
+                isDestroyed = false;
+                return;
+            }
+
+            isDestroyed = true;
+            Entities.DestroyEntity(entityId, state);
         }
 
         public static void Replace<T>(in Entity entity, WorldState* state) where T : unmanaged
@@ -42,7 +54,12 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
 #endif
-            state->Components.Set(entity.Id, component);
+            state->Components.Set(entity.Id, component, out var isNew);
+
+            if (isNew)
+            {
+                state->EntityComponentsCount.Get(entity.Id)++;
+            }
         }
 
         public static bool Has<T>(in Entity entity, WorldState* state) where T : unmanaged
@@ -237,9 +254,15 @@ namespace DesertImage.ECS
 
         public static void OnEntityDestroyed(in Entity entity, WorldState* state)
         {
-            var entityId = entity.Id;
+            OnEntityDestroyed(entity.Id, state);
+        }
 
-            state->Components.ClearAll(entityId);
+        public static void OnEntityDestroyed(uint entityId, WorldState* state)
+        {
+            if (state->EntityComponentsCount.Read(entityId) > 0)
+            {
+                state->Components.ClearAll(entityId);
+            }
 
             if (!state->ComponentAllocations.TryGetValue(entityId, out var allocations)) return;
 

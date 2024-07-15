@@ -74,5 +74,35 @@ namespace DesertImage.ECS
 
             world.Dispose();
         }
+
+        [Test]
+        public void EntityDestroyLastComponentRemoved()
+        {
+            var world = Worlds.Create();
+            var entity = world.GetNewEntity();
+
+            entity.Replace<TestComponent>();
+
+            var firstCheck = entity.IsAlive();
+
+            entity.Replace<TestTag>();
+
+            var secondCheck = entity.IsAlive();
+
+            entity.Remove<TestComponent>();
+
+            var thirdCheck = entity.IsAlive();
+
+            entity.Remove<TestTag>();
+
+            var fourthCheck = entity.IsAlive();
+
+            world.Dispose();
+
+            Assert.IsTrue(firstCheck);
+            Assert.IsTrue(secondCheck);
+            Assert.IsTrue(thirdCheck);
+            Assert.IsFalse(fourthCheck);
+        }
     }
 }

@@ -42,7 +42,7 @@ namespace DesertImage.ECS
             _allocator = allocator;
         }
 
-        public void Set<T>(uint entityId, T data) where T : unmanaged
+        public void Set<T>(uint entityId, T data, out bool isNew) where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentId<T>();
 
@@ -60,16 +60,17 @@ namespace DesertImage.ECS
 
             var offset = _offsets[componentId];
 
-            var isNew = _count == 0 || !_hashes.Contains(componentId);
+            isNew = _count == 0 || !_hashes.Contains(componentId);
 
             if (isNew)
             {
                 ref var sparseSet = ref InitComponent(componentId, MemoryUtility.SizeOf<T>());
-                sparseSet.Set(entityId, data);
+                sparseSet.Add(entityId, data);
             }
             else
             {
-                ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->Set(entityId, data);
+                //TODO: fix for .Udpate(entityId, data);
+                ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->AddOrSet(entityId, data);
             }
         }
 
@@ -166,7 +167,7 @@ namespace DesertImage.ECS
             var componentId = ComponentTools.GetComponentIdFast<T>();
             ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Remove(entityId);
         }
-        
+
         public void Clear(uint entityId, uint componentId)
         {
             ((UnsafeUintUnknownTypeSparseSet*)(_data + _offsets[componentId]))->Remove(entityId);
@@ -174,13 +175,19 @@ namespace DesertImage.ECS
 
         public void ClearAll(uint entityId)
         {
-            for (var i = 0; i < _count; i++)
+            var found = 0;
+            var index = 0;
+
+            while (found < _count && _count < _componentsCapacity)
             {
-                var offset = _offsets[i];
-
-                if (i > 0 && offset == 0) continue;
-
-                ((UnsafeUintUnknownTypeSparseSet*)(_data + offset))->Remove(entityId);
+                var offset = _offsets[++index];
+                
+                if(offset == 0 && index != 1) continue;
+                
+                found++;
+                
+                var unsafeUintUnknownTypeSparseSet = (UnsafeUintUnknownTypeSparseSet*)(_data + offset);
+                unsafeUintUnknownTypeSparseSet->Remove(entityId);
             }
         }
 

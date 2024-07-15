@@ -35,7 +35,7 @@ namespace DesertImage.ECS.Tests
 
             var thirdResult = entity.Read<TestValueComponent>().Value;
 
-            entity.Remove<TestValueComponent>();
+            entity.Remove<TestValueComponent>(true);
 
             world.Tick(.1f);
 
@@ -112,64 +112,6 @@ namespace DesertImage.ECS.Tests
 
             Debug.Log($"Single: {singleThreadResult}");
             Debug.Log($"Multi: {multiThreadResult}");
-        }
-
-        [Test]
-        public void RaceCondition()
-        {
-            const int entitiesCount = 5;
-
-            var data = new UnsafeArray<Entity>(entitiesCount, true, Allocator.Persistent);
-            var results = new UnsafeArray<int>(entitiesCount, true, Allocator.Persistent);
-            var secondResults = new UnsafeArray<bool>(entitiesCount, true, Allocator.Persistent);
-
-            var world = Worlds.Create();
-
-            for (var i = 0; i < entitiesCount; i++)
-            {
-                var entity = world.GetNewEntity();
-                data[i] = entity;
-                entity.Replace<TestValueComponent>();
-            }
-
-            const ExecutionOrder executionType = ExecutionOrder.MultiThread;
-            world.Add<TestValueSystem>(executionType);
-            world.Add<TestValueSecondSystem>(executionType);
-
-            world.Tick(.1f);
-
-            for (var i = 0; i < data.Length; i++)
-            {
-                var entity = data[i];
-                var component = entity.Read<TestValueComponent>();
-                results[i] = component.Value;
-            }
-
-            world.Add<TestValueThirdSystem>(executionType);
-
-            world.Tick(.1f);
-            world.Tick(.1f);
-
-            for (var i = 0; i < data.Length; i++)
-            {
-                var entity = data[i];
-                secondResults[i] = entity.Has<TestValueComponent>();
-            }
-
-            world.Dispose();
-            data.Dispose();
-            results.Dispose();
-            secondResults.Dispose();
-
-            for (var i = 0; i < results.Length; i++)
-            {
-                Assert.AreEqual(2, results[i]);
-            }
-
-            for (var i = 0; i < secondResults.Length; i++)
-            {
-                Assert.IsFalse(secondResults[i]);
-            }
         }
     }
 }

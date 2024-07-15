@@ -18,13 +18,13 @@ namespace DesertImage.ECS
             World = world;
             IsAliveFlag = 1;
         }
-        
+
         public Entity(uint id, World world)
-                {
-                    Id = id;
-                    World = world.Ptr;
-                    IsAliveFlag = 1;
-                }
+        {
+            Id = id;
+            World = world.Ptr;
+            IsAliveFlag = 1;
+        }
 
         public bool Equals(Entity other) => Id == other.Id;
     }

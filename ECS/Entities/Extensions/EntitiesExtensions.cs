@@ -6,7 +6,10 @@ namespace DesertImage.ECS
     {
         public static void Destroy(this in Entity entity) => entity.DestroyEntity();
 
-        public static bool IsAlive(this in Entity entity) => entity.IsAliveFlag == 1;
+        public static bool IsAlive(this in Entity entity)
+        {
+            return entity.IsAliveFlag == 1 && entity.World->State->AliveEntities.Contains(entity.Id);
+        }
 
         public static BufferArray<T> CreateBufferArray<T>(this in Entity entity, int length)
             where T : unmanaged
