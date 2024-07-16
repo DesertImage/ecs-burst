@@ -34,12 +34,14 @@ namespace DesertImage.ECS
 
             state->EntityComponentsCount.Get(entityId)--;
 
+            isDestroyed = false;
+
             if (doNotDestroyOnEmpty || state->EntityComponentsCount.Read(entityId) > 0)
             {
                 isDestroyed = false;
                 return;
             }
-
+            
             isDestroyed = true;
             Entities.DestroyEntity(entityId, state);
         }

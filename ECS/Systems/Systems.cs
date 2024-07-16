@@ -46,6 +46,9 @@ namespace DesertImage.ECS
             }
 
             var isExecute = typeof(IExecute).IsAssignableFrom(systemType);
+            var isGizmos = typeof(IDrawGizmos).IsAssignableFrom(systemType);
+            var isDestroy = typeof(IDestroy).IsAssignableFrom(systemType);
+
             if (isExecute)
             {
                 autoDisposeInstance = false;
@@ -72,12 +75,16 @@ namespace DesertImage.ECS
                 converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr, order);
             }
 
-            var isGizmos = typeof(IDrawGizmos).IsAssignableFrom(systemType);
             if (isGizmos)
             {
                 autoDisposeInstance = false;
 
-                var wrapper = new ExecuteSystemWrapper { Value = instance };
+                var wrapper = new GizmosSystemWrapper
+                {
+                    Value = instance,
+                    DoNotFree = (byte)(isExecute || isDestroy ? 1 : 0)
+                };
+
                 var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
 
                 var methodInfo = typeof(Systems).GetMethod
@@ -100,12 +107,16 @@ namespace DesertImage.ECS
                 converted.Invoke((IntPtr)world.Ptr, (IntPtr)wrapperPtr);
             }
 
-            var isDestroy = typeof(IDestroy).IsAssignableFrom(systemType);
             if (isDestroy)
             {
                 autoDisposeInstance = false;
 
-                var wrapper = new DestroySystemWrapper { Value = instance, DoNotFree = (byte)(isExecute ? 1 : 0) };
+                var wrapper = new DestroySystemWrapper
+                {
+                    Value = instance,
+                    DoNotFree = (byte)(isExecute || isGizmos ? 1 : 0)
+                };
+
                 var wrapperPtr = MemoryUtility.AllocateInstance(in wrapper);
 
                 var methodInfo = typeof(Systems).GetMethod
@@ -297,10 +308,10 @@ namespace DesertImage.ECS
         {
             var systemId = SystemsTools.GetId<T>();
 
-            var wrapper = (ExecuteSystemWrapper*)wrapperPtr;
+            var wrapper = (GizmosSystemWrapper*)wrapperPtr;
             wrapper->MethodPtr = SystemsToolsDrawGizmos<T>.MakeDrawGizmosMethod();
 
-            var data = new ExecuteSystemData
+            var data = new GizmosSystemData
             {
                 Id = systemId,
                 Wrapper = wrapper

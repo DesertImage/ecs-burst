@@ -16,9 +16,9 @@ namespace DesertImage.ECS
 
         public UnsafeReadOnlyArray<uint> Values => new UnsafeReadOnlyArray<uint>(_entities->_dense, _entities->Count);
 
-        [NativeDisableUnsafePtrRestriction] internal UnsafeUintHashSet* _components;
-        [NativeDisableUnsafePtrRestriction] internal UnsafeList<uint>* _with;
-        [NativeDisableUnsafePtrRestriction] internal UnsafeList<uint>* _noneOf;
+        [NativeDisableUnsafePtrRestriction] internal UnsafeUintHashSet _components;
+        [NativeDisableUnsafePtrRestriction] internal UnsafeList<uint> _with;
+        [NativeDisableUnsafePtrRestriction] internal UnsafeList<uint> _noneOf;
 
         [NativeDisableUnsafePtrRestriction] private UnsafeUintSparseSet<uint>* _entities;
         [NativeDisableUnsafePtrRestriction] private World* _world;
@@ -31,10 +31,15 @@ namespace DesertImage.ECS
 
             _world = world;
 
-            _components = MemoryUtility.AllocateInstance(new UnsafeUintHashSet(2, Allocator.Persistent));
+            // _components = MemoryUtility.AllocateInstance(new UnsafeUintHashSet(2, Allocator.Persistent));
+            //
+            // _with = MemoryUtility.AllocateInstance(new UnsafeList<uint>(2, Allocator.Persistent));
+            // _noneOf = MemoryUtility.AllocateInstance(new UnsafeList<uint>(2, Allocator.Persistent));
 
-            _with = MemoryUtility.AllocateInstance(new UnsafeList<uint>(2, Allocator.Persistent));
-            _noneOf = MemoryUtility.AllocateInstance(new UnsafeList<uint>(2, Allocator.Persistent));
+            _components = new UnsafeUintHashSet(2, Allocator.Persistent);
+            
+            _with = new UnsafeList<uint>(2, Allocator.Persistent);
+            _noneOf = new UnsafeList<uint>(2, Allocator.Persistent);
 
             _entities = MemoryUtility.AllocateInstance
             (
@@ -81,8 +86,8 @@ namespace DesertImage.ECS
 
             ComponentsHashCode += componentId;
 
-            _components->Add(componentId);
-            _with->Add(componentId);
+            _components.Add(componentId);
+            _with.Add(componentId);
 
             ref var storage = ref _world->State->Components;
             ref var spareSet = ref storage.GetSparseSetOrInitialize(componentId, componentSize);
@@ -100,15 +105,15 @@ namespace DesertImage.ECS
         private void FilterWith(uint componentId)
         {
 #if DEBUG_MODE
-            if (_with->Contains(componentId))
+            if (_with.Contains(componentId))
             {
                 throw new Exception($"group {Id} already filtered by component {componentId}");
             }
 #endif
             ComponentsHashCode += componentId;
 
-            _components->Add(componentId);
-            _with->Add(componentId);
+            _components.Add(componentId);
+            _with.Add(componentId);
 
             var count = Count;
             for (var i = count - 1; i >= 0; i--)
@@ -125,8 +130,8 @@ namespace DesertImage.ECS
 
         private void FilterNone(uint componentId)
         {
-            _components->Add(componentId);
-            _noneOf->Add(componentId);
+            _components.Add(componentId);
+            _noneOf.Add(componentId);
 
             ComponentsHashCode -= componentId;
 
@@ -159,12 +164,12 @@ namespace DesertImage.ECS
         {
             var componentStorage = _world->State->Components;
 
-            foreach (var componentId in *_with)
+            foreach (var componentId in _with)
             {
                 if (!componentStorage.Contains(entityId, componentId)) return false;
             }
 
-            foreach (var componentId in *_noneOf)
+            foreach (var componentId in _noneOf)
             {
                 if (componentStorage.Contains(entityId, componentId)) return false;
             }
@@ -180,19 +185,19 @@ namespace DesertImage.ECS
             // if (Id == 0) return;
             if (Id == 0) throw new Exception("Group is null");
 #endif
-            _components->Dispose();
-            _with->Dispose();
-            _noneOf->Dispose();
+            _components.Dispose();
+            _with.Dispose();
+            _noneOf.Dispose();
             _entities->Dispose();
 
-            MemoryUtility.Free(_components);
-            MemoryUtility.Free(_with);
-            MemoryUtility.Free(_noneOf);
+            // MemoryUtility.Free(_components);
+            // MemoryUtility.Free(_with);
+            // MemoryUtility.Free(_noneOf);
             MemoryUtility.Free(_entities);
 
-            _components = null;
-            _with = null;
-            _noneOf = null;
+            // _components = null;
+            // _with = null;
+            // _noneOf = null;
             _entities = null;
             _world = null;
 

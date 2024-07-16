@@ -13,6 +13,17 @@ namespace DesertImage.ECS
             return ref state->Groups.Get(id);
         }
 
+        internal static void FillGroup(ushort groupId, WorldState* state)
+        {
+            var group = state->Groups.Get(groupId);
+
+            foreach (var entityId in state->AliveEntities)
+            {
+                 if(!group.IsValid(entityId)) continue;   
+                 EntityAdd(entityId, groupId, state);
+            }
+        }
+
         internal static ref EntitiesGroup GetGroup(ushort id, WorldState* state) => ref state->Groups.Get(id);
 
         internal static void OnEntityCreated(uint entityId, WorldState* state)
@@ -43,7 +54,7 @@ namespace DesertImage.ECS
                 var groupId = state->EntityToGroups[entityId][i];
                 var group = state->Groups[groupId];
 
-                if (!group._components->Contains(componentId)) continue;
+                if (!group._components.Contains(componentId)) continue;
                 if (group.IsValid(entityId)) continue;
 
                 EntityRemove(entityId, groupId, state);
@@ -83,7 +94,7 @@ namespace DesertImage.ECS
                 var groupId = state->EntityToGroups[entityId][i];
                 var group = state->Groups[groupId];
 
-                if (!group._components->Contains(componentId)) continue;
+                if (!group._components.Contains(componentId)) continue;
                 if (group.IsValid(entityId)) continue;
 
                 EntityRemove(entityId, groupId, state);
@@ -114,7 +125,7 @@ namespace DesertImage.ECS
             {
                 ref var group = ref state->Groups._dense[i];
 
-                if (!group._components->Contains(componentId)) continue;
+                if (!group._components.Contains(componentId)) continue;
 
                 groupsList.Add(group.Id);
             }

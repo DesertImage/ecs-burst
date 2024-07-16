@@ -55,12 +55,12 @@ namespace DesertImage.ECS
             {
                 var group = groups[i];
                 if (group.ComponentsHashCode != _componentsHash) continue;
-                if (group._noneOf->Count != _none.Count) continue;
-                if (group._with->Count != _with.Count) continue;
+                if (group._noneOf.Count != _none.Count) continue;
+                if (group._with.Count != _with.Count) continue;
 
                 var isNoneEquals = true;
 
-                foreach (var componentId in *group._noneOf)
+                foreach (var componentId in group._noneOf)
                 {
                     if (!_none.Contains(componentId))
                     {
@@ -73,7 +73,7 @@ namespace DesertImage.ECS
 
                 var isWithEquals = true;
 
-                foreach (var componentId in *group._with)
+                foreach (var componentId in group._with)
                 {
                     if (!_with.Contains(componentId))
                     {
@@ -100,7 +100,7 @@ namespace DesertImage.ECS
             {
                 newGroup.None(_none[i]);
             }
-
+            
             Dispose();
             return ref newGroup;
         }
