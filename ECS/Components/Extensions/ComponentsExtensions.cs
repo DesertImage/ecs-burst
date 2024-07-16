@@ -26,7 +26,8 @@
             Groups.OnEntityComponentAdded(entity, worldState, ComponentTools.GetComponentId<T>());
         }
 
-        public static void Remove<T>(this in Entity entity, bool dontDestroyOnZeroComponents = false) where T : unmanaged
+        public static void Remove<T>(this in Entity entity, bool dontDestroyOnZeroComponents = false)
+            where T : unmanaged
         {
             var worldState = entity.World->State;
             Components.Remove<T>(entity, worldState, dontDestroyOnZeroComponents, out var isDestroyed);
