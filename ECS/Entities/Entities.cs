@@ -11,8 +11,9 @@ namespace DesertImage.ECS
             var id = pool.Count > 0 ? pool.Dequeue() : ++state->EntityIdCounter;
 
             state->AliveEntities.Add(id, id);
+#if ECS_AUTODESTROY_ENTITY
             state->EntityComponentsCount.Add(id, 0);
-            
+#endif
             Groups.OnEntityCreated(id, state);
 
             return new Entity(id, world);
@@ -31,7 +32,9 @@ namespace DesertImage.ECS
 
             state->EntitiesPool.Enqueue(entityId);
             state->AliveEntities.Remove(entityId);
+#if ECS_AUTODESTROY_ENTITY
             state->EntityComponentsCount.Remove(entityId);
+#endif
         }
         
         internal static void DestroyEntity(uint entityId, WorldState* state)

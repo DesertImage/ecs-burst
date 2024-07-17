@@ -274,11 +274,12 @@ namespace DesertImage.ECS
 
         public static void OnEntityDestroyed(uint entityId, WorldState* state)
         {
+#if ECS_AUTODESTROY_ENTITY
             if (state->EntityComponentsCount.Read(entityId) > 0)
             {
                 state->Components.ClearAll(entityId);
             }
-
+#endif
             if (!state->ComponentAllocations.TryGetValue(entityId, out var allocations)) return;
 
             foreach (var ptrList in allocations)
