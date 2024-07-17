@@ -8,7 +8,9 @@ namespace DesertImage.ECS
     {
         public uint EntityIdCounter;
         public UnsafeUintSparseSet<uint> AliveEntities;
+#if ECS_AUTODESTROY_ENTITY
         public UnsafeUintSparseSet<uint> EntityComponentsCount;
+#endif
         public UnsafeQueue<uint> EntitiesPool;
 
         public ComponentStorage Components;
@@ -28,7 +30,9 @@ namespace DesertImage.ECS
 
             EntityIdCounter = 0;
             AliveEntities = new UnsafeUintSparseSet<uint>(entitiesCapacity);
+#if ECS_AUTODESTROY_ENTITY
             EntityComponentsCount = new UnsafeUintSparseSet<uint>(entitiesCapacity);
+#endif
             EntitiesPool = new UnsafeQueue<uint>(100, Allocator.Persistent);
 
             Components = new ComponentStorage(componentsCapacity, entitiesCapacity);
@@ -49,7 +53,9 @@ namespace DesertImage.ECS
         {
             EntityIdCounter = 0;
             AliveEntities.Dispose();
+#if ECS_AUTODESTROY_ENTITY
             EntityComponentsCount.Dispose();
+#endif
             EntitiesPool.Dispose();
 
             GroupIdCounter = 0;
