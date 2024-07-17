@@ -43,6 +43,23 @@ namespace DesertImage.ECS.Tests
         }
         
         [Test]
+        public void FillOnCreate()
+        {
+            var world = Worlds.Create();
+
+            var entity = world.GetNewEntity();
+            entity.Replace<TestComponent>();
+            
+            var group = Filter.Create(world).With<TestComponent>().Find();
+
+            var result = group.Contains(entity.Id);
+
+            world.Dispose();
+
+            Assert.IsTrue(result);
+        }
+        
+        [Test]
         public void NewGroup()
         {
             var world = Worlds.Create();

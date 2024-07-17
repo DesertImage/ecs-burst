@@ -35,7 +35,12 @@ namespace DesertImage.ECS.Tests
 
             var thirdResult = entity.Read<TestValueComponent>().Value;
 
-            entity.Remove<TestValueComponent>(true);
+            entity.Remove<TestValueComponent>
+            (
+#if ECS_AUTODESTROY_ENTITY
+                true
+#endif
+            );
 
             world.Tick(.1f);
 

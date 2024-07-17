@@ -93,16 +93,26 @@ namespace DesertImage.ECS
 
             var thirdCheck = entity.IsAlive();
 
-            entity.Remove<TestTag>();
+            entity.Replace<TestValueComponent>();
 
             var fourthCheck = entity.IsAlive();
+            
+            entity.Remove<TestTag>();
+
+            var fifthCheck = entity.IsAlive();
+
+            entity.Remove<TestValueComponent>();
+
+            var sixthCheck = entity.IsAlive();
 
             world.Dispose();
 
             Assert.IsTrue(firstCheck);
             Assert.IsTrue(secondCheck);
             Assert.IsTrue(thirdCheck);
-            Assert.IsFalse(fourthCheck);
+            Assert.IsTrue(fourthCheck);
+            Assert.IsTrue(fifthCheck);
+            Assert.IsFalse(sixthCheck);
         }
     }
 }

@@ -20,7 +20,7 @@ namespace DesertImage.ECS
         private long _lastOffset;
         private int _count;
 
-        private UnsafeUintHashSet _hashes;
+        private UnsafeNoCollisionHashSet<uint> _hashes;
 
         private readonly Allocator _allocator;
 
@@ -31,7 +31,7 @@ namespace DesertImage.ECS
 
             _data = MemoryUtility.AllocateClear<byte>(_size, allocator);
             _offsets = MemoryUtility.AllocateClearCapacity<long>(componentsCapacity, allocator);
-            _hashes = new UnsafeUintHashSet(componentsCapacity, allocator);
+            _hashes = new UnsafeNoCollisionHashSet<uint>(componentsCapacity, allocator);
 
             _componentsCapacity = componentsCapacity;
             _entitiesCapacity = entitiesCapacity;
@@ -42,7 +42,7 @@ namespace DesertImage.ECS
             _allocator = allocator;
         }
 
-        public void Set<T>(uint entityId, T data, out bool isNew) where T : unmanaged
+        public void Set<T>(uint entityId, T data) where T : unmanaged
         {
             var componentId = ComponentTools.GetComponentId<T>();
 
@@ -60,9 +60,9 @@ namespace DesertImage.ECS
 
             var offset = _offsets[componentId];
 
-            isNew = _count == 0 || !_hashes.Contains(componentId);
+            var isNewStorage = _count == 0 || !_hashes.Contains(componentId);
 
-            if (isNew)
+            if (isNewStorage)
             {
                 ref var sparseSet = ref InitComponent(componentId, MemoryUtility.SizeOf<T>());
                 sparseSet.Add(entityId, data);

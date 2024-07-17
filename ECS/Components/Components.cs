@@ -2,12 +2,18 @@ using System;
 using DesertImage.Collections;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using UnityEngine;
 
 namespace DesertImage.ECS
 {
     public static unsafe class Components
     {
-        public static void Remove<T>(in Entity entity, WorldState* state, bool doNotDestroyOnEmpty, out bool isDestroyed) where T : unmanaged
+#if ECS_AUTODESTROY_ENTITY
+        public static void Remove<T>(in Entity entity, WorldState* state, bool doNotDestroyOnEmpty,
+            out bool isDestroyed) where T : unmanaged
+#else
+        public static void Remove<T>(in Entity entity, WorldState* state) where T : unmanaged
+#endif
         {
             if (!Has<T>(entity, state))
             {
@@ -32,6 +38,7 @@ namespace DesertImage.ECS
                     }
             }
 
+#if ECS_AUTODESTROY_ENTITY
             state->EntityComponentsCount.Get(entityId)--;
 
             isDestroyed = false;
@@ -41,9 +48,10 @@ namespace DesertImage.ECS
                 isDestroyed = false;
                 return;
             }
-            
+
             isDestroyed = true;
             Entities.DestroyEntity(entityId, state);
+#endif
         }
 
         public static void Replace<T>(in Entity entity, WorldState* state) where T : unmanaged
@@ -56,12 +64,17 @@ namespace DesertImage.ECS
 #if DEBUG_MODE
             Entities.ThrowIfNotAlive(entity);
 #endif
-            state->Components.Set(entity.Id, component, out var isNew);
+#if ECS_AUTODESTROY_ENTITY
+            var isNew = !state->Components.Contains<T>(entity.Id);
+#endif
 
+            state->Components.Set(entity.Id, component);
+#if ECS_AUTODESTROY_ENTITY
             if (isNew)
             {
                 state->EntityComponentsCount.Get(entity.Id)++;
             }
+#endif
         }
 
         public static bool Has<T>(in Entity entity, WorldState* state) where T : unmanaged

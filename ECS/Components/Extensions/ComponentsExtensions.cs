@@ -26,14 +26,23 @@
             Groups.OnEntityComponentAdded(entity, worldState, ComponentTools.GetComponentId<T>());
         }
 
+
+#if ECS_AUTODESTROY_ENTITY
         public static void Remove<T>(this in Entity entity, bool dontDestroyOnZeroComponents = false)
             where T : unmanaged
+#else
+        public static void Remove<T>(this in Entity entity) where T : unmanaged
+#endif
         {
             var worldState = entity.World->State;
+
+#if ECS_AUTODESTROY_ENTITY
             Components.Remove<T>(entity, worldState, dontDestroyOnZeroComponents, out var isDestroyed);
 
             if (isDestroyed) return;
-
+#else
+            Components.Remove<T>(entity, worldState);
+#endif
             Groups.OnEntityComponentRemoved(entity, worldState, ComponentTools.GetComponentIdFast<T>());
         }
 
