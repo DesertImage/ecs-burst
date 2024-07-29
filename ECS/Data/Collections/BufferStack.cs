@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using DesertImage.ECS;
+using Unity.Collections.LowLevel.Unsafe;
 
 namespace DesertImage.Collections
 {
@@ -52,7 +53,7 @@ namespace DesertImage.Collections
         {
             return Count == 0 ? default : _ptr.GetPtr<T>(MemoryAllocator)[Count];
         }
-
+        
         public Ptr GetPtr() => _ptr;
 
         private void Resize(int newCapacity)
@@ -61,7 +62,6 @@ namespace DesertImage.Collections
             var newSize = newCapacity * elementSize;
 
             MemoryAllocator.Resize(ref _ptr, newSize);
-            // _data = (T*)_ptr.Value;
             _capacity = newCapacity;
         }
 

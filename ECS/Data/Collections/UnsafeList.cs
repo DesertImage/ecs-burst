@@ -118,7 +118,7 @@ namespace DesertImage.Collections
 
         public bool Contains(T element)
         {
-            for (var i = 0; i < _capacity; i++)
+            for (var i = 0; i < _count; i++)
             {
                 if (element.Equals(_data[i])) return true;
             }

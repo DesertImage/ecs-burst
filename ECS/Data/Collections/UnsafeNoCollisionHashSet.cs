@@ -23,13 +23,14 @@ namespace DesertImage.Collections
 
         public bool IsNotNull { get; }
 
-        public int Count { get; private set; }
+        public int Count => _count;
 
         [NativeDisableUnsafePtrRestriction] internal Entry* _entries;
         [NativeDisableUnsafePtrRestriction] private int* _lockIndexes;
 
         internal int _capacity;
         private Allocator _allocator;
+        private int _count;
 
         public UnsafeNoCollisionHashSet(int capacity, Allocator allocator) : this()
         {
@@ -50,7 +51,7 @@ namespace DesertImage.Collections
 
             IsNotNull = true;
 
-            Count = 0;
+            _count = 0;
         }
 
         public void Add(T key) => Insert(key);
@@ -76,7 +77,7 @@ namespace DesertImage.Collections
             {
                 _entries[bucketNumber] = Entry.Default;
 
-                Count--;
+                _count--;
             }
             _lockIndexes[bucketNumber].Unlock();
         }
@@ -91,6 +92,16 @@ namespace DesertImage.Collections
             var bucketNumber = GetBucketNumber(key);
             var entry = _entries[bucketNumber];
             return entry.HashCode >= 0f && entry.HashCode == key.GetHashCode();
+        }
+
+        public void Clear()
+        {
+            _count = 0;
+            
+            for (var i = 0; i < _capacity; i++)
+            {
+                _entries[i] = Entry.Default;
+            }
         }
 
         public void Resize(int newSize)
@@ -157,7 +168,7 @@ namespace DesertImage.Collections
                     Value = value,
                 };
 
-                Count++;
+                _count++;
 
                 if (Count >= _capacity)
                 {

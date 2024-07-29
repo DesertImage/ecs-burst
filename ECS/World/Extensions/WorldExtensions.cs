@@ -1,9 +1,19 @@
+using System;
+
 namespace DesertImage.ECS
 {
     public static unsafe class WorldExtensions
     {
         public static Entity GetNewEntity(this in World world) => Entities.GetNew(world.Ptr);
-        public static Entity GetEntity(this in World world, uint id) => new(id, world.Ptr);
+
+        public static Entity GetEntity(this in World world, uint id)
+        {
+            var entity = new Entity(id, world.Ptr);
+#if DEBUG_MODE
+            if (!entity.IsAlive()) throw new NullReferenceException();
+#endif
+            return entity;
+        }
 
         public static void Add<T>(this in World world, ExecutionOrder order = ExecutionOrder.MultiThread)
             where T : unmanaged, ISystem
