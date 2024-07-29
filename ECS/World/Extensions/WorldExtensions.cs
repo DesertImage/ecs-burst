@@ -10,7 +10,7 @@ namespace DesertImage.ECS
         {
             var entity = new Entity(id, world.Ptr);
 #if DEBUG_MODE
-            if (!entity.IsAlive()) throw new NullReferenceException();
+            if (!entity.IsAlive()) throw new NullReferenceException($"Entity {id} is not alive");
 #endif
             return entity;
         }
