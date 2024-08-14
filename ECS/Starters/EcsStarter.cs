@@ -44,7 +44,7 @@ namespace DesertImage.ECS
 
         protected virtual void FixedUpdate()
         {
-            World.PhysicsTick(Time.deltaTime);
+            World.PhysicsTick(Time.fixedDeltaTime);
         }
 
         private void OnDrawGizmos()
