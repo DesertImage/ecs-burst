@@ -140,7 +140,7 @@ namespace DesertImage.Collections
 
             for (uint i = 0; i < count; i++)
             {
-                data.Set(i, i);
+                data.AddOrUpdate(i, i);
                 array[i] = i;
             }
 

@@ -5,7 +5,6 @@ using System.Diagnostics;
 using DesertImage.ECS;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using Debug = UnityEngine.Debug;
 
 namespace DesertImage.Collections
 {
