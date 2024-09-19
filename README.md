@@ -1,7 +1,12 @@
+Features:
+- Componets and Systems are structs
+- Custom unsafe collections
+- Burst and Job support
+
 Upcoming:
-- Cache related optimizations (Archetypes, chunks, memory inlining)
+- CPU cache related optimizations (Archetypes, chunks, memory inlining)
 - Tag components
 - Filtering entities by Any component
-- Built-in state serialization/deserialization
+- Built-in world serialization/deserialization
 - Editor world+entity viewer
 - Unity's Physics package native support
