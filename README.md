@@ -1,7 +1,7 @@
 Features:
-- Componets and Systems are structs
+- struct Componets and Systems
 - Custom unsafe collections
-- Burst and Job support
+- Burst and Unity Job support
 
 Upcoming:
 - CPU cache related optimizations (Archetypes, chunks, memory inlining)
